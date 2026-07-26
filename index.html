@@ -33,7 +33,7 @@
           if (reg) {
             navigator.serviceWorker.register('/sw.js').then(() => {
               navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
-            });
+            }).catch(() => {});
           }
         }).catch(() => {});
       }

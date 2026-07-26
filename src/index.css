@@ -922,6 +922,65 @@ table.pyphone-df-table tr:nth-child(even) {
   min-height: 140px;
 }
 
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+.tab-badge.error {
+  background: #ef4444;
+  color: #fff;
+}
+
+.tab-badge.count {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.console-placeholder {
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.console-running {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.eval-result-box {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-md);
+  padding: 10px 14px;
+  margin-top: 10px;
+}
+
+.result-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent-blue);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.plots-panel-content {
+  min-height: 100px;
+}
+
 /* Sticky Mobile Touch Quick-Keys Keyboard Toolbar (Thumb-Zone Optimized) */
 .mobile-keyboard-toolbar {
   position: fixed;
@@ -1984,7 +2043,7 @@ table.pyphone-df-table tr:nth-child(even) {
   }
 
   .app-canvas-container {
-    padding-bottom: 120px; /* room for keyboard toolbar */
+    padding-bottom: 0;
   }
 
   /* Compact header for small screens */

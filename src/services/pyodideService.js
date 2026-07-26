@@ -124,14 +124,17 @@ def _get_user_variables():
   return loadPromise;
 }
 
+let executionQueue = Promise.resolve();
+
 /**
  * Execute Python code block and return stdout, stderr, plots, and evaluated result
  */
 export async function executePythonCode(codeString) {
-  const pyodide = await initPyodide();
+  const run = async () => {
+    const pyodide = await initPyodide();
 
-  // Reset captured output buffers
-  await pyodide.runPythonAsync(`
+    // Reset captured output buffers
+    await pyodide.runPythonAsync(`
 _captured_plots = []
 _stdout_buf = OutputBuffer()
 _stderr_buf = OutputBuffer()
@@ -139,7 +142,7 @@ sys.stdout = _stdout_buf
 sys.stderr = _stderr_buf
 `);
 
-  let evalResult = null;
+    let evalResult = null;
   let errorMsg = null;
   let isDataFrame = false;
   let dfHtml = null;
@@ -195,6 +198,10 @@ sys.stderr = sys.__stderr__
     isDataFrame,
     dfHtml
   };
+  };
+
+  executionQueue = executionQueue.then(run, run);
+  return executionQueue;
 }
 
 /**

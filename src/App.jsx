@@ -37,6 +37,7 @@ export default function App() {
   const [mode, setMode] = useState(loadLastMode() || 'notebook'); // 'notebook' | 'script'
   const [engineStatus, setEngineStatus] = useState({ status: 'idle', message: 'Initializing Python Engine...' });
   const [activeCellId, setActiveCellId] = useState('cell-1');
+  const [currentProjectId, setCurrentProjectId] = useState(null);
 
   // CodeMirror view registry for programmatic text insertion
   const cmViews = useRef({});
@@ -201,7 +202,7 @@ export default function App() {
   // Run All Cells
   const handleRunAll = async () => {
     if (mode === 'script') {
-      handleRunScript();
+      await handleRunScript();
       return;
     }
 
@@ -254,8 +255,12 @@ export default function App() {
 
   const handleDeleteCell = (id) => {
     if (cells.length <= 1) return;
+    const idx = cells.findIndex((c) => c.id === id);
     setCells((prev) => prev.filter((c) => c.id !== id));
-    setActiveCellId((prev) => prev === id ? null : prev);
+    setActiveCellId((prev) => {
+      if (prev !== id) return prev;
+      return idx > 0 ? cells[idx - 1].id : cells[idx + 1].id;
+    });
   };
 
   const handleMoveCell = (id, direction) => {
@@ -350,15 +355,20 @@ export default function App() {
   // Multi-Project Handlers
   const handleSaveCurrentProject = (title) => {
     const updated = saveProject({
+      id: currentProjectId,
       title,
       type: mode,
       code: scriptCode,
       cells: cells
     });
+    // Capture the id from the newly saved project
+    const saved = updated.find((p) => p.title === title);
+    if (saved) setCurrentProjectId(saved.id);
     setSavedProjects(updated);
   };
 
   const handleLoadProject = (project) => {
+    setCurrentProjectId(project.id);
     if (project.type === 'script') {
       setMode('script');
       if (project.code) setScriptCode(project.code);
