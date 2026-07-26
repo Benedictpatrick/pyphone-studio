@@ -2431,16 +2431,7 @@ table.pyphone-df-table tr:nth-child(even) {
     min-height: 44px;
   }
 
-  /* Export dropdown repositioned for mobile */
-  .framer-export-dropdown {
-    position: fixed;
-    bottom: 130px;
-    right: 8px;
-    top: auto;
-    left: 8px;
-    min-width: auto;
-    border-radius: 16px;
-  }
+
 
   .key-btn {
     min-width: 36px;
