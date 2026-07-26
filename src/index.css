@@ -966,6 +966,7 @@ table.pyphone-df-table tr:nth-child(even) {
   flex-direction: column;
   gap: 5px;
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+  transition: bottom 0.15s ease;
 }
 
 [data-theme="light"] .mobile-keyboard-toolbar {
@@ -1961,24 +1962,6 @@ table.pyphone-df-table tr:nth-child(even) {
 /* ==========================================================
    MOBILE KEYBOARD TOUCH TOOLBAR (fixed bottom bar)
    ========================================================== */
-.mobile-keyboard-toolbar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  background: var(--surface-1);
-  border-top: 1px solid var(--hairline);
-  padding: 6px 4px;
-  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0));
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-[data-theme="light"] .mobile-keyboard-toolbar {
-  background: #f0f2f5;
-}
 
 .toolbar-section {
   display: flex;
@@ -2396,12 +2379,6 @@ table.pyphone-df-table tr:nth-child(even) {
     left: 8px;
     min-width: auto;
     border-radius: 16px;
-  }
-
-  /* Mobile keyboard toolbar padding */
-  .keyboard-toolbar {
-    padding: 6px 4px;
-    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0));
   }
 
   .key-btn {

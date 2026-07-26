@@ -1,7 +1,35 @@
-import React from 'react';
-import { Play, CornerDownLeft, Space, Delete } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play } from 'lucide-react';
 
 export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRunning }) {
+  const [bottom, setBottom] = useState(0);
+  const toolbarRef = useRef(null);
+
+  useEffect(() => {
+    const updatePosition = () => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      // Position toolbar at the bottom of the visible viewport (above keyboard)
+      const toolbarHeight = toolbarRef.current?.offsetHeight || 80;
+      const newBottom = Math.max(0, vv.height + vv.offsetTop - toolbarHeight);
+      setBottom(newBottom);
+    };
+
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', updatePosition);
+      vv.addEventListener('scroll', updatePosition);
+      updatePosition();
+    }
+
+    return () => {
+      if (vv) {
+        vv.removeEventListener('resize', updatePosition);
+        vv.removeEventListener('scroll', updatePosition);
+      }
+    };
+  }, []);
+
   const quickSymbols = [
     ':', '=', '(', ')', '[', ']', '{', '}', '_', '"', "'", '#', ',', '.', '+', '-', '*', '/', '%'
   ];
@@ -21,7 +49,11 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRu
   ];
 
   return (
-    <div className="mobile-keyboard-toolbar">
+    <div
+      className="mobile-keyboard-toolbar"
+      ref={toolbarRef}
+      style={{ bottom: `${bottom}px` }}
+    >
       <div className="toolbar-section symbols-row">
         <button 
           className="kb-run-btn" 
