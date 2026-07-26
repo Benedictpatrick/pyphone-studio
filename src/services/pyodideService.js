@@ -22,29 +22,49 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
       isLoading = true;
       onProgress({ status: 'loading-wasm', message: 'Connecting to Python WASM Engine...' });
 
-      // Poll up to 30 times (9 seconds) for window.loadPyodide script from CDN
+      // Poll up to 15 times (4.5 seconds) for window.loadPyodide script from CDN
       let retries = 0;
-      while (typeof window.loadPyodide !== 'function' && retries < 30) {
+      while (typeof window.loadPyodide !== 'function' && retries < 15) {
         await new Promise((res) => setTimeout(res, 300));
         retries++;
       }
 
+      // If script tag wasn't ready, dynamically inject Pyodide CDN script
       if (typeof window.loadPyodide !== 'function') {
-        throw new Error('Pyodide CDN script failed to load. Please check your internet connection and tap to retry.');
+        onProgress({ status: 'loading-wasm', message: 'Downloading Pyodide WASM runtime...' });
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js';
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load Pyodide CDN script. Please check your network connection.'));
+          document.head.appendChild(script);
+        });
+      }
+
+      if (typeof window.loadPyodide !== 'function') {
+        throw new Error('Pyodide CDN script failed to load. Please check your network connection and tap to retry.');
       }
 
       const pyodide = await window.loadPyodide({
         indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/'
       });
 
-      onProgress({ status: 'loading-packages', message: 'Loading NumPy, Pandas & Matplotlib...' });
+      // Load built-in C-extension packages sequentially for mobile stability
+      onProgress({ status: 'loading-packages', message: 'Loading NumPy...' });
+      await pyodide.loadPackage('numpy');
 
-      // Load built-in C-extension packages
-      await pyodide.loadPackage(['numpy', 'pandas', 'matplotlib', 'micropip']);
+      onProgress({ status: 'loading-packages', message: 'Loading Pandas...' });
+      await pyodide.loadPackage('pandas');
+
+      onProgress({ status: 'loading-packages', message: 'Loading Matplotlib...' });
+      await pyodide.loadPackage('matplotlib');
+
+      onProgress({ status: 'loading-packages', message: 'Loading micropip...' });
+      await pyodide.loadPackage('micropip');
 
       // Attempt Seaborn install safely
       try {
-        onProgress({ status: 'loading-seaborn', message: 'Installing Seaborn via micropip...' });
+        onProgress({ status: 'loading-seaborn', message: 'Installing Seaborn...' });
         await pyodide.runPythonAsync(`
 import micropip
 await micropip.install('seaborn')
@@ -53,13 +73,22 @@ await micropip.install('seaborn')
         console.warn('Optional package (Seaborn) skipped:', seabornErr);
       }
 
-
       onProgress({ status: 'loading-datasets', message: 'Mounting pre-loaded CSV datasets...' });
 
-      // Write sample CSV files into Pyodide virtual FS
+      // Create home directory safely in Pyodide virtual FS
+      try {
+        pyodide.FS.mkdir('/home/pyodide');
+      } catch (_) {}
+
+      // Write sample CSV files into Pyodide virtual FS safely
       for (const key in SAMPLE_DATASETS) {
         const dataset = SAMPLE_DATASETS[key];
-        pyodide.FS.writeFile(`/home/pyodide/${dataset.filename}`, dataset.csv);
+        try {
+          pyodide.FS.writeFile(`/home/pyodide/${dataset.filename}`, dataset.csv);
+          pyodide.FS.writeFile(`/${dataset.filename}`, dataset.csv);
+        } catch (e) {
+          console.warn(`Dataset write skipped for ${dataset.filename}:`, e);
+        }
       }
 
       // Configure Python Matplotlib & Output Interceptors & Variable Inspector
@@ -75,9 +104,12 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+# Set working directory safely
+try:
+    os.chdir('/home/pyodide')
+except Exception:
+    pass
 
-# Set working directory so pd.read_csv('file.csv') resolves to mounted datasets
-os.chdir('/home/pyodide')
 
 # Save original streams BEFORE overriding so we can restore them reliably
 _orig_stdout = sys.stdout
