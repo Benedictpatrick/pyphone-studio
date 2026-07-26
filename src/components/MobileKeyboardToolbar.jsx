@@ -2,17 +2,26 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play } from 'lucide-react';
 
 export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRunning }) {
-  const [bottom, setBottom] = useState(0);
+  const [bottomOffset, setBottomOffset] = useState(0);
   const toolbarRef = useRef(null);
 
   useEffect(() => {
     const updatePosition = () => {
       const vv = window.visualViewport;
       if (!vv) return;
-      // Position toolbar at the bottom of the visible viewport (above keyboard)
-      const toolbarHeight = toolbarRef.current?.offsetHeight || 80;
-      const newBottom = Math.max(0, vv.height + vv.offsetTop - toolbarHeight);
-      setBottom(newBottom);
+
+      const fullHeight = window.innerHeight;
+      const vvHeight = vv.height;
+
+      // Only reposition when keyboard is open (viewport shrunk by more than 25%)
+      const keyboardOpen = vvHeight < fullHeight * 0.75;
+
+      if (keyboardOpen) {
+        const toolbarHeight = toolbarRef.current?.offsetHeight || 80;
+        setBottomOffset(Math.max(0, vvHeight + vv.offsetTop - toolbarHeight));
+      } else {
+        setBottomOffset(0);
+      }
     };
 
     const vv = window.visualViewport;
@@ -52,7 +61,7 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRu
     <div
       className="mobile-keyboard-toolbar"
       ref={toolbarRef}
-      style={{ bottom: `${bottom}px` }}
+      style={bottomOffset > 0 ? { bottom: `${bottomOffset}px` } : undefined}
     >
       <div className="toolbar-section symbols-row">
         <button 
