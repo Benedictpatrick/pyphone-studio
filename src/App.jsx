@@ -597,13 +597,15 @@ export default function App() {
         onClose={() => setSelectedPlotB64(null)}
       />
 
-      <MobileKeyboardToolbar
-        onInsertText={handleInsertText}
-        onRunCurrent={() => mode === 'script' ? handleRunScript() : handleRunCell(activeCellId)}
-        isRunning={mode === 'script'
-          ? isScriptRunning
-          : cells.some((cell) => cell.id === activeCellId && cell.status === 'running')}
-      />
+      {!(isTemplateModalOpen || isSettingsOpen || isProjectsModalOpen || isDatasetModalOpen || isVarExplorerOpen || isCheatSheetOpen || selectedPlotB64) && (
+        <MobileKeyboardToolbar
+          onInsertText={handleInsertText}
+          onRunCurrent={() => mode === 'script' ? handleRunScript() : handleRunCell(activeCellId)}
+          isRunning={mode === 'script'
+            ? isScriptRunning
+            : cells.some((cell) => cell.id === activeCellId && cell.status === 'running')}
+        />
+      )}
 
     </div>
   );

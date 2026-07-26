@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%230099ff%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5%22/></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+
+    <meta name="theme-color" content="#090909" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PyPhone Studio" />
+    <meta name="description" content="Mobile Python IDE for data science — run Pandas, Matplotlib, Seaborn on your phone" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>PyPhone: Studio</title>
+
+    <!-- Local Fonts (offline-ready) -->
+    <style>
+      @font-face { font-family: 'Inter'; font-style: normal; font-weight: 300; font-display: swap; src: url('/fonts/Inter-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/Inter-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Inter'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/Inter-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/Inter-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/Inter-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Inter'; font-style: normal; font-weight: 800; font-display: swap; src: url('/fonts/Inter-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/FiraCode-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/FiraCode-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/FiraCode-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/FiraCode-latin.woff2') format('woff2'); }
+    </style>
+    <!-- Pyodide WASM Engine CDN -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+    <script>
+      // Register service worker for offline caching
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+          .then((reg) => {
+            navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+          })
+          .catch(() => {});
+      }
+    </script>
+    <script type="module" crossorigin src="/assets/index-CIEqkd3e.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CWU4ZYN4.css">
+  <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
+  <body>
+    <div id="root"></div>
+    <script>
+      window.addEventListener('error', (e) => {
+        const root = document.getElementById('root');
+        if (root && !root.children.length) {
+          root.innerHTML = `<div style="padding:20px;font-family:sans-serif;color:#f44"><h2>Error</h2><pre style="white-space:pre-wrap">${e.error?.stack || e.message}</pre></div>`;
+        }
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        const root = document.getElementById('root');
+        if (root && !root.children.length) {
+          root.innerHTML = `<div style="padding:20px;font-family:sans-serif;color:#f44"><h2>Error</h2><pre style="white-space:pre-wrap">${e.reason?.stack || e.reason}</pre></div>`;
+        }
+      });
+    </script>
+  </body>
+</html>
