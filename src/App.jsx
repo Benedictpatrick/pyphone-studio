@@ -179,12 +179,12 @@ export default function App() {
         if (c.id !== cellId) return c;
         return {
           ...c,
-          status: result.success ? 'idle' : 'error',
+          status: result.error ? 'error' : 'idle',
           executionCount: (c.executionCount || 0) + 1,
           output: {
             stdout: result.stdout,
             error: result.error,
-            images: result.images || []
+            images: result.plots || []
           }
         };
       })
@@ -217,7 +217,7 @@ export default function App() {
     setScriptOutput({
       stdout: result.stdout,
       error: result.error,
-      images: result.images || []
+      images: result.plots || []
     });
 
     setIsScriptRunning(false);
