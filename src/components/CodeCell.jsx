@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { 
   Play, 
   Trash2, 
@@ -7,9 +7,12 @@ import {
   Copy, 
   Loader2, 
   AlertCircle, 
-  Image as ImageIcon
+  Image as ImageIcon,
+  Undo2,
+  Eraser
 } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
+import { undo } from '@codemirror/commands';
 import { python } from '@codemirror/lang-python';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
@@ -65,9 +68,29 @@ export default function CodeCell({
   const isRunning = cell.status === 'running';
   const { showLineNumbers = true } = settings;
 
+  const [cmView, setCmView] = useState(null);
+
   const handleCreate = useCallback((view) => {
+    setCmView(view);
     onCodeMirrorReady?.(cell.id, view);
   }, [cell.id, onCodeMirrorReady]);
+
+  const handleUndo = useCallback((e) => {
+    e.stopPropagation();
+    if (cmView) {
+      undo({
+        state: cmView.state,
+        dispatch: cmView.dispatch
+      });
+    }
+  }, [cmView]);
+
+  const handleClear = useCallback((e) => {
+    e.stopPropagation();
+    if (window.confirm("Are you sure you want to clear this cell's code?")) {
+      onUpdateCode(cell.id, '');
+    }
+  }, [cell.id, onUpdateCode]);
 
   return (
     <div 
@@ -101,6 +124,22 @@ export default function CodeCell({
           >
             <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
             <span>Run</span>
+          </button>
+
+          <button
+            className="cell-act-btn icon-only"
+            onClick={handleUndo}
+            title="Undo"
+          >
+            <Undo2 className="w-3.5 h-3.5 text-slate-400" />
+          </button>
+
+          <button
+            className="cell-act-btn icon-only"
+            onClick={handleClear}
+            title="Clear Code"
+          >
+            <Eraser className="w-3.5 h-3.5 text-rose-400" />
           </button>
 
           <button
