@@ -100,15 +100,6 @@ body {
   overscroll-behavior-y: none;
 }
 
-/* Base Layout */
-.app-layout {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  padding-bottom: 110px;
-  background: var(--canvas);
-}
-
 /* Header Navigation Bar */
 .framer-header {
   background: rgba(9, 9, 9, 0.95);
@@ -394,7 +385,7 @@ body {
   border: 1px solid var(--hairline);
   border-radius: var(--rounded-xl);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  z-index: 50;
+  z-index: 95;
   min-width: 210px;
   overflow: hidden;
   padding: 6px;

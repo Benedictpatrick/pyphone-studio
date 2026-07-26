@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { Table, Search, Download, ArrowUpDown } from 'lucide-react';
+import React from 'react';
+import { Table } from 'lucide-react';
 
 export default function DataFrameTable({ htmlContent }) {
-  const [filterText, setFilterText] = useState('');
 
   if (!htmlContent) return null;
 

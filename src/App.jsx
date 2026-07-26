@@ -128,16 +128,16 @@ export default function App() {
 
   // Auto-save notebook & script state
   useEffect(() => {
-    saveNotebookState(cells);
-  }, [cells]);
+    if (editorSettings.autoSave) saveNotebookState(cells);
+  }, [cells, editorSettings.autoSave]);
 
   useEffect(() => {
-    saveScriptState(scriptCode);
-  }, [scriptCode]);
+    if (editorSettings.autoSave) saveScriptState(scriptCode);
+  }, [scriptCode, editorSettings.autoSave]);
 
   useEffect(() => {
-    saveLastMode(mode);
-  }, [mode]);
+    if (editorSettings.autoSave) saveLastMode(mode);
+  }, [mode, editorSettings.autoSave]);
 
   // Refresh Python variables helper
   const handleRefreshVariables = async () => {
@@ -255,6 +255,7 @@ export default function App() {
   const handleDeleteCell = (id) => {
     if (cells.length <= 1) return;
     setCells((prev) => prev.filter((c) => c.id !== id));
+    setActiveCellId((prev) => prev === id ? null : prev);
   };
 
   const handleMoveCell = (id, direction) => {
