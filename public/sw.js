@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pyphone-studio-v2';
+const CACHE_NAME = 'pyphone-studio-v3';
 
 const STATIC_ASSETS = [
   '/',
