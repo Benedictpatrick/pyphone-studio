@@ -13,12 +13,13 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRu
       const fullHeight = window.innerHeight;
       const vvHeight = vv.height;
 
-      // Only reposition when keyboard is open (viewport shrunk by more than 25%)
-      const keyboardOpen = vvHeight < fullHeight * 0.75;
+      // Keyboard is open when visual viewport is smaller than layout viewport
+      const keyboardOpen = vvHeight < fullHeight * 0.85;
 
       if (keyboardOpen) {
-        const toolbarHeight = toolbarRef.current?.offsetHeight || 80;
-        setBottomOffset(Math.max(0, vvHeight + vv.offsetTop - toolbarHeight));
+        // Place toolbar at the bottom edge of the visible viewport
+        const offset = fullHeight - (vv.offsetTop + vvHeight);
+        setBottomOffset(Math.max(0, offset));
       } else {
         setBottomOffset(0);
       }

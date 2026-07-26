@@ -120,7 +120,6 @@ body {
   z-index: 40;
   padding: 10px 14px;
   transition: background 0.25s ease, border-color 0.25s ease;
-  overflow: hidden;
 }
 
 [data-theme="light"] .framer-header {
@@ -972,10 +971,10 @@ table.pyphone-df-table tr:nth-child(even) {
   -webkit-backdrop-filter: blur(14px);
   border-top: 1px solid var(--hairline);
   z-index: 90;
-  padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+  padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
   transition: bottom 0.15s ease;
 }
@@ -987,7 +986,7 @@ table.pyphone-df-table tr:nth-child(even) {
 .toolbar-section {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1003,15 +1002,15 @@ table.pyphone-df-table tr:nth-child(even) {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 8px 14px;
+  padding: 6px 12px;
   background: var(--primary);
   color: var(--on-primary);
   border: none;
   border-radius: var(--rounded-md);
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   flex-shrink: 0;
-  min-height: 42px;
+  min-height: 34px;
   touch-action: manipulation;
   transition: transform 0.1s ease;
 }
@@ -1021,18 +1020,18 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 .kb-key-btn {
-  padding: 8px 12px;
+  padding: 5px 9px;
   font-family: var(--font-mono);
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   font-weight: 600;
   background: var(--surface-1);
   color: var(--ink);
   border: 1px solid var(--hairline);
-  border-radius: var(--rounded-md);
+  border-radius: var(--rounded-sm);
   flex-shrink: 0;
   cursor: pointer;
-  min-width: 40px;
-  min-height: 42px;
+  min-width: 32px;
+  min-height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1047,11 +1046,11 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 .shortcut-btn {
-  font-size: 0.76rem;
+  font-size: 0.7rem;
   color: var(--accent-blue);
   background: var(--surface-2);
   border-color: var(--hairline);
-  padding: 8px 12px;
+  padding: 5px 9px;
 }
 
 /* Modals & Bottom Sheets */
