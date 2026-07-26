@@ -15,6 +15,7 @@ import {
   Settings
 } from 'lucide-react';
 import PyPhoneStudioLogo from './PyPhoneStudioLogo';
+import { hapticLight } from '../utils/haptics';
 
 export default function Header({
   mode,
@@ -58,7 +59,7 @@ export default function Header({
         <div className="header-top-actions">
           <button 
             className="theme-toggle-btn"
-            onClick={onToggleTheme}
+            onClick={() => { hapticLight(); onToggleTheme(); }}
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
           >
             {theme === 'dark' ? (
@@ -69,7 +70,7 @@ export default function Header({
           </button>
           <button 
             className="theme-toggle-btn"
-            onClick={onOpenSettings}
+            onClick={() => { hapticLight(); onOpenSettings(); }}
             title="Settings"
           >
             <Settings className="w-3.5 h-3.5 tb-icon" />
@@ -83,14 +84,14 @@ export default function Header({
         <div className="framer-mode-toggle">
           <button
             className={`framer-mode-btn ${mode === 'notebook' ? 'active' : ''}`}
-            onClick={() => setMode('notebook')}
+            onClick={() => { hapticLight(); setMode('notebook'); }}
           >
             <BookOpen className="w-3.5 h-3.5" />
             <span>Notebook</span>
           </button>
           <button
             className={`framer-mode-btn ${mode === 'script' ? 'active' : ''}`}
-            onClick={() => setMode('script')}
+            onClick={() => { hapticLight(); setMode('script'); }}
           >
             <Code2 className="w-3.5 h-3.5" />
             <span>Script</span>
@@ -111,6 +112,7 @@ export default function Header({
         <button
           className="engine-status-dot-btn"
           onClick={() => {
+            hapticLight();
             if (engineStatus.status === 'error') {
               onRetryEngine?.();
             }
@@ -139,7 +141,7 @@ export default function Header({
         {/* My Projects Button */}
         <button 
           className="framer-btn-secondary projects-ribbon-btn" 
-          onClick={onOpenProjects}
+          onClick={() => { hapticLight(); onOpenProjects(); }}
           title="My Saved Programs & Projects"
         >
           <FolderCode className="w-3.5 h-3.5 text-blue-400" />

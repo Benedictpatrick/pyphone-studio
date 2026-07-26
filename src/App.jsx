@@ -11,6 +11,8 @@ import CheatSheetModal from './components/CheatSheetModal';
 import SavedProjectsModal from './components/SavedProjectsModal';
 import SettingsModal from './components/SettingsModal';
 
+import { hapticLight, hapticMedium, hapticSuccess, hapticError } from './utils/haptics';
+
 import { initPyodide, executePythonCode, getActiveVariables } from './services/pyodideService';
 import { PYTHON_TEMPLATES } from './templates/pythonTemplates';
 import { exportToHtmlReport } from './services/htmlExportService';
@@ -226,6 +228,7 @@ export default function App() {
     setCells((prev) =>
       prev.map((c) => (c.id === cellId ? { ...c, status: 'running', output: null } : c))
     );
+    hapticMedium();
 
     try {
       const result = await executePythonCode(cellToRun.code);
@@ -248,15 +251,22 @@ export default function App() {
       );
 
       handleRefreshVariables();
+      if (result.error) {
+        hapticError();
+      } else {
+        hapticSuccess();
+      }
     } catch (err) {
       setCells((prev) =>
         prev.map((c) => (c.id === cellId ? { ...c, status: 'error', output: { error: err.message } } : c))
       );
+      hapticError();
     }
   };
 
   // Run All Cells
   const handleRunAll = async () => {
+    hapticMedium();
     if (mode === 'script') {
       await handleRunScript();
       return;
@@ -273,6 +283,7 @@ export default function App() {
   const handleRunScript = async () => {
     setIsScriptRunning(true);
     setScriptOutput(null);
+    hapticMedium();
 
     try {
       const result = await executePythonCode(scriptCode);
@@ -285,16 +296,23 @@ export default function App() {
         isDataFrame: result.isDataFrame || false,
         dfHtml: result.dfHtml || null
       });
+      if (result.error) {
+        hapticError();
+      } else {
+        hapticSuccess();
+      }
     } catch (err) {
       setScriptOutput({ error: err.message });
+      hapticError();
+    } finally {
+      setIsScriptRunning(false);
+      handleRefreshVariables();
     }
-
-    setIsScriptRunning(false);
-    handleRefreshVariables();
   };
 
   // Add / Delete / Move Cells
   const handleAddCell = (type = 'code') => {
+    hapticSelection();
     const newId = `cell-${Date.now()}`;
     const newCell = {
       id: newId,

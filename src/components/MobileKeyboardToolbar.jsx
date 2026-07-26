@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Play } from 'lucide-react';
+import { hapticLight, hapticMedium } from '../utils/haptics';
 
 export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRunning }) {
   const toolbarRef = useRef(null);
@@ -84,7 +85,10 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRu
       <div className="toolbar-section">
         <button
           className="kb-run-btn"
-          onClick={onRunCurrent}
+          onClick={() => {
+            hapticMedium();
+            onRunCurrent();
+          }}
           disabled={isRunning}
           title="Run Current Code"
         >
@@ -96,7 +100,10 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRu
           <button
             key={`sym-${idx}`}
             className="kb-key-btn symbol-btn"
-            onClick={() => onInsertText(sym)}
+            onClick={() => {
+              hapticLight();
+              onInsertText(sym);
+            }}
           >
             {sym}
           </button>
@@ -108,7 +115,10 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRu
           <button
             key={`sc-${idx}`}
             className="kb-key-btn shortcut-btn"
-            onClick={() => onInsertText(sc.text)}
+            onClick={() => {
+              hapticLight();
+              onInsertText(sc.text);
+            }}
           >
             {sc.label}
           </button>

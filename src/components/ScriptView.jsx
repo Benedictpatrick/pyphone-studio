@@ -11,6 +11,7 @@ import {
   Undo2,
   Eraser
 } from 'lucide-react';
+import { hapticLight } from '../utils/haptics';
 import CodeMirror from '@uiw/react-codemirror';
 import { undo } from '@codemirror/commands';
 import { python } from '@codemirror/lang-python';
@@ -100,13 +101,13 @@ export default function ScriptView({
         </div>
 
         <div className="editor-actions">
-          <button className="framer-btn-secondary icon-only-btn" onClick={handleUndo} title="Undo">
+          <button className="framer-btn-secondary icon-only-btn" onClick={() => { hapticLight(); handleUndo(); }} title="Undo">
             <Undo2 className="w-4 h-4 text-slate-400" />
           </button>
-          <button className="framer-btn-secondary icon-only-btn" onClick={handleClear} title="Clear Script">
+          <button className="framer-btn-secondary icon-only-btn" onClick={() => { hapticLight(); handleClear(); }} title="Clear Script">
             <Eraser className="w-4 h-4 text-rose-400" />
           </button>
-          <button className="framer-btn-secondary icon-only-btn" onClick={handleCopyCode} title="Copy Python Script">
+          <button className="framer-btn-secondary icon-only-btn" onClick={() => { hapticLight(); handleCopyCode(); }} title="Copy Python Script">
             {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-blue-400" />}
           </button>
           <button 

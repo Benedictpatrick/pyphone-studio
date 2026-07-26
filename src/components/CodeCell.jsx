@@ -8,11 +8,13 @@ import {
   Loader2, 
   AlertCircle, 
   Image as ImageIcon,
+  MoreVertical,
   Undo2,
   Eraser
 } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { undo } from '@codemirror/commands';
+import { hapticLight } from '../utils/haptics';
 import { python } from '@codemirror/lang-python';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
@@ -128,7 +130,10 @@ export default function CodeCell({
 
           <button
             className="cell-act-btn icon-only"
-            onClick={handleUndo}
+            onClick={(e) => {
+              hapticLight();
+              handleUndo(e);
+            }}
             title="Undo"
           >
             <Undo2 className="w-3.5 h-3.5 text-slate-400" />
@@ -136,7 +141,10 @@ export default function CodeCell({
 
           <button
             className="cell-act-btn icon-only"
-            onClick={handleClear}
+            onClick={(e) => {
+              hapticLight();
+              handleClear(e);
+            }}
             title="Clear Code"
           >
             <Eraser className="w-3.5 h-3.5 text-rose-400" />
@@ -146,6 +154,7 @@ export default function CodeCell({
             className="cell-act-btn icon-only"
             onClick={(e) => {
               e.stopPropagation();
+              hapticLight();
               onMoveCell(cell.id, 'up');
             }}
             disabled={index === 0}
@@ -158,6 +167,7 @@ export default function CodeCell({
             className="cell-act-btn icon-only"
             onClick={(e) => {
               e.stopPropagation();
+              hapticLight();
               onMoveCell(cell.id, 'down');
             }}
             disabled={index === totalCells - 1}
@@ -170,6 +180,7 @@ export default function CodeCell({
             className="cell-act-btn icon-only"
             onClick={(e) => {
               e.stopPropagation();
+              hapticLight();
               onDuplicateCell(cell.id);
             }}
             title="Duplicate Cell"
@@ -179,9 +190,10 @@ export default function CodeCell({
 
           {totalCells > 1 && (
             <button
-              className="cell-act-btn icon-only delete-btn"
+              className="cell-act-btn icon-only text-rose-400 hover:bg-rose-500/10"
               onClick={(e) => {
                 e.stopPropagation();
+                hapticLight();
                 onDeleteCell(cell.id);
               }}
               title="Delete Cell"
