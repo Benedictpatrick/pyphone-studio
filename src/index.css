@@ -547,7 +547,11 @@ body {
   font-family: var(--font-mono);
   font-size: 15px;
   line-height: 1.6;
+  /* Allow horizontal scrolling when wordWrap is off so lines aren't clipped */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
+
 
 .code-cell-cm .cm-line,
 .script-cm-editor .cm-line {

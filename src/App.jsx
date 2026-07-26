@@ -95,9 +95,10 @@ export default function App() {
   const [editorSettings, setEditorSettings] = useState(() => {
     try {
       const saved = localStorage.getItem('pyphone_editor_settings');
-      return saved ? JSON.parse(saved) : { fontSize: 15, tabSize: 4, wordWrap: false, autoSave: true, showLineNumbers: true };
+      return saved ? JSON.parse(saved) : { fontSize: 15, tabSize: 4, wordWrap: true, autoSave: true, showLineNumbers: true };
     } catch {
-      return { fontSize: 15, tabSize: 4, wordWrap: false, autoSave: true, showLineNumbers: true };
+      return { fontSize: 15, tabSize: 4, wordWrap: true, autoSave: true, showLineNumbers: true };
+
     }
   });
 
