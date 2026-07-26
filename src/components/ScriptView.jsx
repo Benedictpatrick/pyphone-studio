@@ -97,7 +97,6 @@ export default function ScriptView({
       <div className="pycharm-toolbar">
         <div className="file-info">
           <span className="file-name">main.py</span>
-          <span className="file-tag">PyCharm Mode</span>
         </div>
 
         <div className="editor-actions">
