@@ -169,28 +169,32 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: var(--rounded-pill);
   background: var(--surface-1);
   border: 1px solid var(--hairline);
-  font-size: 0.72rem;
-  font-weight: 500;
+  font-size: 0.74rem;
+  font-weight: 600;
   color: var(--ink);
+  white-space: nowrap;
+  letter-spacing: -0.1px;
 }
 
 .blue-status-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background-color: var(--accent-blue);
-  box-shadow: 0 0 8px var(--accent-blue);
+  flex-shrink: 0;
+  box-shadow: none;
 }
 
 .red-status-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background-color: #ef4444;
+  flex-shrink: 0;
 }
 
 /* Single Continuous Touch Action Ribbon */
