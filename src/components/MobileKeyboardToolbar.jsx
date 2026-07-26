@@ -5,35 +5,59 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRu
   const toolbarRef = useRef(null);
 
   useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
+    const el = toolbarRef.current;
+    if (!el) return;
 
-    const reposition = () => {
-      const el = toolbarRef.current;
-      if (!el) return;
+    const updatePosition = () => {
+      const vv = window.visualViewport;
+      if (!vv) {
+        el.style.bottom = '0px';
+        el.style.top = 'auto';
+        return;
+      }
 
-      const toolbarH = el.offsetHeight;
-      // Anchor toolbar to the bottom edge of the visual viewport (above keyboard)
-      const newTop = vv.offsetTop + vv.height - toolbarH;
-      el.style.top = `${newTop}px`;
+      // Calculate distance from bottom of visual viewport to bottom of layout window
+      const layoutHeight = window.innerHeight;
+      const visibleBottom = vv.offsetTop + vv.height;
+      const bottomOffset = Math.max(0, Math.round(layoutHeight - visibleBottom));
+
+      el.style.bottom = `${bottomOffset}px`;
+      el.style.top = 'auto';
       el.style.left = `${vv.offsetLeft}px`;
       el.style.width = `${vv.width}px`;
-      // Clear any previous bottom style
-      el.style.bottom = 'auto';
     };
 
-    vv.addEventListener('resize', reposition);
-    vv.addEventListener('scroll', reposition);
-    window.addEventListener('resize', reposition);
-    // Run once immediately and after a tiny delay to catch first paint height
-    reposition();
-    const t = setTimeout(reposition, 80);
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', updatePosition);
+      vv.addEventListener('scroll', updatePosition);
+    }
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition);
+
+    // Reposition on focus/blur events across the document
+    const handleFocusIn = () => {
+      setTimeout(updatePosition, 50);
+      setTimeout(updatePosition, 150);
+      setTimeout(updatePosition, 300);
+    };
+
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusIn);
+
+    updatePosition();
+    const timer = setTimeout(updatePosition, 100);
 
     return () => {
-      vv.removeEventListener('resize', reposition);
-      vv.removeEventListener('scroll', reposition);
-      window.removeEventListener('resize', reposition);
-      clearTimeout(t);
+      if (vv) {
+        vv.removeEventListener('resize', updatePosition);
+        vv.removeEventListener('scroll', updatePosition);
+      }
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition);
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusIn);
+      clearTimeout(timer);
     };
   }, []);
 
