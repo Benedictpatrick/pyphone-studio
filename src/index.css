@@ -22,6 +22,18 @@
   --editor-text: #f0f6fc;
   --code-keyword: #a5d6ff;
 
+  /* Python syntax highlighting (dark) */
+  --py-keyword: #a5d6ff;
+  --py-string: #a8e6cf;
+  --py-comment: #8b949e;
+  --py-number: #f08d49;
+  --py-function: #d2a8ff;
+  --py-definition: #ff7b72;
+  --py-type: #ffa657;
+  --py-operator: #ff7b72;
+  --py-punctuation: #e6edf3;
+  --py-bracket: #e6edf3;
+
   --rounded-xs: 4px;
   --rounded-sm: 6px;
   --rounded-md: 10px;
@@ -29,6 +41,8 @@
   --rounded-xl: 20px;
   --rounded-xxl: 30px;
   --rounded-pill: 100px;
+
+  --rounded-action: 10px;
   --rounded-full: 9999px;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -54,6 +68,18 @@
   --editor-bg: #f8fafc;
   --editor-text: #0f172a;
   --code-keyword: #0284c7;
+
+  /* Python syntax highlighting (light) */
+  --py-keyword: #0550ae;
+  --py-string: #0a3069;
+  --py-comment: #6e7781;
+  --py-number: #cf222e;
+  --py-function: #8250df;
+  --py-definition: #cf222e;
+  --py-type: #953800;
+  --py-operator: #cf222e;
+  --py-punctuation: #1f2328;
+  --py-bracket: #1f2328;
 }
 
 * {
@@ -96,6 +122,7 @@ body {
   z-index: 40;
   padding: 10px 14px;
   transition: background 0.25s ease, border-color 0.25s ease;
+  overflow: visible;
 }
 
 [data-theme="light"] .framer-header {
@@ -107,6 +134,7 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
+  overflow: visible;
 }
 
 .brand-container {
@@ -185,17 +213,18 @@ body {
 .status-indicators {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .status-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-size: 0.76rem;
   font-weight: 500;
   color: var(--ink-muted);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status-item.engine-item {
@@ -280,7 +309,7 @@ body {
   padding: 8px 16px;
   font-size: 0.8rem;
   font-weight: 600;
-  border-radius: var(--rounded-pill);
+  border-radius: var(--rounded-md);
   background: var(--primary);
   color: var(--on-primary);
   border: none;
@@ -310,7 +339,7 @@ body {
   padding: 8px 12px;
   font-size: 0.76rem;
   font-weight: 500;
-  border-radius: var(--rounded-pill);
+  border-radius: var(--rounded-md);
   border: 1px solid var(--hairline);
   background: var(--surface-1);
   color: var(--ink);
@@ -328,8 +357,9 @@ body {
 }
 
 .theme-toggle-btn {
-  padding: 6px 10px;
-  min-height: 34px;
+  padding: 5px 8px;
+  min-height: 32px;
+  min-width: 32px;
 }
 
 .icon-only-btn {
@@ -437,7 +467,7 @@ body {
   gap: 4px;
   padding: 6px 10px;
   font-size: 0.74rem;
-  border-radius: var(--rounded-pill);
+  border-radius: var(--rounded-md);
   background: var(--surface-2);
   border: 1px solid var(--hairline);
   color: var(--ink);
@@ -467,8 +497,7 @@ body {
   position: relative;
 }
 
-.code-cell-textarea,
-.script-textarea {
+.code-cell-textarea {
   width: 100%;
   background: var(--editor-bg);
   color: var(--editor-text);
@@ -481,6 +510,74 @@ body {
   resize: vertical;
   tab-size: 4;
   -webkit-appearance: none;
+}
+
+/* CodeMirror editor overrides */
+.code-cell-cm .cm-editor,
+.script-cm-editor .cm-editor {
+  background: var(--editor-bg);
+  color: var(--editor-text);
+  font-family: var(--font-mono);
+  font-size: 15px;
+}
+
+.code-cell-cm .cm-editor.cm-focused,
+.script-cm-editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+.code-cell-cm .cm-content,
+.script-cm-editor .cm-content {
+  padding: 12px 14px;
+  caret-color: var(--accent-blue);
+  line-height: 1.6;
+}
+
+.code-cell-cm .cm-scroller,
+.script-cm-editor .cm-scroller {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.code-cell-cm .cm-line,
+.script-cm-editor .cm-line {
+  padding: 0;
+}
+
+.code-cell-cm .cm-cursor,
+.script-cm-editor .cm-cursor {
+  border-left-color: var(--accent-blue);
+}
+
+.code-cell-cm .cm-selectionBackground,
+.script-cm-editor .cm-selectionBackground,
+.code-cell-cm.cm-focused .cm-selectionBackground,
+.script-cm-editor.cm-focused .cm-selectionBackground {
+  background: rgba(0, 153, 255, 0.15) !important;
+}
+
+.code-cell-cm .cm-placeholder,
+.script-cm-editor .cm-placeholder {
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+.code-cell-cm .cm-activeLine,
+.script-cm-editor .cm-activeLine {
+  background: transparent;
+}
+
+/* CodeMirror gutters (line numbers for script view) */
+.script-cm-editor .cm-gutters {
+  background: var(--canvas);
+  border-right: 1px solid var(--hairline);
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.script-cm-editor .cm-activeLineGutter {
+  background: var(--surface-2);
 }
 
 .markdown-input {
@@ -733,7 +830,7 @@ table.pyphone-df-table tr:nth-child(even) {
   display: flex;
   align-items: center;
   padding: 10px 18px;
-  border-radius: var(--rounded-pill);
+  border-radius: var(--rounded-md);
   background: var(--surface-1);
   border: 1px solid var(--hairline);
   color: var(--ink);
@@ -802,21 +899,6 @@ table.pyphone-df-table tr:nth-child(even) {
   border-radius: var(--rounded-xl);
   overflow: hidden;
   min-height: 260px;
-}
-
-.line-numbers-gutter {
-  padding: 12px 8px;
-  background: var(--surface-1);
-  border-right: 1px solid var(--hairline);
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: var(--ink-muted);
-  text-align: right;
-  user-select: none;
-}
-
-.line-num {
-  line-height: 1.6;
 }
 
 .pycharm-output-panel {
@@ -905,7 +987,7 @@ table.pyphone-df-table tr:nth-child(even) {
   background: var(--primary);
   color: var(--on-primary);
   border: none;
-  border-radius: var(--rounded-pill);
+  border-radius: var(--rounded-md);
   font-weight: 700;
   font-size: 0.78rem;
   flex-shrink: 0;
@@ -1242,11 +1324,11 @@ table.pyphone-df-table tr:nth-child(even) {
   align-items: center;
   gap: 4px;
   padding: 6px 12px;
+
   font-size: 0.72rem;
   font-weight: 600;
   background: var(--surface-2);
-  border: 1px solid var(--hairline);
-  border-radius: var(--rounded-pill);
+  border-radius: var(--rounded-md);
   color: var(--accent-blue);
   cursor: pointer;
   min-height: 34px;
@@ -1391,8 +1473,7 @@ table.pyphone-df-table tr:nth-child(even) {
   font-size: 0.76rem;
   font-weight: 600;
   background: var(--surface-2);
-  border: 1px solid var(--hairline);
-  border-radius: var(--rounded-pill);
+  border-radius: var(--rounded-md);
   color: var(--ink);
   cursor: pointer;
   min-height: 40px;
@@ -1662,7 +1743,7 @@ table.pyphone-df-table tr:nth-child(even) {
   padding: 10px 16px;
   font-size: 0.8rem;
   font-weight: 600;
-  border-radius: var(--rounded-pill);
+  border-radius: var(--rounded-md);
   border: 1px dashed var(--hairline);
   background: transparent;
   color: var(--ink-muted);
@@ -1723,7 +1804,7 @@ table.pyphone-df-table tr:nth-child(even) {
   padding: 6px 12px;
   font-size: 0.76rem;
   font-weight: 700;
-  border-radius: var(--rounded-pill);
+  border-radius: var(--rounded-md);
   background: var(--primary);
   color: var(--on-primary);
   border: none;
@@ -1774,8 +1855,7 @@ table.pyphone-df-table tr:nth-child(even) {
 /* Python shortcut buttons (import, pd, plt, etc.) */
 .shortcut-btn {
   padding: 5px 10px;
-  min-height: 34px;
-  border-radius: var(--rounded-pill);
+  border-radius: var(--rounded-md);
   font-size: 0.74rem;
   font-weight: 600;
   font-family: var(--font-mono);
@@ -1959,20 +2039,10 @@ table.pyphone-df-table tr:nth-child(even) {
   }
 
   /* Editor font — 16px prevents iOS auto-zoom on focus */
-  .code-cell-textarea,
-  .script-textarea {
+  .code-cell-textarea {
     font-size: 16px;
     padding: 10px 8px;
     line-height: 1.55;
-  }
-
-  .line-numbers-gutter {
-    padding: 10px 4px;
-    min-width: 28px;
-  }
-
-  .line-num {
-    font-size: 0.68rem;
   }
 
   /* PyCharm toolbar compact */
@@ -2224,8 +2294,7 @@ table.pyphone-df-table tr:nth-child(even) {
     min-height: 32px;
   }
 
-  .code-cell-textarea,
-  .script-textarea {
+  .code-cell-textarea {
     font-size: 16px; /* Never below 16px — prevents iOS zoom */
     padding: 8px 6px;
   }

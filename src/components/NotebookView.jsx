@@ -1,7 +1,7 @@
 import React from 'react';
 import CodeCell from './CodeCell';
 import MarkdownCell from './MarkdownCell';
-import { Plus, Type, Code } from 'lucide-react';
+import { Type, Code } from 'lucide-react';
 
 export default function NotebookView({
   cells,
@@ -13,7 +13,8 @@ export default function NotebookView({
   onDuplicateCell,
   onOpenPlotModal,
   activeCellId,
-  setActiveCellId
+  setActiveCellId,
+  onCodeMirrorReady
 }) {
   return (
     <div className="notebook-view-container">
@@ -50,6 +51,7 @@ export default function NotebookView({
               onOpenPlotModal={onOpenPlotModal}
               activeCellId={activeCellId}
               setActiveCellId={setActiveCellId}
+              onCodeMirrorReady={onCodeMirrorReady}
             />
           );
         })}

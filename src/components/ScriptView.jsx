@@ -1,16 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
   Play, 
   Terminal, 
   Image as ImageIcon, 
   Table, 
-  RotateCcw, 
   Copy, 
   Check, 
   Loader2, 
   AlertCircle 
 } from 'lucide-react';
+import CodeMirror from '@uiw/react-codemirror';
+import { python } from '@codemirror/lang-python';
+import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
+import { tags } from '@lezer/highlight';
+import { EditorView } from '@codemirror/view';
 import DataFrameTable from './DataFrameTable';
+
+const pyHighlightStyle = HighlightStyle.define([
+  { tag: tags.keyword, color: 'var(--py-keyword)', fontWeight: '600' },
+  { tag: tags.string, color: 'var(--py-string)' },
+  { tag: tags.comment, color: 'var(--py-comment)', fontStyle: 'italic' },
+  { tag: tags.number, color: 'var(--py-number)' },
+  { tag: tags.function(tags.name), color: 'var(--py-function)' },
+  { tag: tags.definition(tags.name), color: 'var(--py-definition)' },
+  { tag: tags.typeName, color: 'var(--py-type)' },
+  { tag: tags.operator, color: 'var(--py-operator)' },
+  { tag: tags.punctuation, color: 'var(--py-punctuation)' },
+  { tag: tags.bracket, color: 'var(--py-bracket)' },
+]);
+
+const cmTheme = EditorView.theme({
+  '&': { backgroundColor: 'transparent', height: 'auto' },
+  '.cm-scroller': { minHeight: '200px' },
+});
+
+const cmExtensions = [python(), syntaxHighlighting(pyHighlightStyle), cmTheme, EditorView.lineWrapping];
 
 export default function ScriptView({
   scriptCode,
@@ -18,9 +42,10 @@ export default function ScriptView({
   scriptOutput,
   isRunning,
   onRunScript,
-  onOpenPlotModal
+  onOpenPlotModal,
+  onCodeMirrorReady
 }) {
-  const [activeTab, setActiveTab] = useState('console'); // 'console' | 'plots' | 'dataframe'
+  const [activeTab, setActiveTab] = useState('console');
   const [copied, setCopied] = useState(false);
 
   const handleCopyCode = () => {
@@ -29,8 +54,9 @@ export default function ScriptView({
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const lineCount = Math.max(15, scriptCode.split('\n').length);
-  const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
+  const handleCreate = useCallback((view) => {
+    onCodeMirrorReady?.('script', view);
+  }, [onCodeMirrorReady]);
 
   return (
     <div className="script-view-container">
@@ -67,21 +93,21 @@ export default function ScriptView({
 
       {/* Script Code Area */}
       <div className="pycharm-editor-wrapper">
-        <div className="line-numbers-gutter">
-          {lineNumbers.map(n => (
-            <div key={n} className="line-num">{n}</div>
-          ))}
-        </div>
-        <textarea
-          id="pycharm-script-textarea"
-          className="script-textarea"
+        <CodeMirror
           value={scriptCode}
-          onChange={(e) => setScriptCode(e.target.value)}
+          onChange={(val) => setScriptCode(val)}
+          extensions={cmExtensions}
+          onCreateEditor={handleCreate}
+          basicSetup={{
+            lineNumbers: true,
+            foldGutter: false,
+            indentOnInput: true,
+            highlightActiveLine: true,
+            autocompletion: false
+          }}
           placeholder="# Write full Python script here..."
-          rows={lineCount}
-          spellCheck={false}
-          autoCapitalize="none"
-          autoCorrect="off"
+          className="script-cm-editor"
+          theme="none"
         />
       </div>
 

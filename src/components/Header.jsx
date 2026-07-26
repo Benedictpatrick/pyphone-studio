@@ -8,7 +8,6 @@ import {
   Download, 
   Loader2, 
   Plus, 
-  Sparkles,
   Layers,
   FileText,
   CheckCircle,
@@ -172,7 +171,7 @@ export default function Header({
           onClick={onOpenTemplates}
           title="Starter Python Code Examples"
         >
-          <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+          <FileCode className="w-3.5 h-3.5 text-blue-400" />
           <span>Templates</span>
         </button>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Header from './components/Header';
 import NotebookView from './components/NotebookView';
 import ScriptView from './components/ScriptView';
@@ -36,6 +36,12 @@ export default function App() {
   const [mode, setMode] = useState(loadLastMode() || 'notebook'); // 'notebook' | 'script'
   const [engineStatus, setEngineStatus] = useState({ status: 'idle', message: 'Initializing Python Engine...' });
   const [activeCellId, setActiveCellId] = useState('cell-1');
+
+  // CodeMirror view registry for programmatic text insertion
+  const cmViews = useRef({});
+  const handleCodeMirrorReady = useCallback((id, view) => {
+    cmViews.current[id] = view;
+  }, []);
 
   // Saved Projects state
   const [savedProjects, setSavedProjects] = useState(() => getSavedProjects());
@@ -121,46 +127,18 @@ export default function App() {
     setActiveVariables(vars);
   };
 
-  // Keyboard text insertion helper
+  // Keyboard text insertion helper (CodeMirror API)
   const handleInsertText = (textToInsert) => {
-    if (mode === 'notebook') {
-      if (!activeCellId) return;
-      setCells((prev) =>
-        prev.map((cell) => {
-          if (cell.id !== activeCellId) return cell;
+    const viewKey = mode === 'notebook' ? activeCellId : 'script';
+    const view = cmViews.current[viewKey];
+    if (!view) return;
 
-          const textarea = document.getElementById(`cell-textarea-${cell.id}`);
-          if (!textarea) return { ...cell, code: cell.code + textToInsert };
-
-          const start = textarea.selectionStart;
-          const end = textarea.selectionEnd;
-          const newCode = cell.code.substring(0, start) + textToInsert + cell.code.substring(end);
-
-          setTimeout(() => {
-            textarea.focus();
-            textarea.setSelectionRange(start + textToInsert.length, start + textToInsert.length);
-          }, 50);
-
-          return { ...cell, code: newCode };
-        })
-      );
-    } else {
-      const textarea = document.getElementById('pycharm-script-textarea');
-      if (!textarea) {
-        setScriptCode((prev) => prev + textToInsert);
-        return;
-      }
-
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newCode = scriptCode.substring(0, start) + textToInsert + scriptCode.substring(end);
-
-      setScriptCode(newCode);
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start + textToInsert.length, start + textToInsert.length);
-      }, 50);
-    }
+    view.focus();
+    const { from, to } = view.state.selection.main;
+    view.dispatch({
+      changes: { from, to, insert: textToInsert },
+      selection: { anchor: from + textToInsert.length }
+    });
   };
 
   // Run Notebook Cell
@@ -418,15 +396,17 @@ export default function App() {
               setCells((prev) => prev.map((c) => (c.id === id ? { ...c, code } : c)))
             }
             onOpenPlotModal={(b64) => setSelectedPlotB64(b64)}
+            onCodeMirrorReady={handleCodeMirrorReady}
           />
         ) : (
           <ScriptView
             scriptCode={scriptCode}
             setScriptCode={setScriptCode}
             scriptOutput={scriptOutput}
-            isScriptRunning={isScriptRunning}
+            isRunning={isScriptRunning}
             onRunScript={handleRunScript}
             onOpenPlotModal={(b64) => setSelectedPlotB64(b64)}
+            onCodeMirrorReady={handleCodeMirrorReady}
           />
         )}
       </main>

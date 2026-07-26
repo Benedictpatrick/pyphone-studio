@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { 
   Play, 
   Trash2, 
@@ -9,8 +9,33 @@ import {
   AlertCircle, 
   Image as ImageIcon
 } from 'lucide-react';
+import CodeMirror from '@uiw/react-codemirror';
+import { python } from '@codemirror/lang-python';
+import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
+import { tags } from '@lezer/highlight';
+import { EditorView } from '@codemirror/view';
 import DataFrameTable from './DataFrameTable';
 import ErrorExplainerBox from './ErrorExplainerBox';
+
+const pyHighlightStyle = HighlightStyle.define([
+  { tag: tags.keyword, color: 'var(--py-keyword)', fontWeight: '600' },
+  { tag: tags.string, color: 'var(--py-string)' },
+  { tag: tags.comment, color: 'var(--py-comment)', fontStyle: 'italic' },
+  { tag: tags.number, color: 'var(--py-number)' },
+  { tag: tags.function(tags.name), color: 'var(--py-function)' },
+  { tag: tags.definition(tags.name), color: 'var(--py-definition)' },
+  { tag: tags.typeName, color: 'var(--py-type)' },
+  { tag: tags.operator, color: 'var(--py-operator)' },
+  { tag: tags.punctuation, color: 'var(--py-punctuation)' },
+  { tag: tags.bracket, color: 'var(--py-bracket)' },
+]);
+
+const cmTheme = EditorView.theme({
+  '&': { backgroundColor: 'transparent', height: 'auto' },
+  '.cm-line': { padding: '0' },
+});
+
+const cmExtensions = [python(), syntaxHighlighting(pyHighlightStyle), cmTheme];
 
 export default function CodeCell({
   cell,
@@ -23,9 +48,14 @@ export default function CodeCell({
   onDuplicateCell,
   onOpenPlotModal,
   activeCellId,
-  setActiveCellId
+  setActiveCellId,
+  onCodeMirrorReady
 }) {
   const isRunning = cell.status === 'running';
+
+  const handleCreate = useCallback((view) => {
+    onCodeMirrorReady?.(cell.id, view);
+  }, [cell.id, onCodeMirrorReady]);
 
   return (
     <div 
@@ -111,19 +141,23 @@ export default function CodeCell({
         </div>
       </div>
 
-      {/* Editor Textarea */}
+      {/* Editor */}
       <div className="cell-editor-container">
-        <textarea
-          id={`cell-textarea-${cell.id}`}
-          className="code-cell-textarea"
+        <CodeMirror
           value={cell.code}
-          onChange={(e) => onUpdateCode(cell.id, e.target.value)}
+          onChange={(val) => onUpdateCode(cell.id, val)}
+          extensions={cmExtensions}
+          onCreateEditor={handleCreate}
+          basicSetup={{
+            lineNumbers: false,
+            foldGutter: false,
+            indentOnInput: true,
+            highlightActiveLine: false,
+            autocompletion: false
+          }}
           placeholder="# Type Python code here (e.g. import pandas as pd...)"
-          rows={Math.max(4, cell.code.split('\n').length)}
-          onFocus={() => setActiveCellId(cell.id)}
-          spellCheck={false}
-          autoCapitalize="none"
-          autoCorrect="off"
+          className="code-cell-cm"
+          theme="none"
         />
       </div>
 
