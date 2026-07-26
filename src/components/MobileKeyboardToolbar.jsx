@@ -64,7 +64,7 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRu
       ref={toolbarRef}
       style={bottomOffset > 0 ? { bottom: `${bottomOffset}px` } : undefined}
     >
-      <div className="toolbar-section symbols-row">
+      <div className="toolbar-section">
         <button 
           className="kb-run-btn" 
           onClick={onRunCurrent}
@@ -84,9 +84,9 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRu
             {sym}
           </button>
         ))}
-      </div>
 
-      <div className="toolbar-section shortcuts-row">
+        <span className="toolbar-divider"></span>
+
         {quickShortcuts.map((sc, idx) => (
           <button
             key={idx}

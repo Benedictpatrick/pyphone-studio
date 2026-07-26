@@ -94,7 +94,7 @@ body {
   overflow-x: hidden;
   line-height: 1.35;
   letter-spacing: -0.15px;
-  width: 100vw;
+  width: 100%;
   min-height: 100vh;
   transition: background-color 0.25s ease, color 0.25s ease;
   overscroll-behavior-y: none;
@@ -971,10 +971,10 @@ table.pyphone-df-table tr:nth-child(even) {
   -webkit-backdrop-filter: blur(14px);
   border-top: 1px solid var(--hairline);
   z-index: 90;
-  padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0px));
+  padding: 5px 6px calc(5px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 0;
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
   transition: bottom 0.15s ease;
 }
@@ -991,6 +991,14 @@ table.pyphone-df-table tr:nth-child(even) {
   scrollbar-width: none;
   -ms-overflow-style: none;
   touch-action: pan-x;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--hairline);
+  flex-shrink: 0;
+  margin: 0 2px;
 }
 
 .toolbar-section::-webkit-scrollbar {
