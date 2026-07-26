@@ -11,12 +11,28 @@
     <meta name="apple-mobile-web-app-title" content="PyPhone Studio" />
     <meta name="description" content="Mobile Python IDE for data science — run Pandas, Matplotlib, Seaborn on your phone" />
     <title>PyPhone: Studio</title>
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Pyodide WASM Engine CDN -->
+    <!-- Local Fonts (offline-ready) -->
+    <style>
+      @font-face { font-family: 'Inter'; font-style: normal; font-weight: 300; font-display: swap; src: url('/fonts/Inter-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/Inter-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Inter'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/Inter-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/Inter-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/Inter-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Inter'; font-style: normal; font-weight: 800; font-display: swap; src: url('/fonts/Inter-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/FiraCode-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/FiraCode-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/FiraCode-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/FiraCode-latin.woff2') format('woff2'); }
+    </style>
+    <!-- Pyodide WASM Engine CDN (cached by service worker for offline) -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

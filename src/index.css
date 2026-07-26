@@ -1,7 +1,5 @@
 /* PyPhone Studio Mobile Python IDE — Framer Dark & Light Canvas System */
 
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 :root {
   /* Default Dark Mode Canvas Palette */
   --canvas: #090909;
