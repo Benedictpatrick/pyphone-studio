@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Database, FileSpreadsheet, Plus, Check, Upload } from 'lucide-react';
+import { X, Database, FileSpreadsheet, Plus, Check, Upload, FileText } from 'lucide-react';
 import { SAMPLE_DATASETS } from '../services/datasetService';
 import { writeCustomDataset } from '../services/pyodideService';
 
@@ -81,7 +81,7 @@ print(df.head())
                 <div key={key} className="dataset-card" onClick={() => handleSelectDataset(key)}>
                   <div className="dataset-card-header">
                     <div className="dataset-icon-title">
-                      <FileSpreadsheet className="w-4 h-4 text-blue-400" />
+                      <FileSpreadsheet className="w-4 h-4 text-blue-400 mr-1.5" />
                       <span className="dataset-filename">{dataset.filename}</span>
                     </div>
                     <span className="dataset-badge">{dataset.category}</span>
@@ -91,7 +91,7 @@ print(df.head())
                   <button className={`load-ds-btn ${isCopied ? 'copied' : ''}`}>
                     {isCopied ? (
                       <>
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
                         <span>Mounted into Pandas</span>
                       </>
                     ) : (
@@ -108,29 +108,40 @@ print(df.head())
 
           <hr className="modal-divider" />
 
-          {/* Custom CSV Upload */}
+          {/* Custom CSV Upload Form */}
           <div className="custom-csv-box">
             <h4 className="custom-csv-title">
               <Upload className="w-4 h-4 text-blue-400" />
               <span>Paste Custom CSV Dataset</span>
             </h4>
-            <input
-              type="text"
-              placeholder="Filename (e.g. my_data.csv)"
-              value={customName}
-              onChange={(e) => setCustomName(e.target.value)}
-              className="modal-input"
-            />
-            <textarea
-              placeholder="Paste raw CSV contents here (col1,col2...)"
-              value={customCsv}
-              onChange={(e) => setCustomCsv(e.target.value)}
-              rows={3}
-              className="modal-textarea"
-            />
+
+            <div className="form-group">
+              <label className="form-label">Dataset Filename</label>
+              <input
+                type="text"
+                placeholder="e.g. sales_2024.csv"
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+                className="modal-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Raw CSV Contents</label>
+              <textarea
+                placeholder="name,age,marks&#10;Arun,20,85&#10;Ben,21,90"
+                value={customCsv}
+                onChange={(e) => setCustomCsv(e.target.value)}
+                rows={3}
+                className="modal-textarea"
+              />
+            </div>
+
             {uploadStatus && <p className="status-msg">{uploadStatus}</p>}
-            <button className="framer-btn-primary w-full mt-2" onClick={handleCustomUpload}>
-              Mount Custom CSV
+
+            <button className="framer-btn-primary full-width-btn" onClick={handleCustomUpload}>
+              <Plus className="w-4 h-4" />
+              <span>Mount Custom CSV</span>
             </button>
           </div>
         </div>

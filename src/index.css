@@ -439,7 +439,7 @@ body {
   border-color: #ef4444;
 }
 
-/* Code & Markdown Textarea (Prevent iOS Auto-Zoom by using 15px font) */
+/* Code & Markdown Textarea */
 .cell-editor-container {
   position: relative;
 }
@@ -968,13 +968,20 @@ table.pyphone-df-table tr:nth-child(even) {
   background: var(--canvas);
   border-bottom: 1px solid var(--hairline);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 8px;
   position: relative;
 }
 
 .bottom-sheet-handle {
   display: none;
+}
+
+.modal-header-top-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .modal-title {
@@ -1017,6 +1024,117 @@ table.pyphone-df-table tr:nth-child(even) {
   font-size: 0.82rem;
   color: var(--ink-muted);
   margin-bottom: 14px;
+}
+
+/* Form Inputs & Custom CSV Upload Styling */
+.modal-divider {
+  border: none;
+  border-top: 1px solid var(--hairline);
+  margin: 20px 0;
+}
+
+.custom-csv-box {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-lg);
+  padding: 16px;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.custom-csv-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.form-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.modal-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-md);
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-family: var(--font-mono);
+  outline: none;
+  transition: border-color 0.2s ease;
+  -webkit-appearance: none;
+}
+
+.modal-input:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 1px var(--accent-blue);
+}
+
+.modal-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-md);
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-family: var(--font-mono);
+  outline: none;
+  resize: vertical;
+  min-height: 85px;
+  line-height: 1.5;
+  transition: border-color 0.2s ease;
+  -webkit-appearance: none;
+}
+
+.modal-textarea:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 1px var(--accent-blue);
+}
+
+.status-msg {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-blue);
+  padding: 6px 10px;
+  background: var(--surface-2);
+  border-radius: var(--rounded-sm);
+  word-break: break-word;
+}
+
+.full-width-btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 44px;
+  font-size: 0.85rem;
+}
+
+.dataset-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.dataset-icon-title {
+  display: flex;
+  align-items: center;
 }
 
 /* Variable Explorer Styling */
@@ -1292,7 +1410,6 @@ table.pyphone-df-table tr:nth-child(even) {
   }
 
   .modal-header {
-    flex-direction: column;
     align-items: center;
     padding-top: 10px;
     padding-bottom: 12px;
@@ -1304,7 +1421,7 @@ table.pyphone-df-table tr:nth-child(even) {
     height: 4px;
     background: var(--hairline);
     border-radius: var(--rounded-pill);
-    margin-bottom: 10px;
+    align-self: center;
   }
 
   .modal-header-top-row {
