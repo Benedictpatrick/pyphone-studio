@@ -86,19 +86,25 @@ _orig_stderr = sys.stderr
 # Custom plot collector
 _captured_plots = []
 
-def _custom_show():
+def _custom_show(*args, **kwargs):
     global _captured_plots
     try:
-        fig = plt.gcf()
-        if fig and len(fig.axes) > 0:
+        fignums = plt.get_fignums()
+        if not fignums:
+            fig = plt.gcf()
+            if fig and len(fig.axes) > 0:
+                fignums = [fig.number]
+        for fignum in fignums:
+            fig = plt.figure(fignum)
             buf = io.BytesIO()
-            plt.savefig(buf, format='png', bbox_inches='tight', dpi=180, facecolor='white', edgecolor='none')
+            fig.savefig(buf, format='png', bbox_inches='tight', dpi=180, facecolor='white', edgecolor='none')
             buf.seek(0)
             img_b64 = base64.b64encode(buf.read()).decode('utf-8')
             _captured_plots.append(img_b64)
-            plt.close('all')
+        plt.close('all')
     except Exception as e:
-        print("Plot rendering warning:", e)
+        pass
+
 
 # Override plt.show
 plt.show = _custom_show
