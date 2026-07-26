@@ -2507,3 +2507,24 @@ table.pyphone-df-table tr:nth-child(even) {
   }
 }
 
+/* PWA Installation Badge & Button */
+.pwa-installed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--rounded-pill);
+}
+
+.install-pwa-btn {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  min-height: 36px;
+}
+
+

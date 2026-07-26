@@ -98,9 +98,50 @@ export default function App() {
       return saved ? JSON.parse(saved) : { fontSize: 15, tabSize: 4, wordWrap: true, autoSave: true, showLineNumbers: true };
     } catch {
       return { fontSize: 15, tabSize: 4, wordWrap: true, autoSave: true, showLineNumbers: true };
-
     }
   });
+
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsAppInstalled(true);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      setIsAppInstalled(true);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallPwa = async () => {
+    if (!deferredPrompt) {
+      alert('To install PyPhone Studio:\n\n• On iOS (Safari): Tap the Share button at the bottom, then select "Add to Home Screen".\n• On Android/Chrome: Tap menu (⋮) and select "Install app" or "Add to Home Screen".');
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsAppInstalled(true);
+    }
+    setDeferredPrompt(null);
+  };
+
 
   // Sync theme attribute on document root
   useEffect(() => {
@@ -562,7 +603,11 @@ export default function App() {
         onClose={() => setIsSettingsOpen(false)}
         settings={editorSettings}
         onUpdateSettings={handleUpdateSettings}
+        onInstallPwa={handleInstallPwa}
+        isAppInstalled={isAppInstalled}
+        canInstallPwa={!!deferredPrompt}
       />
+
     </div>
   );
 }

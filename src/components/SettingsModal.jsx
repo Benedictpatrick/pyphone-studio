@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
-import { Settings, X, Trash2, Info } from 'lucide-react';
+import { Settings, X, Trash2, Info, Smartphone, Download, Check } from 'lucide-react';
 
 const FONT_SIZES = [12, 14, 16, 18];
 
-export default function SettingsModal({ isOpen, onClose, settings, onUpdateSettings }) {
+export default function SettingsModal({
+  isOpen,
+  onClose,
+  settings,
+  onUpdateSettings,
+  onInstallPwa,
+  isAppInstalled,
+  canInstallPwa
+}) {
+
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   if (!isOpen) return null;
@@ -120,7 +129,39 @@ export default function SettingsModal({ isOpen, onClose, settings, onUpdateSetti
             </div>
           </div>
 
+          {/* Install App (PWA) Option */}
+          <div className="settings-section pwa-install-section">
+            <div className="settings-row">
+              <div className="settings-label">
+                <span className="settings-label-text flex items-center gap-1.5">
+                  <Smartphone className="w-4 h-4 text-emerald-400 inline" />
+                  <span>Install PyPhone App</span>
+                </span>
+                <span className="settings-label-desc">
+                  {isAppInstalled
+                    ? 'App is installed on your home screen'
+                    : 'Add to home screen for native full-screen app experience'}
+                </span>
+              </div>
+              {isAppInstalled ? (
+                <span className="pwa-installed-badge">
+                  <Check className="w-3.5 h-3.5 text-emerald-400 inline mr-1" />
+                  <span>Installed</span>
+                </span>
+              ) : (
+                <button
+                  className="framer-btn-primary install-pwa-btn"
+                  onClick={onInstallPwa}
+                >
+                  <Download className="w-3.5 h-3.5 fill-current" />
+                  <span>Install</span>
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Clear All Data */}
+
           <div className="settings-section settings-danger-section">
             <div className="settings-row">
               <div className="settings-label">
