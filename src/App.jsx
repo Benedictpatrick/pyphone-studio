@@ -388,7 +388,9 @@ export default function App() {
     const link = document.createElement('a');
     link.href = url;
     link.download = `pyphone_script_${Date.now()}.py`;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
@@ -413,7 +415,9 @@ export default function App() {
     const link = document.createElement('a');
     link.href = url;
     link.download = `pyphone_notebook_${Date.now()}.ipynb`;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
@@ -484,7 +488,9 @@ export default function App() {
     const link = document.createElement('a');
     link.href = url;
     link.download = `${project.title.replace(/[^a-z0-9_-]/gi, '_')}.${ext}`;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
