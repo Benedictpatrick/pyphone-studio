@@ -141,28 +141,23 @@ body {
 .pyphone-brand-logo-container {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.pyphone-logo-svg {
-  width: 42px;
-  height: 42px;
+.pyphone-logo-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
   flex-shrink: 0;
-}
-
-.phone-frame-stroke {
-  stroke: var(--ink);
-}
-
-.phone-notch-fill {
-  fill: var(--ink);
+  border-radius: 6px;
 }
 
 .pyphone-brand-text {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
+
 
 .pyphone-brand-title {
   font-size: 1.35rem;
@@ -2144,10 +2139,11 @@ table.pyphone-df-table tr:nth-child(even) {
     gap: 8px;
   }
 
-  .pyphone-logo-svg {
-    width: 28px;
-    height: 28px;
+  .pyphone-logo-img {
+    width: 26px;
+    height: 26px;
   }
+
 
   .pyphone-brand-title {
     font-size: 0.95rem;
