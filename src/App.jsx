@@ -256,12 +256,12 @@ export default function App() {
   const handleDeleteCell = (id) => {
     if (cells.length <= 1) return;
     const idx = cells.findIndex((c) => c.id === id);
+    // Compute fallback id NOW from current cells (before setCells mutates state)
+    const fallbackId = idx > 0 ? cells[idx - 1].id : cells[idx + 1].id;
     setCells((prev) => prev.filter((c) => c.id !== id));
-    setActiveCellId((prev) => {
-      if (prev !== id) return prev;
-      return idx > 0 ? cells[idx - 1].id : cells[idx + 1].id;
-    });
+    setActiveCellId((prev) => (prev !== id ? prev : fallbackId));
   };
+
 
   const handleMoveCell = (id, direction) => {
     const index = cells.findIndex((c) => c.id === id);

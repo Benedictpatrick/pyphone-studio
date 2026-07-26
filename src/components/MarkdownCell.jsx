@@ -112,12 +112,15 @@ export default function MarkdownCell({
             {cell.code.trim() ? (
               <div className="md-content">
                 {cell.code.split('\n').map((line, lIdx) => {
-                  if (line.startsWith('# ')) return <h1 key={lIdx}>{line.replace('# ', '')}</h1>;
-                  if (line.startsWith('## ')) return <h2 key={lIdx}>{line.replace('## ', '')}</h2>;
-                  if (line.startsWith('### ')) return <h3 key={lIdx}>{line.replace('### ', '')}</h3>;
-                  if (line.startsWith('- ')) return <li key={lIdx}>{line.replace('- ', '')}</li>;
+                  if (line.startsWith('### ')) return <h3 key={lIdx}>{line.slice(4)}</h3>;
+                  if (line.startsWith('## ')) return <h2 key={lIdx}>{line.slice(3)}</h2>;
+                  if (line.startsWith('# ')) return <h1 key={lIdx}>{line.slice(2)}</h1>;
+                  if (line.startsWith('- ')) return <li key={lIdx}>{line.slice(2)}</li>;
+                  if (line.startsWith('**') && line.endsWith('**')) return <strong key={lIdx}>{line.slice(2, -2)}</strong>;
+                  if (line === '') return <br key={lIdx} />;
                   return <p key={lIdx}>{line}</p>;
                 })}
+
               </div>
             ) : (
               <p className="md-placeholder">Double-tap to write Markdown title / assignment notes...</p>

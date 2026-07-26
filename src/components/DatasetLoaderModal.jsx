@@ -42,6 +42,9 @@ print(df.head())
 `;
       onInsertCodeSnippet(snippet);
       setUploadStatus(`Success! Loaded as ${cleanFilename}`);
+      setCustomName('');
+      setCustomCsv('');
+
       setTimeout(() => {
         setUploadStatus('');
         onClose();
