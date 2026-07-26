@@ -32,9 +32,12 @@ export async function initPyodide(onProgress = () => {}) {
 
       onProgress({ status: 'loading-seaborn', message: 'Installing Seaborn via micropip...' });
       
-      // Install Seaborn pure python package
-      const micropip = pyodide.globals.get('micropip');
-      await micropip.install('seaborn');
+      // Import micropip inside Python first, then install seaborn
+      await pyodide.runPythonAsync(`
+import micropip
+await micropip.install('seaborn')
+`);
+
 
       onProgress({ status: 'loading-datasets', message: 'Mounting pre-loaded CSV datasets...' });
 
