@@ -538,6 +538,7 @@ body {
 /* Code & Markdown Textarea */
 .cell-editor-container {
   position: relative;
+  overflow: hidden;
 }
 
 .code-cell-textarea {
