@@ -46,7 +46,8 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
       }
 
       const pyodide = await window.loadPyodide({
-        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/'
+        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/',
+        stdin: () => window.prompt()
       });
 
       // Load built-in C-extension packages sequentially for mobile stability
