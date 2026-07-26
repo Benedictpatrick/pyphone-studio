@@ -184,7 +184,8 @@ export default function App() {
           output: {
             stdout: result.stdout,
             error: result.error,
-            images: result.plots || []
+            plots: result.plots || [],
+            dfHtml: result.dfHtml || null
           }
         };
       })
@@ -217,7 +218,10 @@ export default function App() {
     setScriptOutput({
       stdout: result.stdout,
       error: result.error,
-      images: result.plots || []
+      plots: result.plots || [],
+      result: result.result || null,
+      isDataFrame: result.isDataFrame || false,
+      dfHtml: result.dfHtml || null
     });
 
     setIsScriptRunning(false);
