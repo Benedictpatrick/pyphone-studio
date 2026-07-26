@@ -446,7 +446,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--canvas);
+  background: var(--surface-1);
   padding: 8px 12px;
   border-bottom: 1px solid var(--hairline);
 }
@@ -468,7 +468,7 @@ body {
 .cell-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .cell-act-btn {
@@ -493,7 +493,7 @@ body {
 
 .cell-act-btn.icon-only {
   padding: 6px 10px;
-  min-width: 36px;
+  min-width: 34px;
   justify-content: center;
 }
 
@@ -2193,9 +2193,9 @@ table.pyphone-df-table tr:nth-child(even) {
   }
 
   .cell-act-btn {
-    padding: 5px 8px;
-    min-width: 32px;
-    min-height: 32px;
+    padding: 6px 10px;
+    min-width: 38px;
+    min-height: 38px;
     justify-content: center;
   }
 
