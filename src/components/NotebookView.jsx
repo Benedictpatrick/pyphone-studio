@@ -14,7 +14,8 @@ export default function NotebookView({
   onOpenPlotModal,
   activeCellId,
   setActiveCellId,
-  onCodeMirrorReady
+  onCodeMirrorReady,
+  settings
 }) {
   return (
     <div className="notebook-view-container">
@@ -52,6 +53,7 @@ export default function NotebookView({
               activeCellId={activeCellId}
               setActiveCellId={setActiveCellId}
               onCodeMirrorReady={onCodeMirrorReady}
+              settings={settings}
             />
           );
         })}

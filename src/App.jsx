@@ -9,6 +9,7 @@ import TemplatePickerModal from './components/TemplatePickerModal';
 import VariableExplorer from './components/VariableExplorer';
 import CheatSheetModal from './components/CheatSheetModal';
 import SavedProjectsModal from './components/SavedProjectsModal';
+import SettingsModal from './components/SettingsModal';
 
 import { initPyodide, executePythonCode, getActiveVariables } from './services/pyodideService';
 import { PYTHON_TEMPLATES } from './templates/pythonTemplates';
@@ -87,6 +88,17 @@ export default function App() {
   const [isDatasetModalOpen, setIsDatasetModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Editor settings (persisted to localStorage)
+  const [editorSettings, setEditorSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pyphone_editor_settings');
+      return saved ? JSON.parse(saved) : { fontSize: 15, tabSize: 4, wordWrap: false, autoSave: true, showLineNumbers: true };
+    } catch {
+      return { fontSize: 15, tabSize: 4, wordWrap: false, autoSave: true, showLineNumbers: true };
+    }
+  });
 
   // Sync theme attribute on document root
   useEffect(() => {
@@ -97,6 +109,12 @@ export default function App() {
   // Toggle Theme helper
   const handleToggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  // Editor settings helper
+  const handleUpdateSettings = (newSettings) => {
+    setEditorSettings(newSettings);
+    localStorage.setItem('pyphone_editor_settings', JSON.stringify(newSettings));
   };
 
   // Initialize Pyodide WASM runtime on app load
@@ -375,6 +393,7 @@ export default function App() {
         onOpenTemplates={() => setIsTemplateModalOpen(true)}
         onOpenVariables={() => setIsVarExplorerOpen(true)}
         onOpenCheatSheet={() => setIsCheatSheetOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
         onAddCell={handleAddCell}
         onExportPy={handleExportPy}
         onExportIpynb={handleExportIpynb}
@@ -397,6 +416,7 @@ export default function App() {
             }
             onOpenPlotModal={(b64) => setSelectedPlotB64(b64)}
             onCodeMirrorReady={handleCodeMirrorReady}
+            settings={editorSettings}
           />
         ) : (
           <ScriptView
@@ -407,6 +427,7 @@ export default function App() {
             onRunScript={handleRunScript}
             onOpenPlotModal={(b64) => setSelectedPlotB64(b64)}
             onCodeMirrorReady={handleCodeMirrorReady}
+            settings={editorSettings}
           />
         )}
       </main>
@@ -485,6 +506,13 @@ export default function App() {
             setScriptCode(code);
           }
         }}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={editorSettings}
+        onUpdateSettings={handleUpdateSettings}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { 
   Play, 
   Terminal, 
@@ -14,6 +14,7 @@ import { python } from '@codemirror/lang-python';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { EditorView } from '@codemirror/view';
+import { EditorState } from '@codemirror/state';
 import DataFrameTable from './DataFrameTable';
 
 const pyHighlightStyle = HighlightStyle.define([
@@ -34,7 +35,7 @@ const cmTheme = EditorView.theme({
   '.cm-scroller': { minHeight: '200px' },
 });
 
-const cmExtensions = [python(), syntaxHighlighting(pyHighlightStyle), cmTheme, EditorView.lineWrapping];
+const baseCmExtensions = [python(), syntaxHighlighting(pyHighlightStyle), cmTheme];
 
 export default function ScriptView({
   scriptCode,
@@ -43,8 +44,18 @@ export default function ScriptView({
   isRunning,
   onRunScript,
   onOpenPlotModal,
-  onCodeMirrorReady
+  onCodeMirrorReady,
+  settings = {}
 }) {
+  const { fontSize = 15, tabSize = 4, wordWrap = false, showLineNumbers = true } = settings;
+
+  const cmExtensions = useMemo(() => {
+    const dynamicTheme = EditorView.theme({
+      '&': { backgroundColor: 'transparent', height: 'auto', fontSize: `${fontSize}px` },
+      '.cm-scroller': { minHeight: '200px' },
+    });
+    return [...baseCmExtensions, dynamicTheme, EditorState.tabSize.of(tabSize), ...(wordWrap ? [EditorView.lineWrapping] : [])];
+  }, [fontSize, tabSize, wordWrap]);
   const [activeTab, setActiveTab] = useState('console');
   const [copied, setCopied] = useState(false);
 
@@ -99,7 +110,7 @@ export default function ScriptView({
           extensions={cmExtensions}
           onCreateEditor={handleCreate}
           basicSetup={{
-            lineNumbers: true,
+            lineNumbers: showLineNumbers,
             foldGutter: false,
             indentOnInput: true,
             highlightActiveLine: true,

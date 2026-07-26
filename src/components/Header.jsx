@@ -11,7 +11,8 @@ import {
   FileText,
   Sun,
   Moon,
-  FolderCode
+  FolderCode,
+  Settings
 } from 'lucide-react';
 import PyPhoneStudioLogo from './PyPhoneStudioLogo';
 
@@ -28,6 +29,7 @@ export default function Header({
   onOpenTemplates,
   onOpenVariables,
   onOpenCheatSheet,
+  onOpenSettings,
   onAddCell,
   onExportPy,
   onExportIpynb,
@@ -39,17 +41,26 @@ export default function Header({
     <header className="framer-header">
       <div className="header-top">
         <PyPhoneStudioLogo />
-        <button 
-          className="theme-toggle-btn"
-          onClick={onToggleTheme}
-          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-3.5 h-3.5 text-amber-400" />
-          ) : (
-            <Moon className="w-3.5 h-3.5 text-blue-400" />
-          )}
-        </button>
+        <div className="header-top-actions">
+          <button 
+            className="theme-toggle-btn"
+            onClick={onToggleTheme}
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
+            ) : (
+              <Moon className="w-3.5 h-3.5 text-blue-400" />
+            )}
+          </button>
+          <button 
+            className="theme-toggle-btn"
+            onClick={onOpenSettings}
+            title="Settings"
+          >
+            <Settings className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Continuous Touch Action Ribbon */}

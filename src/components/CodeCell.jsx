@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { 
   Play, 
   Trash2, 
@@ -14,6 +14,7 @@ import { python } from '@codemirror/lang-python';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { EditorView } from '@codemirror/view';
+import { EditorState } from '@codemirror/state';
 import DataFrameTable from './DataFrameTable';
 import ErrorExplainerBox from './ErrorExplainerBox';
 
@@ -35,7 +36,7 @@ const cmTheme = EditorView.theme({
   '.cm-line': { padding: '0' },
 });
 
-const cmExtensions = [python(), syntaxHighlighting(pyHighlightStyle), cmTheme];
+const baseCmExtensions = [python(), syntaxHighlighting(pyHighlightStyle), cmTheme];
 
 export default function CodeCell({
   cell,
@@ -49,9 +50,20 @@ export default function CodeCell({
   onOpenPlotModal,
   activeCellId,
   setActiveCellId,
-  onCodeMirrorReady
+  onCodeMirrorReady,
+  settings = {}
 }) {
+  const { fontSize = 15, tabSize = 4, wordWrap = false } = settings;
+
+  const cmExtensions = useMemo(() => {
+    const dynamicTheme = EditorView.theme({
+      '&': { backgroundColor: 'transparent', height: 'auto', fontSize: `${fontSize}px` },
+      '.cm-line': { padding: '0' },
+    });
+    return [...baseCmExtensions, dynamicTheme, EditorState.tabSize.of(tabSize), ...(wordWrap ? [EditorView.lineWrapping] : [])];
+  }, [fontSize, tabSize, wordWrap]);
   const isRunning = cell.status === 'running';
+  const { showLineNumbers = true } = settings;
 
   const handleCreate = useCallback((view) => {
     onCodeMirrorReady?.(cell.id, view);
@@ -149,7 +161,7 @@ export default function CodeCell({
           extensions={cmExtensions}
           onCreateEditor={handleCreate}
           basicSetup={{
-            lineNumbers: false,
+            lineNumbers: showLineNumbers,
             foldGutter: false,
             indentOnInput: true,
             highlightActiveLine: false,

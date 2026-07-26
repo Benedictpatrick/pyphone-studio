@@ -132,8 +132,14 @@ body {
 .header-top {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
   margin-bottom: 8px;
+}
+
+.header-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .brand-container {
@@ -1155,6 +1161,175 @@ table.pyphone-df-table tr:nth-child(even) {
   font-size: 0.82rem;
   color: var(--ink-muted);
   margin-bottom: 14px;
+}
+
+/* Settings Modal */
+.settings-modal .modal-card {
+  max-width: 520px;
+}
+
+.settings-section {
+  border-bottom: 1px solid var(--hairline);
+  padding: 14px 0;
+}
+
+.settings-section:last-of-type {
+  border-bottom: none;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings-label-text {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.settings-label-desc {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.settings-select {
+  appearance: none;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-md);
+  padding: 6px 28px 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  flex-shrink: 0;
+}
+
+.settings-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+/* Toggle Switch */
+.settings-toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.settings-toggle.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.settings-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  pointer-events: none;
+}
+
+.settings-toggle.active .settings-toggle-knob {
+  transform: translateX(18px);
+}
+
+/* Danger Zone */
+.settings-danger-section {
+  margin-top: 8px;
+}
+
+.settings-danger-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #ef4444;
+  background: transparent;
+  border: 1px solid #ef4444;
+  border-radius: var(--rounded-md);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.settings-danger-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.settings-confirm-group {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.settings-confirm-group .confirm-delete {
+  background: #ef4444;
+  color: #fff;
+  border-color: #ef4444;
+}
+
+.settings-confirm-group .confirm-delete:hover {
+  background: #dc2626;
+}
+
+.settings-cancel-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-md);
+  cursor: pointer;
+}
+
+.settings-cancel-btn:hover {
+  background: var(--surface-2);
+}
+
+/* Credits Footer */
+.settings-credits {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 0 4px;
+  margin-top: 8px;
+  border-top: 1px solid var(--hairline);
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.settings-credits strong {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 /* Form Inputs & Custom CSV Upload Styling */
