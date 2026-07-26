@@ -119,14 +119,22 @@ export default function App() {
     localStorage.setItem('pyphone_editor_settings', JSON.stringify(newSettings));
   };
 
-  // Initialize Pyodide WASM runtime on app load
-  useEffect(() => {
+  // Initialize Pyodide WASM runtime on app load with retry support
+  const handleRetryEngine = useCallback((force = false) => {
     initPyodide((progress) => {
       setEngineStatus(progress);
-    }).catch((err) => {
-      setEngineStatus({ status: 'error', message: err.message || 'Failed to initialize Python WASM engine.' });
+    }, force).catch((err) => {
+      setEngineStatus({
+        status: 'error',
+        message: err.message || 'Failed to initialize Python WASM engine. Tap to retry.'
+      });
     });
   }, []);
+
+  useEffect(() => {
+    handleRetryEngine(false);
+  }, [handleRetryEngine]);
+
 
   // Auto-save notebook & script state
   useEffect(() => {
@@ -425,7 +433,9 @@ export default function App() {
         onToggleTheme={handleToggleTheme}
         engineStatus={engineStatus}
         onRunAll={handleRunAll}
+        onRetryEngine={() => handleRetryEngine(true)}
         onOpenProjects={() => setIsProjectsModalOpen(true)}
+
         savedProjectsCount={savedProjects.length}
         onOpenDatasets={() => setIsDatasetModalOpen(true)}
         onOpenTemplates={() => setIsTemplateModalOpen(true)}

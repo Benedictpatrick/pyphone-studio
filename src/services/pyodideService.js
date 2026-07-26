@@ -8,17 +8,29 @@ let loadPromise = null;
 /**
  * Initialize Pyodide WASM runtime and pre-load Python Data Science packages
  */
-export async function initPyodide(onProgress = () => {}) {
+export async function initPyodide(onProgress = () => {}, forceRetry = false) {
+  if (forceRetry) {
+    pyodideInstance = null;
+    loadPromise = null;
+    isLoading = false;
+  }
   if (pyodideInstance) return pyodideInstance;
   if (loadPromise) return loadPromise;
 
   loadPromise = (async () => {
     try {
       isLoading = true;
-      onProgress({ status: 'loading-wasm', message: 'Initializing Python 3.11 WASM Engine...' });
+      onProgress({ status: 'loading-wasm', message: 'Connecting to Python WASM Engine...' });
+
+      // Poll up to 30 times (9 seconds) for window.loadPyodide script from CDN
+      let retries = 0;
+      while (typeof window.loadPyodide !== 'function' && retries < 30) {
+        await new Promise((res) => setTimeout(res, 300));
+        retries++;
+      }
 
       if (typeof window.loadPyodide !== 'function') {
-        throw new Error('Pyodide script not loaded from CDN. Please check your internet connection.');
+        throw new Error('Pyodide CDN script failed to load. Please check your internet connection and tap to retry.');
       }
 
       const pyodide = await window.loadPyodide({
@@ -30,13 +42,17 @@ export async function initPyodide(onProgress = () => {}) {
       // Load built-in C-extension packages
       await pyodide.loadPackage(['numpy', 'pandas', 'matplotlib', 'micropip']);
 
-      onProgress({ status: 'loading-seaborn', message: 'Installing Seaborn via micropip...' });
-
-      // Import micropip inside Python first, then install seaborn
-      await pyodide.runPythonAsync(`
+      // Attempt Seaborn install safely
+      try {
+        onProgress({ status: 'loading-seaborn', message: 'Installing Seaborn via micropip...' });
+        await pyodide.runPythonAsync(`
 import micropip
 await micropip.install('seaborn')
 `);
+      } catch (seabornErr) {
+        console.warn('Optional package (Seaborn) skipped:', seabornErr);
+      }
+
 
       onProgress({ status: 'loading-datasets', message: 'Mounting pre-loaded CSV datasets...' });
 

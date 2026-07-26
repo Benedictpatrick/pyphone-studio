@@ -23,7 +23,9 @@ export default function Header({
   onToggleTheme,
   engineStatus,
   onRunAll,
+  onRetryEngine,
   onOpenProjects,
+
   savedProjectsCount = 0,
   onOpenDatasets,
   onOpenTemplates,
@@ -106,10 +108,33 @@ export default function Header({
           <span>Run All</span>
         </button>
 
-        <span 
-          className={`engine-status-dot ${engineStatus.status === 'ready' ? 'dot-ready' : engineStatus.status === 'error' ? 'dot-error' : 'dot-loading'}`}
-          title={engineStatus.status === 'ready' ? 'Python 3.11 WASM Ready' : engineStatus.status === 'error' ? 'Engine Error' : engineStatus.message || 'Loading WASM...'}
-        ></span>
+        <button
+          className="engine-status-dot-btn"
+          onClick={() => {
+            if (engineStatus.status === 'error') {
+              onRetryEngine?.();
+            }
+          }}
+          title={
+            engineStatus.status === 'ready'
+              ? 'Python 3.11 WASM Ready'
+              : engineStatus.status === 'error'
+              ? `${engineStatus.message || 'Engine Error'}. Tap to retry.`
+              : engineStatus.message || 'Loading WASM...'
+          }
+        >
+          <span
+            className={`engine-status-dot ${
+              engineStatus.status === 'ready'
+                ? 'dot-ready'
+                : engineStatus.status === 'error'
+                ? 'dot-error'
+                : 'dot-loading'
+            }`}
+          ></span>
+          {engineStatus.status === 'error' && <span className="retry-label">Retry</span>}
+        </button>
+
 
         {/* My Projects Button */}
         <button 

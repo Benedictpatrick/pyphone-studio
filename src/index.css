@@ -581,17 +581,72 @@ body {
   background: transparent;
 }
 
-/* CodeMirror gutters (line numbers for script view) */
+/* CodeMirror gutters (line numbers for notebook cells & script view) */
+.code-cell-cm .cm-gutters,
 .script-cm-editor .cm-gutters {
-  background: var(--canvas);
+  background: var(--surface-1);
   border-right: 1px solid var(--hairline);
   color: var(--ink-muted);
   font-size: 13px;
 }
 
+.code-cell-cm .cm-gutterElement,
+.script-cm-editor .cm-gutterElement {
+  padding: 0 8px 0 6px;
+}
+
+.code-cell-cm .cm-activeLineGutter,
 .script-cm-editor .cm-activeLineGutter {
   background: var(--surface-2);
+  color: var(--accent-blue);
 }
+
+/* Header Engine Status Dot & Retry Button */
+.engine-status-dot-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--rounded-pill);
+  transition: background 0.15s ease;
+}
+.engine-status-dot-btn:hover {
+  background: var(--surface-2);
+}
+.engine-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.dot-ready {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+.dot-loading {
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+  animation: pulseDot 1.2s infinite ease-in-out;
+}
+.dot-error {
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+.retry-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #ef4444;
+  white-space: nowrap;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
 
 .markdown-input {
   font-family: var(--font-sans);
