@@ -2702,3 +2702,73 @@ table.pyphone-df-table tr:nth-child(even) {
   background: rgba(16, 185, 129, 0.05);
   box-shadow: 0 0 0 1px var(--emerald);
 }
+
+/* Sleek Cheat Sheet Redesign */
+.cheat-item-card.sleek {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cheat-item-card.sleek:hover {
+  border-color: var(--hairline-strong);
+}
+
+.cheat-item-header.sleek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.cheat-item-label.sleek {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+
+.cheat-copy-btn.sleek {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 6px;
+  border-radius: var(--rounded-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cheat-copy-btn.sleek:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.cheat-copy-btn.sleek.copied {
+  color: var(--emerald);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.cheat-code-preview.sleek {
+  margin: 0;
+  padding: 14px;
+  background: #0f111a; /* Dark IDE background */
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: #a6accd;
+  overflow-x: auto;
+  line-height: 1.5;
+  border-radius: 0 0 var(--rounded-lg) var(--rounded-lg);
+}
+
+.cheat-code-preview.sleek code {
+  font-family: inherit;
+}

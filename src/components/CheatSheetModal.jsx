@@ -47,27 +47,18 @@ export default function CheatSheetModal({ isOpen, onClose, onInsertSnippet }) {
                     const isCopied = copiedIdx === itemKey;
 
                     return (
-                      <div key={itemKey} className="cheat-item-card">
-                        <div className="cheat-item-header">
-                          <span className="cheat-item-label">{item.label}</span>
+                      <div key={itemKey} className="cheat-item-card sleek">
+                        <div className="cheat-item-header sleek">
+                          <span className="cheat-item-label sleek">{item.label}</span>
                           <button 
-                            className={`cheat-copy-btn ${isCopied ? 'copied' : ''}`}
+                            className={`cheat-copy-btn sleek ${isCopied ? 'copied' : ''}`}
                             onClick={() => handleCopy(item.code, itemKey)}
+                            title="Insert snippet"
                           >
-                            {isCopied ? (
-                              <>
-                                <Check className="w-3 h-3" />
-                                <span>Inserted!</span>
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="w-3 h-3" />
-                                <span>Insert Snippet</span>
-                              </>
-                            )}
+                            {isCopied ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                           </button>
                         </div>
-                        <pre className="cheat-code-preview"><code>{item.code}</code></pre>
+                        <pre className="cheat-code-preview sleek"><code>{item.code}</code></pre>
                       </div>
                     );
                   })}
