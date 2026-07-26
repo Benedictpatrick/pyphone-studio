@@ -8,25 +8,7 @@ const STORAGE_KEYS = {
 };
 
 // Seed default starter projects if empty
-const DEFAULT_PROJECTS = [
-  {
-    id: 'proj-student-marks',
-    title: 'Assignment 1: Student Marks Bar Chart',
-    type: 'script',
-    updatedAt: new Date().toISOString(),
-    code: `import pandas as pd\nimport matplotlib.pyplot as plt\n\ndf = pd.read_csv('students_marks.csv')\nplt.bar(df['student_name'], df['average_marks'], color='#0066FF')\nplt.title('Average Marks of Students')\nplt.show()`
-  },
-  {
-    id: 'proj-iris-scatter',
-    title: 'Lab 2: Iris Species Scatter Matrix',
-    type: 'notebook',
-    updatedAt: new Date(Date.now() - 3600000).toISOString(),
-    cells: [
-      { id: 'c1', type: 'markdown', code: '# Iris Species Analysis\nComparing Sepal dimensions across Iris species.' },
-      { id: 'c2', type: 'code', code: `import pandas as pd\nimport matplotlib.pyplot as plt\n\ndf = pd.read_csv('iris.csv')\nplt.scatter(df['sepal_length'], df['sepal_width'])\nplt.show()` }
-    ]
-  }
-];
+const DEFAULT_PROJECTS = [];
 
 export function saveNotebookState(cells) {
   try {

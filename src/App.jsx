@@ -56,16 +56,8 @@ export default function App() {
     return [
       {
         id: 'cell-1',
-        type: 'markdown',
-        code: '# Data Analysis Assignment\nDouble-tap to edit header notes...',
-        executionCount: null,
-        status: 'idle',
-        output: null
-      },
-      {
-        id: 'cell-2',
         type: 'code',
-        code: PYTHON_TEMPLATES[0].code,
+        code: '# Write your Python code here...\n',
         executionCount: null,
         status: 'idle',
         output: null
@@ -75,7 +67,7 @@ export default function App() {
 
   // Saved or initial Script View state
   const [scriptCode, setScriptCode] = useState(() => {
-    return loadScriptState() || PYTHON_TEMPLATES[1].code;
+    return loadScriptState() || '# Write your Python code here...\n';
   });
   const [scriptOutput, setScriptOutput] = useState(null);
   const [isScriptRunning, setIsScriptRunning] = useState(false);
