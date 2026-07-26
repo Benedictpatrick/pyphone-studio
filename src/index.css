@@ -2598,3 +2598,105 @@ table.pyphone-df-table tr:nth-child(even) {
   background-color: rgba(225, 29, 72, 0.1);
   color: var(--rose);
 }
+
+/* Sleek Dataset Cards Redesign */
+.dataset-card.sleek-card {
+  padding: 16px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  justify-content: flex-start;
+}
+
+.dataset-card.sleek-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.dataset-card.sleek-card:hover {
+  border-color: var(--accent-blue);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--accent-blue);
+  transform: translateY(-2px);
+}
+
+.dataset-card.sleek-card:hover::before {
+  opacity: 1;
+}
+
+.dataset-card.sleek-card .hover-plus {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dataset-card.sleek-card:hover .hover-plus {
+  opacity: 1;
+  color: var(--accent-blue);
+  transform: scale(1.15) rotate(90deg);
+}
+
+.dataset-card-header.sleek {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2px;
+}
+
+.dataset-icon-title {
+  display: flex;
+  align-items: center;
+}
+
+.dataset-name.sleek {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.dataset-badges.sleek {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dataset-filename.sleek {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent-blue);
+}
+
+.dataset-badge.sleek {
+  font-size: 0.65rem;
+  padding: 3px 6px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.dataset-desc.sleek {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.dataset-card.sleek-card.copied {
+  border-color: var(--emerald);
+  background: rgba(16, 185, 129, 0.05);
+  box-shadow: 0 0 0 1px var(--emerald);
+}

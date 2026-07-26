@@ -81,29 +81,23 @@ print(df.head())
               const isCopied = copiedKey === key;
 
               return (
-                <div key={key} className="dataset-card" onClick={() => handleSelectDataset(key)}>
-                  <div className="dataset-card-header">
+                <div key={key} className={`dataset-card sleek-card ${isCopied ? 'copied' : ''}`} onClick={() => handleSelectDataset(key)}>
+                  <div className="dataset-card-header sleek">
                     <div className="dataset-icon-title">
-                      <FileSpreadsheet className="w-4 h-4 text-blue-400 mr-1.5" />
-                      <span className="dataset-filename">{dataset.filename}</span>
+                      <FileSpreadsheet className="w-4 h-4 text-blue-400 mr-2 flex-shrink-0" />
+                      <span className="dataset-name sleek">{dataset.name}</span>
                     </div>
-                    <span className="dataset-badge">{dataset.category}</span>
-                  </div>
-                  <h4 className="dataset-name">{dataset.name}</h4>
-                  <p className="dataset-desc">{dataset.description}</p>
-                  <button className={`load-ds-btn ${isCopied ? 'copied' : ''}`}>
                     {isCopied ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Mounted into Pandas</span>
-                      </>
+                      <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                     ) : (
-                      <>
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Load CSV Snippet</span>
-                      </>
+                      <Plus className="w-4 h-4 text-slate-500 opacity-50 flex-shrink-0 hover-plus" />
                     )}
-                  </button>
+                  </div>
+                  <div className="dataset-badges sleek">
+                    <span className="dataset-filename sleek">{dataset.filename}</span>
+                    <span className="dataset-badge sleek">{dataset.category}</span>
+                  </div>
+                  <p className="dataset-desc sleek">{dataset.description}</p>
                 </div>
               );
             })}
