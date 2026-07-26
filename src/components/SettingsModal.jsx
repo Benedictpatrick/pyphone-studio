@@ -156,6 +156,43 @@ export default function SettingsModal({
             </div>
           </div>
 
+          {/* Haptic Feedback */}
+          <div className="settings-section">
+            <div className="settings-row">
+              <div className="settings-label">
+                <span className="settings-label-text">Haptic Feedback</span>
+                <span className="settings-label-desc">Vibrate on interactions (mobile only)</span>
+              </div>
+              <button
+                className={`settings-toggle ${settings.hapticsEnabled !== false ? 'active' : ''}`}
+                onClick={() => onUpdateSettings({ ...settings, hapticsEnabled: settings.hapticsEnabled === false ? true : false })}
+              >
+                <span className="settings-toggle-knob"></span>
+              </button>
+            </div>
+            {settings.hapticsEnabled !== false && (
+              <div className="settings-row" style={{ marginTop: '12px', borderTop: '1px solid var(--hairline)', paddingTop: '12px' }}>
+                <div className="settings-label" style={{ flex: 1 }}>
+                  <span className="settings-label-text">Vibration Strength</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="200"
+                      step="10"
+                      value={typeof settings.hapticsStrength === 'number' ? settings.hapticsStrength : 100}
+                      onChange={(e) => onUpdateSettings({ ...settings, hapticsStrength: Number(e.target.value) })}
+                      style={{ flex: 1, accentColor: '#60a5fa' }}
+                    />
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', minWidth: '40px', textAlign: 'right' }}>
+                      {typeof settings.hapticsStrength === 'number' ? settings.hapticsStrength : 100}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Install App (PWA) Option */}
           <div className="settings-section pwa-install-section">
             <div className="settings-row">

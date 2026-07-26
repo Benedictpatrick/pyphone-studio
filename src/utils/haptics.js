@@ -1,39 +1,36 @@
-export const hapticLight = () => {
+const getHapticConfig = () => {
   try {
-    if (navigator && navigator.vibrate) navigator.vibrate(30);
+    const saved = localStorage.getItem('pyphone_editor_settings');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const enabled = parsed.hapticsEnabled !== false; // default true
+      const strength = typeof parsed.hapticsStrength === 'number' ? parsed.hapticsStrength : 100;
+      return { enabled, multiplier: strength / 100 };
+    }
   } catch (e) {
-    // Ignore errors on devices that don't support vibration
+    // ignore
   }
+  return { enabled: true, multiplier: 1.0 };
 };
 
-export const hapticMedium = () => {
+const vibrate = (pattern) => {
   try {
-    if (navigator && navigator.vibrate) navigator.vibrate(50);
+    if (!navigator || !navigator.vibrate) return;
+    const { enabled, multiplier } = getHapticConfig();
+    if (!enabled) return;
+
+    if (Array.isArray(pattern)) {
+      navigator.vibrate(pattern.map(p => Math.max(1, Math.round(p * multiplier))));
+    } else {
+      navigator.vibrate(Math.max(1, Math.round(pattern * multiplier)));
+    }
   } catch (e) {
     // Ignore
   }
 };
 
-export const hapticHeavy = () => {
-  try {
-    if (navigator && navigator.vibrate) navigator.vibrate(80);
-  } catch (e) {
-    // Ignore
-  }
-};
-
-export const hapticSuccess = () => {
-  try {
-    if (navigator && navigator.vibrate) navigator.vibrate([30, 50, 40]);
-  } catch (e) {
-    // Ignore
-  }
-};
-
-export const hapticError = () => {
-  try {
-    if (navigator && navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 80]);
-  } catch (e) {
-    // Ignore
-  }
-};
+export const hapticLight = () => vibrate(30);
+export const hapticMedium = () => vibrate(50);
+export const hapticHeavy = () => vibrate(80);
+export const hapticSuccess = () => vibrate([30, 50, 40]);
+export const hapticError = () => vibrate([50, 50, 50, 50, 80]);
