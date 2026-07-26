@@ -1,5 +1,7 @@
 // Export Notebook or Script to a Standalone Single HTML Homework Report
 
+import { sanitizeHtml } from '../lib/sanitize';
+
 export function exportToHtmlReport({ title = "Python Data Analysis Report", cells = [], scriptCode = "", scriptOutput = null, mode = "notebook" }) {
   const dateStr = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -27,7 +29,7 @@ export function exportToHtmlReport({ title = "Python Data Analysis Report", cell
           outputsHtml += `<pre class="stdout-box">${escapeHtml(cell.output.stdout)}</pre>`;
         }
         if (cell.output.dfHtml) {
-          outputsHtml += `<div class="df-wrapper">${cell.output.dfHtml}</div>`;
+          outputsHtml += `<div class="df-wrapper">${sanitizeHtml(cell.output.dfHtml)}</div>`;
         }
         if (cell.output.plots && cell.output.plots.length > 0) {
           outputsHtml += `<div class="plots-grid">` + 
@@ -50,7 +52,7 @@ export function exportToHtmlReport({ title = "Python Data Analysis Report", cell
     let scriptOutputsHtml = '';
     if (scriptOutput) {
       if (scriptOutput.stdout) scriptOutputsHtml += `<pre class="stdout-box">${escapeHtml(scriptOutput.stdout)}</pre>`;
-      if (scriptOutput.dfHtml) scriptOutputsHtml += `<div class="df-wrapper">${scriptOutput.dfHtml}</div>`;
+      if (scriptOutput.dfHtml) scriptOutputsHtml += `<div class="df-wrapper">${sanitizeHtml(scriptOutput.dfHtml)}</div>`;
       if (scriptOutput.plots && scriptOutput.plots.length > 0) {
         scriptOutputsHtml += `<div class="plots-grid">` + 
           scriptOutput.plots.map(b64 => `<img src="data:image/png;base64,${b64}" class="report-plot-img" />`).join('') +

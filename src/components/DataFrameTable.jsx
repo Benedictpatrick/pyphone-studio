@@ -1,5 +1,6 @@
 import React from 'react';
 import { Table } from 'lucide-react';
+import { sanitizeHtml } from '../lib/sanitize';
 
 export default function DataFrameTable({ htmlContent }) {
 
@@ -14,10 +15,9 @@ export default function DataFrameTable({ htmlContent }) {
         </div>
       </div>
 
-      {/* Render raw Pyodide HTML Table with custom scrollable CSS wrapper */}
       <div 
         className="df-table-scroll-wrapper"
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlContent) }}
       />
     </div>
   );
