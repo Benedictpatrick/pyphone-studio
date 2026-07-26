@@ -146,65 +146,44 @@ body {
   font-weight: 400;
 }
 
-/* Status Badges */
-.status-badges {
+/* Minimalist Status Indicators (No Pill Capsules) */
+.status-indicators {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-item {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.framer-badge-saved {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: var(--rounded-pill);
-  font-size: 0.72rem;
-  color: #10b981;
-  font-weight: 600;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--ink-muted);
   white-space: nowrap;
 }
 
-.framer-engine-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: var(--rounded-pill);
-  background: rgba(0, 153, 255, 0.08);
-  border: 1px solid rgba(0, 153, 255, 0.22);
-  font-size: 0.74rem;
+.status-item.engine-item {
+  color: var(--ink);
   font-weight: 600;
-  color: var(--accent-blue);
-  white-space: nowrap;
-  letter-spacing: -0.1px;
-}
-
-[data-theme="light"] .framer-engine-pill {
-  background: rgba(9, 105, 218, 0.08);
-  border-color: rgba(9, 105, 218, 0.2);
-  color: #0969da;
 }
 
 .blue-status-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background-color: currentColor;
+  background-color: var(--accent-blue);
   flex-shrink: 0;
   box-shadow: none !important;
   filter: none !important;
 }
 
 .red-status-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background-color: #ef4444;
   flex-shrink: 0;
-  box-shadow: none !important;
 }
 
 /* Single Continuous Touch Action Ribbon */

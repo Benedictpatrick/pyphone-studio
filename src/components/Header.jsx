@@ -50,28 +50,28 @@ export default function Header({
           </div>
         </div>
 
-        {/* Engine Status & Auto-Save */}
-        <div className="status-badges">
-          <div className="framer-badge-saved">
-            <CheckCircle className="w-3.5 h-3.5 text-blue-400 mr-1" />
+        {/* Minimal Engine Status & Auto-Save (No Pill Capsules) */}
+        <div className="status-indicators">
+          <div className="status-item saved-item">
+            <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
             <span>Saved</span>
           </div>
 
-          <div className={`framer-engine-pill ${engineStatus.status}`}>
+          <div className="status-item engine-item">
             {engineStatus.status === 'ready' ? (
               <>
                 <span className="blue-status-dot"></span>
-                <span className="engine-text">Python 3.11 WASM</span>
+                <span>Python 3.11 WASM</span>
               </>
             ) : engineStatus.status === 'error' ? (
               <>
                 <span className="red-status-dot"></span>
-                <span className="engine-text">Engine Error</span>
+                <span>Engine Error</span>
               </>
             ) : (
               <>
                 <Loader2 className="w-3.5 h-3.5 spin text-blue-400" />
-                <span className="engine-text">{engineStatus.message || 'Loading WASM...'}</span>
+                <span>{engineStatus.message || 'Loading WASM...'}</span>
               </>
             )}
           </div>
