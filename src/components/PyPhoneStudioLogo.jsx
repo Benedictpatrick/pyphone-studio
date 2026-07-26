@@ -3,11 +3,6 @@ import React from 'react';
 export default function PyPhoneStudioLogo() {
   return (
     <div className="pyphone-brand-logo-container">
-      <img 
-        src="/logo.png" 
-        alt="PyPhone Studio Logo" 
-        className="pyphone-logo-img" 
-      />
       <div className="pyphone-brand-text">
         <h1 className="pyphone-brand-title">
           <span className="brand-pyphone">PyPhone</span>{' '}
