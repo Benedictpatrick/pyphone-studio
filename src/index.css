@@ -2549,3 +2549,52 @@ table.pyphone-df-table tr:nth-child(even) {
 
 
 
+
+/* CodeCell Dropdown Menu */
+.cell-dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background-color: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-lg);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 4px 0;
+  overflow: hidden;
+}
+
+.cell-dropdown-menu button.cell-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+  min-height: 40px;
+  width: 100%;
+  border-radius: 0;
+}
+
+.cell-dropdown-menu button.cell-dropdown-btn:hover,
+.cell-dropdown-menu button.cell-dropdown-btn:active {
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.cell-dropdown-menu button.cell-dropdown-btn.delete-btn {
+  color: var(--rose);
+}
+
+.cell-dropdown-menu button.cell-dropdown-btn.delete-btn:hover,
+.cell-dropdown-menu button.cell-dropdown-btn.delete-btn:active {
+  background-color: rgba(225, 29, 72, 0.1);
+  color: var(--rose);
+}

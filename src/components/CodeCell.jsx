@@ -159,30 +159,30 @@ export default function CodeCell({
             </button>
             
             {showMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-[#1e1e1e] border border-slate-700/50 rounded-lg shadow-xl z-50 flex flex-col py-1 min-w-[140px]">
+              <div className="cell-dropdown-menu">
                 <button
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/30 hover:text-white transition-colors"
+                  className="cell-dropdown-btn"
                   onClick={(e) => { e.stopPropagation(); hapticLight(); onMoveCell(cell.id, 'up'); setShowMenu(false); }}
                   disabled={index === 0}
                 >
                   <ArrowUp className="w-3.5 h-3.5" /> Move Up
                 </button>
                 <button
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/30 hover:text-white transition-colors"
+                  className="cell-dropdown-btn"
                   onClick={(e) => { e.stopPropagation(); hapticLight(); onMoveCell(cell.id, 'down'); setShowMenu(false); }}
                   disabled={index === totalCells - 1}
                 >
                   <ArrowDown className="w-3.5 h-3.5" /> Move Down
                 </button>
                 <button
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/30 hover:text-white transition-colors"
+                  className="cell-dropdown-btn"
                   onClick={(e) => { e.stopPropagation(); hapticLight(); onDuplicateCell(cell.id); setShowMenu(false); }}
                 >
                   <Copy className="w-3.5 h-3.5" /> Duplicate
                 </button>
                 {totalCells > 1 && (
                   <button
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors"
+                    className="cell-dropdown-btn delete-btn"
                     onClick={(e) => { e.stopPropagation(); hapticLight(); onDeleteCell(cell.id); setShowMenu(false); }}
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Delete
