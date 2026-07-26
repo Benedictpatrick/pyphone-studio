@@ -453,7 +453,7 @@ body {
   background: var(--surface-1);
   border: 1px solid var(--hairline);
   border-radius: var(--rounded-xl);
-  overflow: hidden;
+  overflow: visible;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 

@@ -145,7 +145,7 @@ export default function CodeCell({
             <Eraser className="w-3.5 h-3.5 text-rose-400" />
           </button>
 
-          <div className="relative">
+          <div style={{ position: 'relative' }}>
             <button
               className="cell-act-btn icon-only"
               onClick={(e) => {
