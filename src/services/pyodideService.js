@@ -68,9 +68,13 @@ import sys
 import io
 import os
 import base64
+import warnings
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 
 # Set working directory so pd.read_csv('file.csv') resolves to mounted datasets
 os.chdir('/home/pyodide')
@@ -235,16 +239,16 @@ sys.stdout = _orig_stdout
 sys.stderr = _orig_stderr
 `);
 
-    // Merge stderr into the error message if there's no explicit exception
-    // so Python warnings/deprecation notices are surfaced to the user
+    // If there was no uncaught Python exception, append non-fatal stderr (like warnings)
+    // to stdout so it displays as console output rather than a red Execution Exception error.
+    let finalStdout = stdout || '';
     const combinedStderr = stderr.trim();
     if (combinedStderr && !errorMsg) {
-      // Show as a soft warning rather than a hard error
-      errorMsg = `Warning (stderr):\n${combinedStderr}`;
+      finalStdout = finalStdout ? `${finalStdout}\n[Warning]\n${combinedStderr}` : `[Warning]\n${combinedStderr}`;
     }
 
     return {
-      stdout: stdout || '',
+      stdout: finalStdout,
       stderr: stderr || '',
       error: errorMsg,
       plots: plotsArray,
@@ -252,6 +256,7 @@ sys.stderr = _orig_stderr
       isDataFrame,
       dfHtml
     };
+
   };
 
   // Chain runs sequentially; if previous run errored, still proceed
