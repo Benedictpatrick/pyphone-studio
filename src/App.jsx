@@ -8,6 +8,7 @@ import DatasetLoaderModal from './components/DatasetLoaderModal';
 import TemplatePickerModal from './components/TemplatePickerModal';
 import VariableExplorer from './components/VariableExplorer';
 import CheatSheetModal from './components/CheatSheetModal';
+import SavedProjectsModal from './components/SavedProjectsModal';
 
 import { initPyodide, executePythonCode, getActiveVariables } from './services/pyodideService';
 import { PYTHON_TEMPLATES } from './templates/pythonTemplates';
@@ -18,7 +19,11 @@ import {
   saveScriptState, 
   loadScriptState, 
   saveLastMode, 
-  loadLastMode 
+  loadLastMode,
+  getSavedProjects,
+  saveProject,
+  renameProject,
+  deleteProject
 } from './services/storageService';
 
 export default function App() {
@@ -31,6 +36,10 @@ export default function App() {
   const [mode, setMode] = useState(loadLastMode() || 'notebook'); // 'notebook' | 'script'
   const [engineStatus, setEngineStatus] = useState({ status: 'idle', message: 'Initializing Python Engine...' });
   const [activeCellId, setActiveCellId] = useState('cell-1');
+
+  // Saved Projects state
+  const [savedProjects, setSavedProjects] = useState(() => getSavedProjects());
+  const [isProjectsModalOpen, setIsProjectsModalOpen] = useState(false);
 
   // Saved or initial Notebook State
   const [cells, setCells] = useState(() => {
@@ -141,6 +150,7 @@ export default function App() {
         setScriptCode((prev) => prev + textToInsert);
         return;
       }
+
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const newCode = scriptCode.substring(0, start) + textToInsert + scriptCode.substring(end);
@@ -153,83 +163,79 @@ export default function App() {
     }
   };
 
-  // Run individual Notebook Cell
+  // Run Notebook Cell
   const handleRunCell = async (cellId) => {
-    const targetCell = cells.find((c) => c.id === cellId);
-    if (!targetCell || targetCell.type === 'markdown') return;
+    const cellToRun = cells.find((c) => c.id === cellId);
+    if (!cellToRun || cellToRun.type !== 'code') return;
 
     setCells((prev) =>
       prev.map((c) => (c.id === cellId ? { ...c, status: 'running', output: null } : c))
     );
 
-    try {
-      const result = await executePythonCode(targetCell.code);
+    const result = await executePythonCode(cellToRun.code);
 
-      setCells((prev) =>
-        prev.map((c) => {
-          if (c.id !== cellId) return c;
-          const nextExecCount = (c.executionCount || 0) + 1;
-          return {
-            ...c,
-            status: result.error ? 'error' : 'completed',
-            executionCount: nextExecCount,
-            output: result
-          };
-        })
-      );
-      // Auto-update variables
-      handleRefreshVariables();
-    } catch (err) {
-      setCells((prev) =>
-        prev.map((c) =>
-          c.id === cellId
-            ? { ...c, status: 'error', output: { error: err.message || String(err) } }
-            : c
-        )
-      );
-    }
+    setCells((prev) =>
+      prev.map((c) => {
+        if (c.id !== cellId) return c;
+        return {
+          ...c,
+          status: result.success ? 'idle' : 'error',
+          executionCount: (c.executionCount || 0) + 1,
+          output: {
+            stdout: result.stdout,
+            error: result.error,
+            images: result.images || []
+          }
+        };
+      })
+    );
+
+    handleRefreshVariables();
   };
 
-  // Run all cells sequentially
+  // Run All Cells
   const handleRunAll = async () => {
-    if (mode === 'notebook') {
-      for (const cell of cells) {
-        if (cell.type !== 'markdown') {
-          await handleRunCell(cell.id);
-        }
+    if (mode === 'script') {
+      handleRunScript();
+      return;
+    }
+
+    for (const cell of cells) {
+      if (cell.type === 'code') {
+        await handleRunCell(cell.id);
       }
-    } else {
-      await handleRunScript();
     }
   };
 
-  // Run PyCharm Script View
+  // Run Script Mode Code
   const handleRunScript = async () => {
     setIsScriptRunning(true);
     setScriptOutput(null);
 
-    try {
-      const result = await executePythonCode(scriptCode);
-      setScriptOutput(result);
-      handleRefreshVariables();
-    } catch (err) {
-      setScriptOutput({ error: err.message || String(err) });
-    } finally {
-      setIsScriptRunning(false);
-    }
+    const result = await executePythonCode(scriptCode);
+
+    setScriptOutput({
+      stdout: result.stdout,
+      error: result.error,
+      images: result.images || []
+    });
+
+    setIsScriptRunning(false);
+    handleRefreshVariables();
   };
 
-  // Cell Management
+  // Add / Delete / Move Cells
   const handleAddCell = (type = 'code') => {
     const newId = `cell-${Date.now()}`;
     const newCell = {
       id: newId,
       type,
-      code: type === 'markdown' ? '## Assignment Section Title' : '# Write Python code here\n',
+      code: type === 'code' ? '# Write your Python code here\n' : '# Header Title\nNote details...',
       executionCount: null,
       status: 'idle',
       output: null
     };
+
     setCells((prev) => [...prev, newCell]);
     setActiveCellId(newId);
   };
@@ -240,69 +246,54 @@ export default function App() {
   };
 
   const handleMoveCell = (id, direction) => {
-    const idx = cells.findIndex((c) => c.id === id);
-    if (idx < 0) return;
-    if (direction === 'up' && idx === 0) return;
-    if (direction === 'down' && idx === cells.length - 1) return;
+    const index = cells.findIndex((c) => c.id === id);
+    if (index === -1) return;
+
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === cells.length - 1) return;
 
     const newCells = [...cells];
-    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    const [moved] = newCells.splice(idx, 1);
-    newCells.splice(targetIdx, 0, moved);
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+    const temp = newCells[index];
+    newCells[index] = newCells[targetIndex];
+    newCells[targetIndex] = temp;
 
     setCells(newCells);
-  };
-
-  const handleDuplicateCell = (id) => {
-    const idx = cells.findIndex((c) => c.id === id);
-    if (idx < 0) return;
-    const original = cells[idx];
-    const duplicate = {
-      ...original,
-      id: `cell-${Date.now()}`,
-      executionCount: null,
-      output: null
-    };
-    const newCells = [...cells];
-    newCells.splice(idx + 1, 0, duplicate);
-    setCells(newCells);
-  };
-
-  const handleUpdateCellCode = (id, newCode) => {
-    setCells((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, code: newCode } : c))
-    );
   };
 
   // Export handlers
   const handleExportPy = () => {
-    let fullScript = '';
+    let fullPy = '# Generated by PyPhone Studio\n\n';
     if (mode === 'notebook') {
-      fullScript = cells
-        .filter((c) => c.type !== 'markdown')
-        .map((c, i) => `# Cell ${i + 1}\n${c.code}\n`)
-        .join('\n');
+      cells.forEach((c, idx) => {
+        if (c.type === 'markdown') {
+          fullPy += `# Cell ${idx + 1} (Markdown):\n# ${c.code.replace(/\n/g, '\n# ')}\n\n`;
+        } else {
+          fullPy += `# Cell ${idx + 1} (Code):\n${c.code}\n\n`;
+        }
+      });
     } else {
-      fullScript = scriptCode;
+      fullPy += scriptCode;
     }
-    const blob = new Blob([fullScript], { type: 'text/plain;charset=utf-8' });
+
+    const blob = new Blob([fullPy], { type: 'text/x-python;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `pyphone_script_${Date.now()}.py`;
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleExportIpynb = () => {
-    const ipynbData = {
-      cells: cells.map((c) => ({
-        cell_type: c.type || 'code',
-        execution_count: c.type === 'markdown' ? null : c.executionCount,
+    const notebookJson = {
+      cells: (mode === 'notebook' ? cells : [{ id: 'cell-1', type: 'code', code: scriptCode }]).map((c) => ({
+        cell_type: c.type === 'markdown' ? 'markdown' : 'code',
+        execution_count: c.executionCount || null,
         metadata: {},
         outputs: [],
-        source: c.code.split('\n').map((line) => line + '\n')
+        source: c.code.split('\n').map((line, i, arr) => (i < arr.length - 1 ? line + '\n' : line))
       })),
       metadata: {
         language_info: { name: 'python', version: '3.11' }
@@ -311,31 +302,84 @@ export default function App() {
       nbformat_minor: 2
     };
 
-    const blob = new Blob([JSON.stringify(ipynbData, null, 2)], {
-      type: 'application/json;charset=utf-8'
-    });
+    const blob = new Blob([JSON.stringify(notebookJson, null, 2)], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `pyphone_notebook_${Date.now()}.ipynb`;
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleExportHtmlReport = () => {
     exportToHtmlReport({
-      title: "Python Data Analysis Report",
+      mode,
       cells,
       scriptCode,
-      scriptOutput,
-      mode
+      scriptOutput
     });
   };
 
+  // Multi-Project Handlers
+  const handleSaveCurrentProject = (title) => {
+    const updated = saveProject({
+      title,
+      type: mode,
+      code: scriptCode,
+      cells: cells
+    });
+    setSavedProjects(updated);
+  };
+
+  const handleLoadProject = (project) => {
+    if (project.type === 'script') {
+      setMode('script');
+      if (project.code) setScriptCode(project.code);
+    } else if (project.type === 'notebook') {
+      setMode('notebook');
+      if (project.cells && project.cells.length > 0) {
+        setCells(project.cells);
+        setActiveCellId(project.cells[0].id);
+      }
+    }
+  };
+
+  const handleRenameProject = (id, newTitle) => {
+    const updated = renameProject(id, newTitle);
+    setSavedProjects(updated);
+  };
+
+  const handleDeleteProject = (id) => {
+    const updated = deleteProject(id);
+    setSavedProjects(updated);
+  };
+
+  const handleExportProject = (project) => {
+    let content = '';
+    let ext = 'py';
+    if (project.type === 'script') {
+      content = project.code || '';
+      ext = 'py';
+    } else {
+      content = JSON.stringify({
+        cells: (project.cells || []).map(c => ({ cell_type: c.type, source: [c.code] })),
+        nbformat: 4
+      }, null, 2);
+      ext = 'ipynb';
+    }
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${project.title.replace(/[^a-z0-9_-]/gi, '_')}.${ext}`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="app-layout" data-theme={theme}>
-      {/* Top Header */}
+    <div className="app-canvas-container" data-mode={mode}>
+      {/* Header */}
       <Header
         mode={mode}
         setMode={setMode}
@@ -343,12 +387,11 @@ export default function App() {
         onToggleTheme={handleToggleTheme}
         engineStatus={engineStatus}
         onRunAll={handleRunAll}
+        onOpenProjects={() => setIsProjectsModalOpen(true)}
+        savedProjectsCount={savedProjects.length}
         onOpenDatasets={() => setIsDatasetModalOpen(true)}
         onOpenTemplates={() => setIsTemplateModalOpen(true)}
-        onOpenVariables={async () => {
-          await handleRefreshVariables();
-          setIsVarExplorerOpen(true);
-        }}
+        onOpenVariables={() => setIsVarExplorerOpen(true)}
         onOpenCheatSheet={() => setIsCheatSheetOpen(true)}
         onAddCell={handleAddCell}
         onExportPy={handleExportPy}
@@ -356,27 +399,28 @@ export default function App() {
         onExportHtmlReport={handleExportHtmlReport}
       />
 
-      {/* Main Workspace Area */}
-      <main className="main-content">
+      {/* Main Workspace: Notebook vs Script View */}
+      <main className="main-workspace">
         {mode === 'notebook' ? (
           <NotebookView
             cells={cells}
-            onUpdateCode={handleUpdateCellCode}
+            activeCellId={activeCellId}
+            setActiveCellId={setActiveCellId}
             onRunCell={handleRunCell}
             onAddCell={handleAddCell}
             onDeleteCell={handleDeleteCell}
             onMoveCell={handleMoveCell}
-            onDuplicateCell={handleDuplicateCell}
+            onUpdateCellCode={(id, code) =>
+              setCells((prev) => prev.map((c) => (c.id === id ? { ...c, code } : c)))
+            }
             onOpenPlotModal={(b64) => setSelectedPlotB64(b64)}
-            activeCellId={activeCellId}
-            setActiveCellId={setActiveCellId}
           />
         ) : (
           <ScriptView
             scriptCode={scriptCode}
             setScriptCode={setScriptCode}
             scriptOutput={scriptOutput}
-            isRunning={isScriptRunning}
+            isScriptRunning={isScriptRunning}
             onRunScript={handleRunScript}
             onOpenPlotModal={(b64) => setSelectedPlotB64(b64)}
           />
@@ -403,6 +447,18 @@ export default function App() {
           onClose={() => setSelectedPlotB64(null)}
         />
       )}
+
+      <SavedProjectsModal 
+        isOpen={isProjectsModalOpen}
+        onClose={() => setIsProjectsModalOpen(false)}
+        projects={savedProjects}
+        onSaveCurrent={handleSaveCurrentProject}
+        onLoadProject={handleLoadProject}
+        onRenameProject={handleRenameProject}
+        onDeleteProject={handleDeleteProject}
+        activeMode={mode}
+        onExportProject={handleExportProject}
+      />
 
       <VariableExplorer
         isOpen={isVarExplorerOpen}

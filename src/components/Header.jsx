@@ -13,7 +13,8 @@ import {
   FileText,
   CheckCircle,
   Sun,
-  Moon
+  Moon,
+  FolderCode
 } from 'lucide-react';
 import PyPhoneStudioLogo from './PyPhoneStudioLogo';
 
@@ -24,6 +25,8 @@ export default function Header({
   onToggleTheme,
   engineStatus,
   onRunAll,
+  onOpenProjects,
+  savedProjectsCount = 0,
   onOpenDatasets,
   onOpenTemplates,
   onOpenVariables,
@@ -111,6 +114,19 @@ export default function Header({
         >
           <Play className="w-3.5 h-3.5 fill-current" />
           <span>Run All</span>
+        </button>
+
+        {/* My Projects Button */}
+        <button 
+          className="framer-btn-secondary projects-ribbon-btn" 
+          onClick={onOpenProjects}
+          title="My Saved Programs & Projects"
+        >
+          <FolderCode className="w-3.5 h-3.5 text-blue-400" />
+          <span>Projects</span>
+          {savedProjectsCount > 0 && (
+            <span className="ribbon-count-pill">{savedProjectsCount}</span>
+          )}
         </button>
 
         {mode === 'notebook' && (
