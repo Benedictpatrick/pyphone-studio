@@ -12,7 +12,6 @@ import {
   Layers,
   FileText,
   CheckCircle,
-  Terminal,
   Sun,
   Moon
 } from 'lucide-react';
@@ -39,9 +38,6 @@ export default function Header({
     <header className="framer-header">
       <div className="header-top">
         <div className="brand-container">
-          <div className="logo-icon-framer">
-            <Terminal className="w-5 h-5 text-blue-400" />
-          </div>
           <div>
             <h1 className="brand-title-framer">
               PyPhone <span className="brand-badge-framer">Studio</span>
@@ -50,7 +46,7 @@ export default function Header({
           </div>
         </div>
 
-        {/* Minimal Engine Status & Auto-Save (No Pill Capsules) */}
+        {/* Minimal Engine Status & Auto-Save */}
         <div className="status-indicators">
           <div className="status-item saved-item">
             <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
