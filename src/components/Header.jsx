@@ -6,11 +6,9 @@ import {
   Database, 
   FileCode, 
   Download, 
-  Loader2, 
   Plus, 
   Layers,
   FileText,
-  CheckCircle,
   Sun,
   Moon,
   FolderCode
@@ -40,48 +38,18 @@ export default function Header({
   return (
     <header className="framer-header">
       <div className="header-top">
-        {/* Exact PyPhone Studio Brand Logo Component */}
         <PyPhoneStudioLogo />
-
-        {/* Minimal Engine Status & Auto-Save */}
-        <div className="status-indicators">
-          <div className="status-item saved-item">
-            <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Saved</span>
-          </div>
-
-          <div className="status-item engine-item">
-            {engineStatus.status === 'ready' ? (
-              <>
-                <span className="blue-status-dot"></span>
-                <span>Python 3.11 WASM</span>
-              </>
-            ) : engineStatus.status === 'error' ? (
-              <>
-                <span className="red-status-dot"></span>
-                <span>Engine Error</span>
-              </>
-            ) : (
-              <>
-                <Loader2 className="w-3.5 h-3.5 spin text-blue-400" />
-                <span>{engineStatus.message || 'Loading WASM...'}</span>
-              </>
-            )}
-          </div>
-
-          {/* Theme Switcher Button */}
-          <button 
-            className="framer-btn-secondary theme-toggle-btn"
-            onClick={onToggleTheme}
-            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-          >
-            {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-blue-400" />
-            )}
-          </button>
-        </div>
+        <button 
+          className="theme-toggle-btn"
+          onClick={onToggleTheme}
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-3.5 h-3.5 text-amber-400" />
+          ) : (
+            <Moon className="w-3.5 h-3.5 text-blue-400" />
+          )}
+        </button>
       </div>
 
       {/* Continuous Touch Action Ribbon */}
@@ -114,6 +82,11 @@ export default function Header({
           <Play className="w-3.5 h-3.5 fill-current" />
           <span>Run All</span>
         </button>
+
+        <span 
+          className={`engine-status-dot ${engineStatus.status === 'ready' ? 'dot-ready' : engineStatus.status === 'error' ? 'dot-error' : 'dot-loading'}`}
+          title={engineStatus.status === 'ready' ? 'Python 3.11 WASM Ready' : engineStatus.status === 'error' ? 'Engine Error' : engineStatus.message || 'Loading WASM...'}
+        ></span>
 
         {/* My Projects Button */}
         <button 
@@ -176,7 +149,7 @@ export default function Header({
         </button>
 
         {/* Export Dropdown */}
-        <div className="relative flex-shrink-0">
+        <div className="export-btn-wrapper flex-shrink-0">
           <button 
             className="framer-btn-secondary icon-only-btn" 
             onClick={() => setShowExportMenu(!showExportMenu)}

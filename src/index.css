@@ -122,7 +122,7 @@ body {
   z-index: 40;
   padding: 10px 14px;
   transition: background 0.25s ease, border-color 0.25s ease;
-  overflow: visible;
+  overflow: hidden;
 }
 
 [data-theme="light"] .framer-header {
@@ -132,9 +132,8 @@ body {
 .header-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 8px;
-  overflow: visible;
 }
 
 .brand-container {
@@ -210,46 +209,6 @@ body {
 }
 
 /* Minimalist Status Indicators (No Pill Capsules) */
-.status-indicators {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.status-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.76rem;
-  font-weight: 500;
-  color: var(--ink-muted);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.status-item.engine-item {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.blue-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--accent-blue);
-  flex-shrink: 0;
-  box-shadow: none !important;
-  filter: none !important;
-}
-
-.red-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #ef4444;
-  flex-shrink: 0;
-}
-
 /* Single Continuous Touch Action Ribbon */
 .framer-action-ribbon {
   display: flex;
@@ -266,6 +225,33 @@ body {
 
 .framer-action-ribbon::-webkit-scrollbar {
   display: none;
+}
+
+/* Engine Status Dot (in action ribbon) */
+.engine-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+
+.engine-status-dot.dot-ready {
+  background-color: #22c55e;
+}
+
+.engine-status-dot.dot-error {
+  background-color: #ef4444;
+}
+
+.engine-status-dot.dot-loading {
+  background-color: #3b82f6;
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 /* Mode Switcher Group */
@@ -357,9 +343,23 @@ body {
 }
 
 .theme-toggle-btn {
-  padding: 5px 8px;
-  min-height: 32px;
-  min-width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-md);
+  background: var(--surface-1);
+  cursor: pointer;
+  flex-shrink: 0;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+
+.theme-toggle-btn:active {
+  transform: scale(0.92);
+  background: var(--surface-2);
 }
 
 .icon-only-btn {
@@ -368,6 +368,10 @@ body {
 }
 
 /* Export Dropdown Menu */
+.export-btn-wrapper {
+  position: relative;
+}
+
 .framer-export-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -1104,12 +1108,34 @@ table.pyphone-df-table tr:nth-child(even) {
   gap: 8px;
 }
 
+.modal-action-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  color: var(--ink);
+  padding: 8px 12px;
+  border-radius: var(--rounded-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  min-height: 38px;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+
+.modal-action-btn:active {
+  transform: scale(0.95);
+  background: var(--surface-1);
+}
+
 .modal-close-btn {
   background: var(--surface-2);
   border: 1px solid var(--hairline);
   color: var(--ink);
   padding: 8px;
-  border-radius: var(--rounded-full);
+  border-radius: var(--rounded-md);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1896,10 +1922,6 @@ table.pyphone-df-table tr:nth-child(even) {
   .pycharm-editor-wrapper {
     border-radius: 8px;
   }
-
-  .status-item {
-    font-size: 0.68rem;
-  }
 }
 
 /* Smartphone screens */
@@ -1940,20 +1962,6 @@ table.pyphone-df-table tr:nth-child(even) {
   .pyphone-brand-subtitle,
   .pyphone-brand-divider {
     display: none;
-  }
-
-  /* Compact status indicators */
-  .status-indicators {
-    gap: 6px;
-  }
-
-  .status-item {
-    font-size: 0.65rem;
-    gap: 4px;
-  }
-
-  .status-item.saved-item {
-    display: none; /* Hide "Saved" on very small screens — auto-save still works */
   }
 
   .theme-toggle-btn {
