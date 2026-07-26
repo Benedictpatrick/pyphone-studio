@@ -4,6 +4,11 @@ import { SAMPLE_DATASETS } from './datasetService';
 let pyodideInstance = null;
 let isLoading = false;
 let loadPromise = null;
+let pendingInputValues = [];
+
+export function setPythonInputValues(values = []) {
+  pendingInputValues = [...values];
+}
 
 /**
  * Initialize Pyodide WASM runtime and pre-load Python Data Science packages
@@ -47,7 +52,7 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
 
       const pyodide = await window.loadPyodide({
         indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/',
-        stdin: () => window.prompt()
+        stdin: () => pendingInputValues.length ? pendingInputValues.shift() : null
       });
 
       // Load built-in C-extension packages sequentially for mobile stability
@@ -244,8 +249,12 @@ sys.stderr = _stderr_buf
     try {
       // Run user code via our robust python wrapper to bypass WASM error truncation bugs
       const runner = pyodide.globals.get('_pyphone_run_code');
-      const rawResult = await runner(codeString);
-      runner.destroy();
+      let rawResult;
+      try {
+        rawResult = await runner(codeString);
+      } finally {
+        runner.destroy();
+      }
 
       // Auto-check if matplotlib figure was left open without plt.show()
       await pyodide.runPythonAsync(`
@@ -254,7 +263,11 @@ if len(plt.get_fignums()) > 0:
 `);
 
       if (rawResult !== undefined && rawResult !== null) {
-        evalResult = String(rawResult);
+        try {
+          evalResult = String(rawResult);
+        } finally {
+          rawResult.destroy?.();
+        }
 
         // Check if evaluated result is a Pandas DataFrame
         const isDfCheck = await pyodide.runPythonAsync(`
@@ -306,9 +319,13 @@ isinstance(__last_res, pd.DataFrame)
 
     try {
       const pyPlots = await pyodide.runPythonAsync(`_captured_plots`);
-      plotsArray = pyPlots && pyPlots.toJs
-        ? pyPlots.toJs({ depth: -1 })
-        : (Array.isArray(pyPlots) ? pyPlots : []);
+      try {
+        plotsArray = pyPlots && pyPlots.toJs
+          ? pyPlots.toJs({ depth: -1 })
+          : (Array.isArray(pyPlots) ? pyPlots : []);
+      } finally {
+        pyPlots?.destroy?.();
+      }
     } catch (_) { plotsArray = []; }
 
     // Restore stdout/stderr to saved original streams (not sys.__stdout__ which is None in Pyodide)
@@ -350,7 +367,11 @@ export async function getActiveVariables() {
   if (!pyodideInstance) return [];
   try {
     const pyVars = await pyodideInstance.runPythonAsync(`_get_user_variables()`);
-    return pyVars && pyVars.toJs ? pyVars.toJs({ depth: -1 }) : [];
+    try {
+      return pyVars && pyVars.toJs ? pyVars.toJs({ depth: -1 }) : [];
+    } finally {
+      pyVars?.destroy?.();
+    }
   } catch (err) {
     console.warn('Variable Explorer error:', err);
     return [];

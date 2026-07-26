@@ -208,6 +208,7 @@ export function exportToHtmlReport({ title = "Python Data Analysis Report", cell
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
 function escapeHtml(str) {

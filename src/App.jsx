@@ -10,10 +10,11 @@ import VariableExplorer from './components/VariableExplorer';
 import CheatSheetModal from './components/CheatSheetModal';
 import SavedProjectsModal from './components/SavedProjectsModal';
 import SettingsModal from './components/SettingsModal';
+import PythonInputModal from './components/PythonInputModal';
 
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from './utils/haptics';
 
-import { initPyodide, executePythonCode, getActiveVariables } from './services/pyodideService';
+import { initPyodide, executePythonCode, getActiveVariables, setPythonInputValues } from './services/pyodideService';
 import { PYTHON_TEMPLATES } from './templates/pythonTemplates';
 import { exportToHtmlReport } from './services/htmlExportService';
 import { 
@@ -84,6 +85,8 @@ export default function App() {
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [inputRequest, setInputRequest] = useState(null);
+  const inputResolver = useRef(null);
 
   // Editor settings (persisted to localStorage)
   const [editorSettings, setEditorSettings] = useState(() => {
@@ -220,10 +223,54 @@ export default function App() {
     });
   };
 
+  const collectPythonInputs = (code) => {
+    const prompts = [];
+    const inputPattern = /\binput\s*\(\s*(?:(['"])((?:\\.|(?!\1).)*)\1)?\s*\)/g;
+    let match;
+
+    while ((match = inputPattern.exec(code)) !== null) {
+      const prompt = match[2]
+        ? match[2].replace(/\\n/g, '\n').replace(/\\(['"])/g, '$1')
+        : 'Enter a value';
+      prompts.push(prompt || 'Enter a value');
+    }
+
+    if (prompts.length === 0) return Promise.resolve([]);
+
+    return new Promise((resolve) => {
+      inputResolver.current = resolve;
+      setInputRequest({ prompts, index: 0, values: [] });
+    });
+  };
+
+  const handlePythonInputSubmit = (value) => {
+    if (!inputRequest) return;
+    const values = [...inputRequest.values, value];
+
+    if (inputRequest.index + 1 < inputRequest.prompts.length) {
+      setInputRequest({ ...inputRequest, index: inputRequest.index + 1, values });
+      return;
+    }
+
+    inputResolver.current?.(values);
+    inputResolver.current = null;
+    setInputRequest(null);
+  };
+
+  const handlePythonInputCancel = () => {
+    inputResolver.current?.(null);
+    inputResolver.current = null;
+    setInputRequest(null);
+  };
+
   // Run Notebook Cell
   const handleRunCell = async (cellId) => {
     const cellToRun = cells.find((c) => c.id === cellId);
     if (!cellToRun || cellToRun.type !== 'code') return;
+
+    const inputValues = await collectPythonInputs(cellToRun.code);
+    if (inputValues === null) return;
+    setPythonInputValues(inputValues);
 
     setCells((prev) =>
       prev.map((c) => (c.id === cellId ? { ...c, status: 'running', output: null } : c))
@@ -281,6 +328,10 @@ export default function App() {
 
   // Run Script Mode Code
   const handleRunScript = async () => {
+    const inputValues = await collectPythonInputs(scriptCode);
+    if (inputValues === null) return;
+    setPythonInputValues(inputValues);
+
     setIsScriptRunning(true);
     setScriptOutput(null);
     hapticMedium();
@@ -439,8 +490,11 @@ export default function App() {
       code: scriptCode,
       cells: cells
     });
-    // Capture the id from the newly saved project
-    const saved = updated.find((p) => p.title === title);
+    // Title is not unique, so retain the current id when updating and use the
+    // newly inserted first item only when creating a new project.
+    const saved = currentProjectId
+      ? updated.find((project) => project.id === currentProjectId)
+      : updated[0];
     if (saved) setCurrentProjectId(saved.id);
     setSavedProjects(updated);
   };
@@ -449,13 +503,21 @@ export default function App() {
     setCurrentProjectId(project.id);
     if (project.type === 'script') {
       setMode('script');
-      if (project.code) setScriptCode(project.code);
+      setScriptCode(project.code || '');
     } else if (project.type === 'notebook') {
       setMode('notebook');
-      if (project.cells && project.cells.length > 0) {
-        setCells(project.cells);
-        setActiveCellId(project.cells[0].id);
-      }
+      const projectCells = Array.isArray(project.cells) && project.cells.length > 0
+        ? project.cells
+        : [{
+            id: 'cell-1',
+            type: 'code',
+            code: '# Write your Python code here...\n',
+            executionCount: null,
+            status: 'idle',
+            output: null
+          }];
+      setCells(projectCells);
+      setActiveCellId(projectCells[0].id);
     }
   };
 
@@ -621,7 +683,13 @@ export default function App() {
         onClose={() => setSelectedPlotB64(null)}
       />
 
-      {!(isTemplateModalOpen || isSettingsOpen || isProjectsModalOpen || isDatasetModalOpen || isVarExplorerOpen || isCheatSheetOpen || selectedPlotB64) && (
+      <PythonInputModal
+        request={inputRequest}
+        onSubmit={handlePythonInputSubmit}
+        onCancel={handlePythonInputCancel}
+      />
+
+      {!(isTemplateModalOpen || isSettingsOpen || isProjectsModalOpen || isDatasetModalOpen || isVarExplorerOpen || isCheatSheetOpen || selectedPlotB64 || inputRequest) && (
         <MobileKeyboardToolbar
           onInsertText={handleInsertText}
           onRunCurrent={() => mode === 'script' ? handleRunScript() : handleRunCell(activeCellId)}
