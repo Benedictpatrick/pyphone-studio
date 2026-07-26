@@ -181,6 +181,25 @@ def _get_user_variables():
             v_repr = v_repr[:67] + "..."
         user_vars.append({"name": k, "type": v_type, "shape": v_shape, "repr": v_repr})
     return user_vars
+
+import traceback
+from pyodide.code import eval_code
+import asyncio
+
+_pyphone_last_error = ""
+
+async def _pyphone_run_code(code_str):
+    global _pyphone_last_error, __last_res
+    _pyphone_last_error = ""
+    try:
+        res = eval_code(code_str, globals())
+        if asyncio.iscoroutine(res):
+            res = await res
+        __last_res = res
+        return res
+    except BaseException:
+        _pyphone_last_error = traceback.format_exc()
+        raise Exception("PYPHONE_EXEC_ERROR")
 `);
 
       pyodideInstance = pyodide;
@@ -222,8 +241,10 @@ sys.stderr = _stderr_buf
     let dfHtml = null;
 
     try {
-      // Run user code
-      const rawResult = await pyodide.runPythonAsync(codeString);
+      // Run user code via our robust python wrapper to bypass WASM error truncation bugs
+      const runner = pyodide.globals.get('_pyphone_run_code');
+      const rawResult = await runner(codeString);
+      runner.destroy();
 
       // Auto-check if matplotlib figure was left open without plt.show()
       await pyodide.runPythonAsync(`
@@ -233,9 +254,6 @@ if len(plt.get_fignums()) > 0:
 
       if (rawResult !== undefined && rawResult !== null) {
         evalResult = String(rawResult);
-
-        // Store result in Python globals for DataFrame check
-        pyodide.globals.set('__last_res', rawResult);
 
         // Check if evaluated result is a Pandas DataFrame
         const isDfCheck = await pyodide.runPythonAsync(`
@@ -248,17 +266,25 @@ isinstance(__last_res, pd.DataFrame)
         }
       }
     } catch (err) {
-      // On some mobile browsers (like iOS Safari), err.message might just be "PythonError".
-      // We extract both message and stack to ensure the full traceback is never lost.
-      const msg = err.message || '';
-      const stack = err.stack || '';
-      if (msg === err.name || msg === 'PythonError' || msg.trim() === '') {
-        errorMsg = stack || String(err);
+      // Check if our Python wrapper caught a true Python error and saved the traceback
+      let pyTraceback = null;
+      try {
+        pyTraceback = await pyodide.runPythonAsync('_pyphone_last_error');
+      } catch (_) {}
+
+      if (pyTraceback && pyTraceback.trim() !== '') {
+        errorMsg = pyTraceback;
       } else {
-        errorMsg = msg;
-        // If stack contains the Python traceback but message doesn't, append it
-        if (stack && stack.includes('Traceback') && !msg.includes('Traceback')) {
-          errorMsg += '\n' + stack;
+        // Fallback for JS/WASM level failures
+        const msg = err.message || '';
+        const stack = err.stack || '';
+        if (msg === err.name || msg === 'PythonError' || msg.trim() === '') {
+          errorMsg = stack || String(err);
+        } else {
+          errorMsg = msg;
+          if (stack && stack.includes('Traceback') && !msg.includes('Traceback')) {
+            errorMsg += '\n' + stack;
+          }
         }
       }
     }
