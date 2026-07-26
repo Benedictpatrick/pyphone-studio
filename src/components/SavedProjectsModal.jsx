@@ -68,14 +68,17 @@ export default function SavedProjectsModal({
   // Code snippet helper
   const getSnippet = (proj) => {
     if (proj.type === 'script') {
-      return proj.code ? proj.code.slice(0, 90) + '...' : '# Empty script';
+      if (!proj.code) return '# Empty script';
+      return proj.code.length > 90 ? proj.code.slice(0, 90) + '...' : proj.code;
     }
     if (proj.cells && proj.cells.length > 0) {
       const firstCode = proj.cells.find(c => c.type === 'code');
-      return firstCode ? firstCode.code.slice(0, 90) + '...' : '# Notebook cells';
+      if (!firstCode) return '# Notebook cells';
+      return firstCode.code.length > 90 ? firstCode.code.slice(0, 90) + '...' : firstCode.code;
     }
     return '# Empty notebook';
   };
+
 
   return (
     <div className="modal-overlay" onClick={onClose}>
