@@ -193,11 +193,22 @@ body {
   background-color: #ef4444;
 }
 
-.header-controls {
+/* Single Continuous Touch Action Ribbon */
+.framer-action-ribbon {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  padding: 4px 2px;
+  width: 100%;
+}
+
+.framer-action-ribbon::-webkit-scrollbar {
+  display: none;
 }
 
 /* Mode Switcher Group */
@@ -230,22 +241,6 @@ body {
 .framer-mode-btn.active {
   background: var(--surface-2);
   color: var(--ink);
-}
-
-/* Action Buttons Group with Touch Scroll */
-.action-buttons-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding-bottom: 2px;
-  touch-action: pan-x;
-}
-
-.action-buttons-group::-webkit-scrollbar {
-  display: none;
 }
 
 /* Primary CTA Pill Button */

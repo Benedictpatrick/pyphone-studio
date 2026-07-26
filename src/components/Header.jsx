@@ -91,8 +91,8 @@ export default function Header({
         </div>
       </div>
 
-      {/* Navigation Controls */}
-      <div className="header-controls">
+      {/* Continuous Touch Action Ribbon */}
+      <div className="framer-action-ribbon">
         {/* Mode Switcher */}
         <div className="framer-mode-toggle">
           <button
@@ -111,92 +111,90 @@ export default function Header({
           </button>
         </div>
 
-        {/* Action Toolbar */}
-        <div className="action-buttons-group">
+        {/* Primary Action Button */}
+        <button 
+          className="framer-btn-primary" 
+          onClick={onRunAll}
+          disabled={engineStatus.status !== 'ready'}
+          title="Execute All Code"
+        >
+          <Play className="w-3.5 h-3.5 fill-current" />
+          <span>Run All</span>
+        </button>
+
+        {mode === 'notebook' && (
           <button 
-            className="framer-btn-primary" 
-            onClick={onRunAll}
-            disabled={engineStatus.status !== 'ready'}
-            title="Execute All Code"
+            className="framer-btn-secondary" 
+            onClick={() => onAddCell('code')}
+            title="Add Code Cell"
           >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>Run All</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Cell</span>
+          </button>
+        )}
+
+        <button 
+          className="framer-btn-secondary" 
+          onClick={onOpenVariables}
+          title="Variable Explorer"
+        >
+          <Layers className="w-3.5 h-3.5 text-blue-400" />
+          <span>Variables</span>
+        </button>
+
+        <button 
+          className="framer-btn-secondary" 
+          onClick={onOpenDatasets}
+          title="Preloaded CSV Datasets"
+        >
+          <Database className="w-3.5 h-3.5 text-blue-400" />
+          <span>Data</span>
+        </button>
+
+        <button 
+          className="framer-btn-secondary" 
+          onClick={onOpenCheatSheet}
+          title="Data Science Cheat Sheet"
+        >
+          <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+          <span>Cheat Sheet</span>
+        </button>
+
+        <button 
+          className="framer-btn-secondary" 
+          onClick={onOpenTemplates}
+          title="Starter Python Code Examples"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+          <span>Templates</span>
+        </button>
+
+        {/* Export Dropdown */}
+        <div className="relative flex-shrink-0">
+          <button 
+            className="framer-btn-secondary icon-only-btn" 
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            title="Export File"
+          >
+            <Download className="w-3.5 h-3.5" />
           </button>
 
-          {mode === 'notebook' && (
-            <button 
-              className="framer-btn-secondary" 
-              onClick={() => onAddCell('code')}
-              title="Add Code Cell"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Cell</span>
-            </button>
+          {showExportMenu && (
+            <div className="framer-export-dropdown">
+              <button onClick={() => { onExportHtmlReport(); setShowExportMenu(false); }}>
+                <FileText className="w-4 h-4 text-blue-400" />
+                <span>Export HTML Report</span>
+              </button>
+              <button onClick={() => { onExportPy(); setShowExportMenu(false); }}>
+                <FileCode className="w-4 h-4 text-blue-400" />
+                <span>Download .py Script</span>
+              </button>
+              <button onClick={() => { onExportIpynb(); setShowExportMenu(false); }}>
+                <BookOpen className="w-4 h-4 text-blue-400" />
+                <span>Download .ipynb Notebook</span>
+              </button>
+            </div>
           )}
-
-          <button 
-            className="framer-btn-secondary" 
-            onClick={onOpenVariables}
-            title="Variable Explorer"
-          >
-            <Layers className="w-3.5 h-3.5 text-blue-400" />
-            <span>Variables</span>
-          </button>
-
-          <button 
-            className="framer-btn-secondary" 
-            onClick={onOpenDatasets}
-            title="Preloaded CSV Datasets"
-          >
-            <Database className="w-3.5 h-3.5 text-blue-400" />
-            <span>Data</span>
-          </button>
-
-          <button 
-            className="framer-btn-secondary" 
-            onClick={onOpenCheatSheet}
-            title="Data Science Cheat Sheet"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-blue-400" />
-            <span>Cheat Sheet</span>
-          </button>
-
-          <button 
-            className="framer-btn-secondary" 
-            onClick={onOpenTemplates}
-            title="Starter Python Code Examples"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-            <span>Templates</span>
-          </button>
-
-          {/* Export Dropdown */}
-          <div className="relative">
-            <button 
-              className="framer-btn-secondary icon-only-btn" 
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              title="Export File"
-            >
-              <Download className="w-3.5 h-3.5" />
-            </button>
-
-            {showExportMenu && (
-              <div className="framer-export-dropdown">
-                <button onClick={() => { onExportHtmlReport(); setShowExportMenu(false); }}>
-                  <FileText className="w-4 h-4 text-blue-400" />
-                  <span>Export HTML Report</span>
-                </button>
-                <button onClick={() => { onExportPy(); setShowExportMenu(false); }}>
-                  <FileCode className="w-4 h-4 text-blue-400" />
-                  <span>Download .py Script</span>
-                </button>
-                <button onClick={() => { onExportIpynb(); setShowExportMenu(false); }}>
-                  <BookOpen className="w-4 h-4 text-blue-400" />
-                  <span>Download .ipynb Notebook</span>
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </header>
