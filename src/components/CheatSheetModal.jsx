@@ -20,13 +20,16 @@ export default function CheatSheetModal({ isOpen, onClose, onInsertSnippet }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card cheat-sheet-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-title">
-            <BookOpen className="w-5 h-5 text-amber-400" />
-            <span>Data Science Cheat Sheet & Snippets</span>
+          <div className="bottom-sheet-handle"></div>
+          <div className="modal-header-top-row">
+            <div className="modal-title">
+              <BookOpen className="w-5 h-5 text-blue-400" />
+              <span>Data Science Cheat Sheet & Snippets</span>
+            </div>
+            <button className="modal-close-btn" onClick={onClose}>
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button className="modal-close-btn" onClick={onClose}>
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         <div className="modal-body">

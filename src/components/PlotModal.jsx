@@ -17,18 +17,21 @@ export default function PlotModal({ plotBase64, onClose }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="plot-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-title">
-            <ImageIcon className="w-5 h-5 text-blue-400" />
-            <span>Visualization Inspector</span>
-          </div>
-          <div className="modal-actions">
-            <button className="framer-btn-primary" onClick={handleDownload} title="Download Graph Image">
-              <Download className="w-3.5 h-3.5 text-black" />
-              <span>Save PNG</span>
-            </button>
-            <button className="modal-close-btn" onClick={onClose}>
-              <X className="w-5 h-5" />
-            </button>
+          <div className="bottom-sheet-handle"></div>
+          <div className="modal-header-top-row">
+            <div className="modal-title">
+              <ImageIcon className="w-5 h-5 text-blue-400" />
+              <span>Visualization Inspector</span>
+            </div>
+            <div className="modal-actions">
+              <button className="framer-btn-primary" onClick={handleDownload} title="Download Graph Image">
+                <Download className="w-3.5 h-3.5 fill-current" />
+                <span>Save PNG</span>
+              </button>
+              <button className="modal-close-btn" onClick={onClose}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
 

@@ -8,18 +8,21 @@ export default function VariableExplorer({ isOpen, onClose, variables = [], onRe
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card var-explorer-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-title">
-            <Layers className="w-5 h-5 text-cyan-400" />
-            <span>Python Variable Explorer</span>
-          </div>
-          <div className="modal-actions">
-            <button className="modal-action-btn" onClick={onRefresh} title="Refresh Variables">
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Refresh</span>
-            </button>
-            <button className="modal-close-btn" onClick={onClose}>
-              <X className="w-5 h-5" />
-            </button>
+          <div className="bottom-sheet-handle"></div>
+          <div className="modal-header-top-row">
+            <div className="modal-title">
+              <Layers className="w-5 h-5 text-blue-400" />
+              <span>Python Variable Explorer</span>
+            </div>
+            <div className="modal-actions">
+              <button className="modal-action-btn" onClick={onRefresh} title="Refresh Variables">
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Refresh</span>
+              </button>
+              <button className="modal-close-btn" onClick={onClose}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
 

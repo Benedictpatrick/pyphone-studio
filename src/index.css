@@ -73,6 +73,7 @@ body {
   width: 100vw;
   min-height: 100vh;
   transition: background-color 0.25s ease, color 0.25s ease;
+  overscroll-behavior-y: none;
 }
 
 /* Base Layout */
@@ -80,50 +81,57 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding-bottom: 95px;
+  padding-bottom: 110px;
   background: var(--canvas);
 }
 
 /* Header Navigation Bar */
 .framer-header {
-  background: var(--canvas);
+  background: rgba(9, 9, 9, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--hairline);
   position: sticky;
   top: 0;
   z-index: 40;
-  padding: 12px 18px;
+  padding: 10px 14px;
   transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+[data-theme="light"] .framer-header {
+  background: rgba(255, 255, 255, 0.85);
 }
 
 .header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .brand-container {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .logo-icon-framer {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   background: var(--surface-1);
   border: 1px solid var(--hairline);
   border-radius: var(--rounded-md);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .brand-title-framer {
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--ink);
-  letter-spacing: -1.2px;
+  letter-spacing: -1px;
   line-height: 1;
 }
 
@@ -133,7 +141,7 @@ body {
 }
 
 .brand-subtitle-framer {
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   color: var(--ink-muted);
   font-weight: 400;
 }
@@ -142,17 +150,17 @@ body {
 .status-badges {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .framer-badge-saved {
   display: flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: 4px 8px;
   background: var(--surface-1);
   border: 1px solid var(--hairline);
   border-radius: var(--rounded-pill);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--ink-muted);
   font-weight: 500;
 }
@@ -161,11 +169,11 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
+  padding: 4px 10px;
   border-radius: var(--rounded-pill);
   background: var(--surface-1);
   border: 1px solid var(--hairline);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 500;
   color: var(--ink);
 }
@@ -189,8 +197,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
 }
 
 /* Mode Switcher Group */
@@ -200,22 +207,24 @@ body {
   padding: 3px;
   border-radius: var(--rounded-pill);
   border: 1px solid var(--hairline);
+  flex-shrink: 0;
 }
 
 .framer-mode-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  font-size: 0.78rem;
-  font-weight: 500;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 0.76rem;
+  font-weight: 600;
   border: none;
   border-radius: var(--rounded-pill);
   background: transparent;
   color: var(--ink-muted);
   cursor: pointer;
   transition: all 0.2s ease;
-  letter-spacing: -0.14px;
+  min-height: 36px;
+  touch-action: manipulation;
 }
 
 .framer-mode-btn.active {
@@ -223,11 +232,20 @@ body {
   color: var(--ink);
 }
 
+/* Action Buttons Group with Touch Scroll */
 .action-buttons-group {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 2px;
+  touch-action: pan-x;
+}
+
+.action-buttons-group::-webkit-scrollbar {
+  display: none;
 }
 
 /* Primary CTA Pill Button */
@@ -245,11 +263,14 @@ body {
   border: none;
   cursor: pointer;
   letter-spacing: -0.14px;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  flex-shrink: 0;
+  min-height: 40px;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, opacity 0.12s ease;
 }
 
 .framer-btn-primary:active {
-  transform: scale(0.97);
+  transform: scale(0.95);
 }
 
 .framer-btn-primary:disabled {
@@ -261,9 +282,10 @@ body {
 .framer-btn-secondary {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  font-size: 0.78rem;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 12px;
+  font-size: 0.76rem;
   font-weight: 500;
   border-radius: var(--rounded-pill);
   border: 1px solid var(--hairline);
@@ -271,20 +293,25 @@ body {
   color: var(--ink);
   cursor: pointer;
   letter-spacing: -0.14px;
-  transition: all 0.2s ease;
+  flex-shrink: 0;
+  min-height: 40px;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, background 0.15s ease;
 }
 
-.framer-btn-secondary:hover {
+.framer-btn-secondary:active {
+  transform: scale(0.95);
   background: var(--surface-2);
-  border-color: var(--accent-blue);
 }
 
 .theme-toggle-btn {
-  padding: 8px 12px;
+  padding: 6px 10px;
+  min-height: 34px;
 }
 
 .icon-only-btn {
-  padding: 8px;
+  padding: 8px 10px;
+  min-width: 40px;
 }
 
 /* Export Dropdown Menu */
@@ -307,7 +334,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   font-size: 0.82rem;
   background: transparent;
   border: none;
@@ -315,17 +342,18 @@ body {
   text-align: left;
   border-radius: var(--rounded-md);
   cursor: pointer;
+  min-height: 44px;
   transition: background 0.15s ease;
 }
 
-.framer-export-dropdown button:hover {
+.framer-export-dropdown button:active {
   background: var(--surface-2);
 }
 
 /* Main Content Workspace */
 .main-content {
   flex: 1;
-  padding: 16px 12px;
+  padding: 12px 10px;
   max-width: 920px;
   margin: 0 auto;
   width: 100%;
@@ -335,7 +363,7 @@ body {
 .cells-list {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 
 .notebook-cell {
@@ -356,16 +384,16 @@ body {
   align-items: center;
   justify-content: space-between;
   background: var(--canvas);
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--hairline);
 }
 
 .cell-execution-badge {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--ink-muted);
 }
 
@@ -377,32 +405,41 @@ body {
 .cell-actions {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .cell-act-btn {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
+  gap: 4px;
+  padding: 6px 10px;
   font-size: 0.74rem;
   border-radius: var(--rounded-pill);
   background: var(--surface-2);
   border: 1px solid var(--hairline);
   color: var(--ink);
   cursor: pointer;
+  min-height: 36px;
+  touch-action: manipulation;
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.cell-act-btn:active {
+  transform: scale(0.94);
 }
 
 .cell-act-btn.icon-only {
-  padding: 5px 8px;
+  padding: 6px 10px;
+  min-width: 36px;
+  justify-content: center;
 }
 
-.cell-act-btn.delete-btn:hover {
+.cell-act-btn.delete-btn:active {
   color: #ef4444;
   border-color: #ef4444;
 }
 
-/* Code & Markdown Textarea */
+/* Code & Markdown Textarea (Prevent iOS Auto-Zoom by using 15px font) */
 .cell-editor-container {
   position: relative;
 }
@@ -413,13 +450,14 @@ body {
   background: var(--editor-bg);
   color: var(--editor-text);
   font-family: var(--font-mono);
-  font-size: 0.86rem;
-  line-height: 1.65;
-  padding: 14px;
+  font-size: 15px; /* Critical for mobile to prevent unwanted browser zoom */
+  line-height: 1.6;
+  padding: 12px 14px;
   border: none;
   outline: none;
   resize: vertical;
   tab-size: 4;
+  -webkit-appearance: none;
 }
 
 .markdown-input {
@@ -427,9 +465,9 @@ body {
 }
 
 .markdown-rendered-view {
-  padding: 16px;
+  padding: 14px;
   background: var(--editor-bg);
-  min-height: 50px;
+  min-height: 48px;
   cursor: pointer;
 }
 
@@ -440,24 +478,24 @@ body {
 }
 
 .md-content h1 {
-  font-size: 1.4rem;
-  font-weight: 500;
-  letter-spacing: -1.2px;
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: -1px;
   color: var(--ink);
   margin-bottom: 6px;
 }
 
 .md-content h2 {
-  font-size: 1.15rem;
-  font-weight: 500;
-  letter-spacing: -0.8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.6px;
   color: var(--accent-blue);
   margin-bottom: 4px;
 }
 
 .md-content h3 {
-  font-size: 0.98rem;
-  font-weight: 500;
+  font-size: 0.95rem;
+  font-weight: 600;
   color: var(--ink-muted);
 }
 
@@ -470,7 +508,7 @@ body {
 .cell-output-wrapper {
   border-top: 1px solid var(--hairline);
   background: var(--canvas);
-  padding: 14px;
+  padding: 12px;
 }
 
 .output-label {
@@ -485,7 +523,7 @@ body {
   color: var(--accent-blue);
   display: flex;
   align-items: center;
-  padding: 8px 0;
+  padding: 6px 0;
 }
 
 .stdout-box pre,
@@ -526,7 +564,7 @@ body {
   background: var(--surface-1);
   border: 1px solid var(--hairline);
   border-radius: var(--rounded-lg);
-  padding: 12px 14px;
+  padding: 12px;
   margin-top: 10px;
 }
 
@@ -534,14 +572,14 @@ body {
   display: flex;
   align-items: center;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   color: var(--accent-blue);
   letter-spacing: -0.3px;
   margin-bottom: 6px;
 }
 
 .explainer-body {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--ink-muted);
   margin-bottom: 8px;
 }
@@ -549,10 +587,10 @@ body {
 .explainer-tip {
   display: flex;
   align-items: flex-start;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--ink);
   background: var(--surface-2);
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-radius: var(--rounded-md);
   border: 1px solid var(--hairline);
 }
@@ -561,9 +599,9 @@ body {
 .cell-plots-gallery,
 .script-plots-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 14px;
-  margin-top: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
 }
 
 .plot-thumbnail-card {
@@ -573,11 +611,12 @@ body {
   border: 1px solid var(--hairline);
   background: var(--surface-1);
   cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  touch-action: manipulation;
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
-.plot-thumbnail-card:hover {
-  transform: translateY(-2px);
+.plot-thumbnail-card:active {
+  transform: scale(0.98);
   border-color: var(--accent-blue);
 }
 
@@ -594,18 +633,18 @@ body {
   left: 0;
   right: 0;
   background: linear-gradient(to top, var(--canvas), transparent);
-  padding: 18px 12px 10px;
+  padding: 16px 10px 8px;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   color: var(--ink);
   font-weight: 500;
 }
 
 /* Pandas HTML DataFrame Table */
 .df-table-container {
-  margin-top: 12px;
+  margin-top: 10px;
   background: var(--surface-1);
   border: 1px solid var(--hairline);
   border-radius: var(--rounded-lg);
@@ -613,34 +652,35 @@ body {
 }
 
 .df-table-header {
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: var(--canvas);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--accent-blue);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   border-bottom: 1px solid var(--hairline);
 }
 
 .df-table-scroll-wrapper {
   overflow-x: auto;
-  max-height: 300px;
+  max-height: 280px;
+  -webkit-overflow-scrolling: touch;
 }
 
 table.pyphone-df-table {
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--ink-muted);
 }
 
 table.pyphone-df-table th {
   background: var(--surface-2);
   color: var(--ink);
-  padding: 10px 14px;
+  padding: 8px 12px;
   text-align: left;
   font-weight: 600;
   border-bottom: 1px solid var(--hairline);
@@ -649,7 +689,7 @@ table.pyphone-df-table th {
 }
 
 table.pyphone-df-table td {
-  padding: 8px 14px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--hairline-soft);
   white-space: nowrap;
 }
@@ -662,26 +702,28 @@ table.pyphone-df-table tr:nth-child(even) {
 .add-cell-bottom-bar {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  margin-top: 20px;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .add-cell-btn {
   display: flex;
   align-items: center;
-  padding: 10px 20px;
+  padding: 10px 18px;
   border-radius: var(--rounded-pill);
   background: var(--surface-1);
   border: 1px solid var(--hairline);
   color: var(--ink);
-  font-weight: 500;
-  font-size: 0.82rem;
+  font-weight: 600;
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  min-height: 44px;
+  touch-action: manipulation;
+  transition: transform 0.12s ease;
 }
 
-.add-cell-btn:hover {
-  background: var(--surface-2);
+.add-cell-btn:active {
+  transform: scale(0.95);
   border-color: var(--accent-blue);
 }
 
@@ -689,7 +731,7 @@ table.pyphone-df-table tr:nth-child(even) {
 .script-view-container {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .pycharm-toolbar {
@@ -697,7 +739,7 @@ table.pyphone-df-table tr:nth-child(even) {
   align-items: center;
   justify-content: space-between;
   background: var(--surface-1);
-  padding: 10px 14px;
+  padding: 8px 12px;
   border: 1px solid var(--hairline);
   border-radius: var(--rounded-lg);
 }
@@ -705,19 +747,19 @@ table.pyphone-df-table tr:nth-child(even) {
 .file-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .file-name {
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
   color: var(--ink);
 }
 
 .file-tag {
-  font-size: 0.7rem;
-  padding: 2px 8px;
+  font-size: 0.68rem;
+  padding: 2px 6px;
   background: var(--surface-2);
   color: var(--accent-blue);
   border-radius: var(--rounded-xs);
@@ -740,18 +782,18 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 .line-numbers-gutter {
-  padding: 14px 10px;
+  padding: 12px 8px;
   background: var(--surface-1);
   border-right: 1px solid var(--hairline);
   font-family: var(--font-mono);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--ink-muted);
   text-align: right;
   user-select: none;
 }
 
 .line-num {
-  line-height: 1.65;
+  line-height: 1.6;
 }
 
 .pycharm-output-panel {
@@ -765,12 +807,14 @@ table.pyphone-df-table tr:nth-child(even) {
   display: flex;
   background: var(--canvas);
   border-bottom: 1px solid var(--hairline);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .panel-tab {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
+  padding: 10px 14px;
   font-size: 0.78rem;
   font-weight: 500;
   background: transparent;
@@ -778,6 +822,9 @@ table.pyphone-df-table tr:nth-child(even) {
   color: var(--ink-muted);
   border-right: 1px solid var(--hairline);
   cursor: pointer;
+  min-height: 44px;
+  touch-action: manipulation;
+  flex-shrink: 0;
 }
 
 .panel-tab.active {
@@ -786,33 +833,40 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 .panel-tab-content {
-  padding: 14px;
-  min-height: 150px;
+  padding: 12px;
+  min-height: 140px;
 }
 
-/* Sticky Mobile Quick Keyboard Toolbar */
+/* Sticky Mobile Touch Quick-Keys Keyboard Toolbar (Thumb-Zone Optimized) */
 .mobile-keyboard-toolbar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--canvas);
+  background: rgba(9, 9, 9, 0.95);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-top: 1px solid var(--hairline);
   z-index: 90;
-  padding: 8px 10px;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2);
+  gap: 5px;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .mobile-keyboard-toolbar {
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .toolbar-section {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  touch-action: pan-x;
 }
 
 .toolbar-section::-webkit-scrollbar {
@@ -822,50 +876,71 @@ table.pyphone-df-table tr:nth-child(even) {
 .kb-run-btn {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 7px 14px;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 14px;
   background: var(--primary);
   color: var(--on-primary);
   border: none;
   border-radius: var(--rounded-pill);
   font-weight: 700;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   flex-shrink: 0;
+  min-height: 42px;
+  touch-action: manipulation;
+  transition: transform 0.1s ease;
+}
+
+.kb-run-btn:active {
+  transform: scale(0.94);
 }
 
 .kb-key-btn {
-  padding: 6px 12px;
+  padding: 8px 12px;
   font-family: var(--font-mono);
-  font-size: 0.84rem;
-  font-weight: 500;
+  font-size: 0.88rem;
+  font-weight: 600;
   background: var(--surface-1);
   color: var(--ink);
   border: 1px solid var(--hairline);
-  border-radius: var(--rounded-sm);
+  border-radius: var(--rounded-md);
   flex-shrink: 0;
   cursor: pointer;
-  min-width: 34px;
-  text-align: center;
+  min-width: 40px;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  transition: transform 0.1s ease, background 0.12s ease;
+}
+
+.kb-key-btn:active {
+  transform: scale(0.92);
+  background: var(--surface-2);
+  border-color: var(--accent-blue);
 }
 
 .shortcut-btn {
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   color: var(--accent-blue);
   background: var(--surface-2);
   border-color: var(--hairline);
+  padding: 8px 12px;
 }
 
-/* Modals & Overlays */
+/* Modals & Bottom Sheets */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 18px;
+  padding: 16px;
 }
 
 .modal-card,
@@ -875,29 +950,40 @@ table.pyphone-df-table tr:nth-child(even) {
   border-radius: var(--rounded-xl);
   width: 100%;
   max-width: 680px;
-  max-height: 90vh;
+  max-height: 88vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .modal-header {
-  padding: 16px 18px;
+  padding: 14px 16px;
   background: var(--canvas);
   border-bottom: 1px solid var(--hairline);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+}
+
+.bottom-sheet-handle {
+  display: none;
 }
 
 .modal-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: -0.5px;
+  font-size: 1rem;
+  letter-spacing: -0.4px;
 }
 
 .modal-actions {
@@ -910,28 +996,33 @@ table.pyphone-df-table tr:nth-child(even) {
   background: var(--surface-2);
   border: 1px solid var(--hairline);
   color: var(--ink);
-  padding: 6px;
+  padding: 8px;
   border-radius: var(--rounded-full);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 38px;
+  min-height: 38px;
+  touch-action: manipulation;
 }
 
 .modal-body {
-  padding: 18px;
+  padding: 16px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-subtitle {
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   color: var(--ink-muted);
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 /* Variable Explorer Styling */
 .var-table-wrapper {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .var-explorer-table {
@@ -968,21 +1059,21 @@ table.pyphone-df-table tr:nth-child(even) {
 .cheat-sections-list {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 .cheat-section-title {
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--ink);
   letter-spacing: -0.4px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .cheat-items-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
 }
 
 .cheat-item-card {
@@ -1000,7 +1091,7 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 .cheat-item-label {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--ink);
 }
@@ -1009,7 +1100,7 @@ table.pyphone-df-table tr:nth-child(even) {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
+  padding: 6px 12px;
   font-size: 0.72rem;
   font-weight: 600;
   background: var(--surface-2);
@@ -1017,6 +1108,8 @@ table.pyphone-df-table tr:nth-child(even) {
   border-radius: var(--rounded-pill);
   color: var(--accent-blue);
   cursor: pointer;
+  min-height: 34px;
+  touch-action: manipulation;
 }
 
 .cheat-code-preview {
@@ -1030,8 +1123,8 @@ table.pyphone-df-table tr:nth-child(even) {
 .dataset-grid,
 .template-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
 }
 
 .dataset-card,
@@ -1039,23 +1132,24 @@ table.pyphone-df-table tr:nth-child(even) {
   background: var(--canvas);
   border: 1px solid var(--hairline);
   border-radius: var(--rounded-lg);
-  padding: 14px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   cursor: pointer;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  touch-action: manipulation;
+  transition: border-color 0.15s ease, transform 0.12s ease;
 }
 
-.dataset-card:hover,
-.template-card:hover {
+.dataset-card:active,
+.template-card:active {
   border-color: var(--accent-blue);
-  transform: translateY(-2px);
+  transform: scale(0.98);
 }
 
 .dataset-filename {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--accent-blue);
 }
@@ -1071,17 +1165,17 @@ table.pyphone-df-table tr:nth-child(even) {
 
 .dataset-name,
 .template-title {
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: -0.3px;
-  margin: 8px 0 4px;
+  margin: 6px 0 4px;
 }
 
 .dataset-desc,
 .template-desc {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--ink-muted);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .load-ds-btn {
@@ -1089,7 +1183,7 @@ table.pyphone-df-table tr:nth-child(even) {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px;
+  padding: 10px;
   font-size: 0.76rem;
   font-weight: 600;
   background: var(--surface-2);
@@ -1097,17 +1191,20 @@ table.pyphone-df-table tr:nth-child(even) {
   border-radius: var(--rounded-pill);
   color: var(--ink);
   cursor: pointer;
+  min-height: 40px;
+  touch-action: manipulation;
 }
 
 /* Fullscreen Plot Modal */
 .plot-image-container {
-  padding: 18px;
+  padding: 14px;
   background: var(--canvas);
   display: flex;
   align-items: center;
   justify-content: center;
-  max-height: 72vh;
+  max-height: 70vh;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .full-plot-img {
@@ -1118,9 +1215,9 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 .plot-modal-footer {
-  padding: 12px 18px;
+  padding: 10px 14px;
   background: var(--canvas);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--ink-muted);
   text-align: center;
   border-top: 1px solid var(--hairline);
@@ -1142,4 +1239,111 @@ table.pyphone-df-table tr:nth-child(even) {
   border-radius: var(--rounded-xs);
   font-size: 0.78rem;
   color: var(--accent-blue);
+}
+
+/* ==========================================================
+   MOBILE-NATIVE BREAKPOINTS & BOTTOM SHEET MODALS (< 640px)
+   ========================================================== */
+@media (max-width: 640px) {
+  .app-layout {
+    padding-bottom: 115px;
+  }
+
+  .framer-header {
+    padding: 8px 10px;
+  }
+
+  .brand-title-framer {
+    font-size: 1rem;
+  }
+
+  .brand-subtitle-framer {
+    display: none;
+  }
+
+  .framer-badge-saved {
+    display: none; /* Keep header minimal on small mobile screens */
+  }
+
+  .header-controls {
+    gap: 6px;
+  }
+
+  .framer-mode-btn {
+    padding: 6px 10px;
+    font-size: 0.74rem;
+  }
+
+  /* Native Mobile Bottom Sheet Modals */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-card,
+  .plot-modal-content {
+    max-height: 85vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    border-bottom: none;
+    animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .modal-header {
+    flex-direction: column;
+    align-items: center;
+    padding-top: 10px;
+    padding-bottom: 12px;
+  }
+
+  .bottom-sheet-handle {
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--hairline);
+    border-radius: var(--rounded-pill);
+    margin-bottom: 10px;
+  }
+
+  .modal-header-top-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .dataset-grid,
+  .template-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cell-header {
+    padding: 8px 10px;
+  }
+
+  .cell-act-btn span {
+    display: none; /* Show concise SVG icons on small mobile cell headers */
+  }
+
+  .cell-act-btn {
+    padding: 6px 8px;
+    min-width: 34px;
+    justify-content: center;
+  }
+
+  .add-cell-bottom-bar {
+    width: 100%;
+  }
+
+  .add-cell-btn {
+    flex: 1;
+    justify-content: center;
+  }
 }

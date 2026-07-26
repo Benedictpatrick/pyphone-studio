@@ -55,13 +55,16 @@ print(df.head())
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card dataset-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-title">
-            <Database className="w-5 h-5 text-blue-400" />
-            <span>Preloaded Datasets & Mount CSV</span>
+          <div className="bottom-sheet-handle"></div>
+          <div className="modal-header-top-row">
+            <div className="modal-title">
+              <Database className="w-5 h-5 text-blue-400" />
+              <span>Preloaded Datasets & Mount CSV</span>
+            </div>
+            <button className="modal-close-btn" onClick={onClose}>
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button className="modal-close-btn" onClick={onClose}>
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         <div className="modal-body">
