@@ -120,7 +120,7 @@ body {
   z-index: 40;
   padding: 10px 14px;
   transition: background 0.25s ease, border-color 0.25s ease;
-  overflow: hidden;
+  overflow: visible;
 }
 
 [data-theme="light"] .framer-header {
@@ -132,12 +132,15 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
+  min-width: 0;
+  overflow: visible;
 }
 
 .header-top-actions {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .brand-container {
@@ -151,6 +154,8 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .pyphone-logo-svg {
@@ -171,6 +176,8 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .pyphone-brand-title {
