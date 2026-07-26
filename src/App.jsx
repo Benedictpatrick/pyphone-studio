@@ -141,8 +141,10 @@ export default function App() {
 
   // Refresh Python variables helper
   const handleRefreshVariables = async () => {
-    const vars = await getActiveVariables();
-    setActiveVariables(vars);
+    try {
+      const vars = await getActiveVariables();
+      setActiveVariables(vars);
+    } catch {}
   };
 
   // Keyboard text insertion helper (CodeMirror API)
@@ -168,26 +170,32 @@ export default function App() {
       prev.map((c) => (c.id === cellId ? { ...c, status: 'running', output: null } : c))
     );
 
-    const result = await executePythonCode(cellToRun.code);
+    try {
+      const result = await executePythonCode(cellToRun.code);
 
-    setCells((prev) =>
-      prev.map((c) => {
-        if (c.id !== cellId) return c;
-        return {
-          ...c,
-          status: result.error ? 'error' : 'idle',
-          executionCount: (c.executionCount || 0) + 1,
-          output: {
-            stdout: result.stdout,
-            error: result.error,
-            plots: result.plots || [],
-            dfHtml: result.dfHtml || null
-          }
-        };
-      })
-    );
+      setCells((prev) =>
+        prev.map((c) => {
+          if (c.id !== cellId) return c;
+          return {
+            ...c,
+            status: result.error ? 'error' : 'idle',
+            executionCount: (c.executionCount || 0) + 1,
+            output: {
+              stdout: result.stdout,
+              error: result.error,
+              plots: result.plots || [],
+              dfHtml: result.dfHtml || null
+            }
+          };
+        })
+      );
 
-    handleRefreshVariables();
+      handleRefreshVariables();
+    } catch (err) {
+      setCells((prev) =>
+        prev.map((c) => (c.id === cellId ? { ...c, status: 'error', output: { error: err.message } } : c))
+      );
+    }
   };
 
   // Run All Cells
@@ -209,16 +217,20 @@ export default function App() {
     setIsScriptRunning(true);
     setScriptOutput(null);
 
-    const result = await executePythonCode(scriptCode);
+    try {
+      const result = await executePythonCode(scriptCode);
 
-    setScriptOutput({
-      stdout: result.stdout,
-      error: result.error,
-      plots: result.plots || [],
-      result: result.result || null,
-      isDataFrame: result.isDataFrame || false,
-      dfHtml: result.dfHtml || null
-    });
+      setScriptOutput({
+        stdout: result.stdout,
+        error: result.error,
+        plots: result.plots || [],
+        result: result.result || null,
+        isDataFrame: result.isDataFrame || false,
+        dfHtml: result.dfHtml || null
+      });
+    } catch (err) {
+      setScriptOutput({ error: err.message });
+    }
 
     setIsScriptRunning(false);
     handleRefreshVariables();
@@ -260,6 +272,20 @@ export default function App() {
     newCells[targetIndex] = temp;
 
     setCells(newCells);
+  };
+
+  const handleDuplicateCell = (id) => {
+    const idx = cells.findIndex((c) => c.id === id);
+    if (idx === -1) return;
+    const original = cells[idx];
+    const newId = `cell-${Date.now()}`;
+    const duplicate = { ...original, id: newId, status: 'idle', output: null };
+    setCells((prev) => {
+      const next = [...prev];
+      next.splice(idx + 1, 0, duplicate);
+      return next;
+    });
+    setActiveCellId(newId);
   };
 
   // Export handlers
@@ -411,7 +437,8 @@ export default function App() {
             onAddCell={handleAddCell}
             onDeleteCell={handleDeleteCell}
             onMoveCell={handleMoveCell}
-            onUpdateCellCode={(id, code) =>
+            onDuplicateCell={handleDuplicateCell}
+            onUpdateCode={(id, code) =>
               setCells((prev) => prev.map((c) => (c.id === id ? { ...c, code } : c)))
             }
             onOpenPlotModal={(b64) => setSelectedPlotB64(b64)}

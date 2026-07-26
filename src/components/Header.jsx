@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Play, 
   BookOpen, 
@@ -36,6 +36,18 @@ export default function Header({
   onExportHtmlReport
 }) {
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportRef = useRef(null);
+
+  useEffect(() => {
+    if (!showExportMenu) return;
+    const handleClick = (e) => {
+      if (exportRef.current && !exportRef.current.contains(e.target)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showExportMenu]);
 
   return (
     <header className="framer-header">
@@ -160,7 +172,7 @@ export default function Header({
         </button>
 
         {/* Export Dropdown */}
-        <div className="export-btn-wrapper flex-shrink-0">
+        <div className="export-btn-wrapper flex-shrink-0" ref={exportRef}>
           <button 
             className="framer-btn-secondary icon-only-btn" 
             onClick={() => setShowExportMenu(!showExportMenu)}

@@ -157,10 +157,13 @@ if len(plt.get_fignums()) > 0:
     if (rawResult !== undefined && rawResult !== null) {
       evalResult = String(rawResult);
       
+      // Store result in Python globals for DataFrame check
+      pyodide.globals.set('__last_res', rawResult);
+
       // Check if evaluated result is a Pandas DataFrame
       const isDfCheck = await pyodide.runPythonAsync(`
 import pandas as pd
-'__last_res' in globals() and isinstance(__last_res, pd.DataFrame)
+isinstance(__last_res, pd.DataFrame)
 `);
       if (isDfCheck) {
         dfHtml = await pyodide.runPythonAsync(`__last_res.to_html(classes='pyphone-df-table', border=0)`);
