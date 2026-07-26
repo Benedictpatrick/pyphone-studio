@@ -58,7 +58,7 @@ export default function Header({
             onClick={onOpenSettings}
             title="Settings"
           >
-            <Settings className="w-3.5 h-3.5" />
+            <Settings className="w-3.5 h-3.5 text-blue-400" />
           </button>
         </div>
       </div>
