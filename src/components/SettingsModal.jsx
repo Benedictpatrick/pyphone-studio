@@ -157,7 +157,7 @@ export default function SettingsModal({ isOpen, onClose, settings, onUpdateSetti
           {/* Credits Footer */}
           <div className="settings-credits">
             <Info className="w-3.5 h-3.5" />
-            <span>Made by <strong>Benedict</strong> and <strong>Saisharshan</strong></span>
+            <span>Made by <strong>Benedict</strong> and <strong>Saidharshan</strong></span>
           </div>
         </div>
       </div>
