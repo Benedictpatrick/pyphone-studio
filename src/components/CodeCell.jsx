@@ -71,6 +71,7 @@ export default function CodeCell({
   const { showLineNumbers = true } = settings;
 
   const [cmView, setCmView] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
 
   const handleCreate = useCallback((view) => {
     setCmView(view);
@@ -103,15 +104,9 @@ export default function CodeCell({
       <div className="cell-header">
         <div className="cell-execution-badge">
           {isRunning ? (
-            <span className="execution-counter running">
-              <Loader2 className="w-3.5 h-3.5 spin text-amber-400" />
-            </span>
-          ) : cell.executionCount !== null ? (
-            <span className="execution-counter completed">[{cell.executionCount}]</span>
-          ) : (
-            <span className="execution-counter idle">[ ]</span>
-          )}
-          <span className="cell-label">In [{index + 1}]:</span>
+            <Loader2 className="w-3.5 h-3.5 spin text-amber-400 mr-2" />
+          ) : null}
+          <span className="cell-label">In [{cell.executionCount !== null ? cell.executionCount : ' '}]:</span>
         </div>
 
         <div className="cell-actions">
@@ -150,57 +145,52 @@ export default function CodeCell({
             <Eraser className="w-3.5 h-3.5 text-rose-400" />
           </button>
 
-          <button
-            className="cell-act-btn icon-only"
-            onClick={(e) => {
-              e.stopPropagation();
-              hapticLight();
-              onMoveCell(cell.id, 'up');
-            }}
-            disabled={index === 0}
-            title="Move Cell Up"
-          >
-            <ArrowUp className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            className="cell-act-btn icon-only"
-            onClick={(e) => {
-              e.stopPropagation();
-              hapticLight();
-              onMoveCell(cell.id, 'down');
-            }}
-            disabled={index === totalCells - 1}
-            title="Move Cell Down"
-          >
-            <ArrowDown className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            className="cell-act-btn icon-only"
-            onClick={(e) => {
-              e.stopPropagation();
-              hapticLight();
-              onDuplicateCell(cell.id);
-            }}
-            title="Duplicate Cell"
-          >
-            <Copy className="w-3.5 h-3.5" />
-          </button>
-
-          {totalCells > 1 && (
+          <div className="relative">
             <button
-              className="cell-act-btn icon-only text-rose-400 hover:bg-rose-500/10"
+              className="cell-act-btn icon-only"
               onClick={(e) => {
                 e.stopPropagation();
                 hapticLight();
-                onDeleteCell(cell.id);
+                setShowMenu(!showMenu);
               }}
-              title="Delete Cell"
+              title="More Actions"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <MoreVertical className="w-3.5 h-3.5 text-slate-400" />
             </button>
-          )}
+            
+            {showMenu && (
+              <div className="absolute right-0 top-full mt-1 bg-[#1e1e1e] border border-slate-700/50 rounded-lg shadow-xl z-50 flex flex-col py-1 min-w-[140px]">
+                <button
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/30 hover:text-white transition-colors"
+                  onClick={(e) => { e.stopPropagation(); hapticLight(); onMoveCell(cell.id, 'up'); setShowMenu(false); }}
+                  disabled={index === 0}
+                >
+                  <ArrowUp className="w-3.5 h-3.5" /> Move Up
+                </button>
+                <button
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/30 hover:text-white transition-colors"
+                  onClick={(e) => { e.stopPropagation(); hapticLight(); onMoveCell(cell.id, 'down'); setShowMenu(false); }}
+                  disabled={index === totalCells - 1}
+                >
+                  <ArrowDown className="w-3.5 h-3.5" /> Move Down
+                </button>
+                <button
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/30 hover:text-white transition-colors"
+                  onClick={(e) => { e.stopPropagation(); hapticLight(); onDuplicateCell(cell.id); setShowMenu(false); }}
+                >
+                  <Copy className="w-3.5 h-3.5" /> Duplicate
+                </button>
+                {totalCells > 1 && (
+                  <button
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); hapticLight(); onDeleteCell(cell.id); setShowMenu(false); }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
