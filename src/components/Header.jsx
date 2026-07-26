@@ -75,6 +75,34 @@ export default function Header({
           >
             <Settings className="w-3.5 h-3.5 tb-icon" />
           </button>
+
+          {/* Export Dropdown */}
+          <div className="export-btn-wrapper flex-shrink-0" ref={exportRef}>
+            <button 
+              className="theme-toggle-btn" 
+              onClick={() => { hapticLight(); setShowExportMenu(!showExportMenu); }}
+              title="Export File"
+            >
+              <Download className="w-3.5 h-3.5 tb-icon" />
+            </button>
+
+            {showExportMenu && (
+              <div className="framer-export-dropdown">
+                <button onClick={() => { onExportHtmlReport(); setShowExportMenu(false); }}>
+                  <FileText className="w-4 h-4 text-blue-400" />
+                  <span>Export HTML Report</span>
+                </button>
+                <button onClick={() => { onExportPy(); setShowExportMenu(false); }}>
+                  <FileCode className="w-4 h-4 text-blue-400" />
+                  <span>Download .py Script</span>
+                </button>
+                <button onClick={() => { onExportIpynb(); setShowExportMenu(false); }}>
+                  <BookOpen className="w-4 h-4 text-blue-400" />
+                  <span>Download .ipynb Notebook</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -197,34 +225,6 @@ export default function Header({
           <FileCode className="w-3.5 h-3.5 text-blue-400" />
           <span>Templates</span>
         </button>
-
-        {/* Export Dropdown */}
-        <div className="export-btn-wrapper flex-shrink-0" ref={exportRef}>
-          <button 
-            className="framer-btn-secondary icon-only-btn" 
-            onClick={() => setShowExportMenu(!showExportMenu)}
-            title="Export File"
-          >
-            <Download className="w-3.5 h-3.5" />
-          </button>
-
-          {showExportMenu && (
-            <div className="framer-export-dropdown">
-              <button onClick={() => { onExportHtmlReport(); setShowExportMenu(false); }}>
-                <FileText className="w-4 h-4 text-blue-400" />
-                <span>Export HTML Report</span>
-              </button>
-              <button onClick={() => { onExportPy(); setShowExportMenu(false); }}>
-                <FileCode className="w-4 h-4 text-blue-400" />
-                <span>Download .py Script</span>
-              </button>
-              <button onClick={() => { onExportIpynb(); setShowExportMenu(false); }}>
-                <BookOpen className="w-4 h-4 text-blue-400" />
-                <span>Download .ipynb Notebook</span>
-              </button>
-            </div>
-          )}
-        </div>
       </div>
     </header>
   );
