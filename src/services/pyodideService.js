@@ -49,9 +49,14 @@ export async function initPyodide(onProgress = () => {}) {
 import sys
 import io
 import base64
+import os
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
+# Set working directory so pd.read_csv('file.csv') resolves to mounted datasets
+os.chdir('/home/pyodide')
+
 
 # Custom plot collector
 _captured_plots = []
@@ -181,7 +186,7 @@ isinstance(__last_res, pd.DataFrame)
   const stdout = await pyodide.runPythonAsync(`_stdout_buf.getvalue()`);
   const stderr = await pyodide.runPythonAsync(`_stderr_buf.getvalue()`);
   const pyPlots = await pyodide.runPythonAsync(`_captured_plots`);
-  const plotsArray = pyPlots.toJs ? pyPlots.toJs() : [];
+  const plotsArray = pyPlots && pyPlots.toJs ? pyPlots.toJs({ depth: -1 }) : (Array.isArray(pyPlots) ? pyPlots : []);
 
   // Reset stdout/stderr to standard streams
   await pyodide.runPythonAsync(`

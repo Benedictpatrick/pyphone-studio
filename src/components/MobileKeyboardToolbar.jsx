@@ -1,42 +1,39 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Play } from 'lucide-react';
 
 export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRunning }) {
-  const [bottomOffset, setBottomOffset] = useState(0);
   const toolbarRef = useRef(null);
 
   useEffect(() => {
-    const updatePosition = () => {
-      const vv = window.visualViewport;
-      if (!vv) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
 
-      const fullHeight = window.innerHeight;
-      const vvHeight = vv.height;
+    const reposition = () => {
+      const el = toolbarRef.current;
+      if (!el) return;
 
-      // Keyboard is open when visual viewport is smaller than layout viewport
-      const keyboardOpen = vvHeight < fullHeight * 0.85;
-
-      if (keyboardOpen) {
-        // Place toolbar at the bottom edge of the visible viewport
-        const offset = fullHeight - (vv.offsetTop + vvHeight);
-        setBottomOffset(Math.max(0, offset));
-      } else {
-        setBottomOffset(0);
-      }
+      const toolbarH = el.offsetHeight;
+      // Anchor toolbar to the bottom edge of the visual viewport (above keyboard)
+      const newTop = vv.offsetTop + vv.height - toolbarH;
+      el.style.top = `${newTop}px`;
+      el.style.left = `${vv.offsetLeft}px`;
+      el.style.width = `${vv.width}px`;
+      // Clear any previous bottom style
+      el.style.bottom = 'auto';
     };
 
-    const vv = window.visualViewport;
-    if (vv) {
-      vv.addEventListener('resize', updatePosition);
-      vv.addEventListener('scroll', updatePosition);
-      updatePosition();
-    }
+    vv.addEventListener('resize', reposition);
+    vv.addEventListener('scroll', reposition);
+    window.addEventListener('resize', reposition);
+    // Run once immediately and after a tiny delay to catch first paint height
+    reposition();
+    const t = setTimeout(reposition, 80);
 
     return () => {
-      if (vv) {
-        vv.removeEventListener('resize', updatePosition);
-        vv.removeEventListener('scroll', updatePosition);
-      }
+      vv.removeEventListener('resize', reposition);
+      vv.removeEventListener('scroll', reposition);
+      window.removeEventListener('resize', reposition);
+      clearTimeout(t);
     };
   }, []);
 
@@ -46,27 +43,23 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRu
 
   const quickShortcuts = [
     { label: 'import', text: 'import ' },
-    { label: 'pd', text: 'import pandas as pd\n' },
-    { label: 'plt', text: 'import matplotlib.pyplot as plt\n' },
-    { label: 'sns', text: 'import seaborn as sns\n' },
-    { label: 'np', text: 'import numpy as np\n' },
-    { label: 'df', text: 'df' },
-    { label: 'show()', text: 'plt.show()' },
-    { label: 'head()', text: '.head()' },
-    { label: 'read_csv', text: "pd.read_csv('')" },
-    { label: 'plot()', text: '.plot()' },
-    { label: 'Tab', text: '    ' }
+    { label: 'pd',      text: 'import pandas as pd\n' },
+    { label: 'plt',     text: 'import matplotlib.pyplot as plt\n' },
+    { label: 'sns',     text: 'import seaborn as sns\n' },
+    { label: 'np',      text: 'import numpy as np\n' },
+    { label: 'df',      text: 'df' },
+    { label: 'show()',  text: 'plt.show()' },
+    { label: 'head()',  text: '.head()' },
+    { label: 'read_csv',text: "pd.read_csv('')" },
+    { label: 'plot()',  text: '.plot()' },
+    { label: 'Tab',     text: '    ' }
   ];
 
   return (
-    <div
-      className="mobile-keyboard-toolbar"
-      ref={toolbarRef}
-      style={bottomOffset > 0 ? { bottom: `${bottomOffset}px` } : undefined}
-    >
+    <div className="mobile-keyboard-toolbar" ref={toolbarRef}>
       <div className="toolbar-section">
-        <button 
-          className="kb-run-btn" 
+        <button
+          className="kb-run-btn"
           onClick={onRunCurrent}
           disabled={isRunning}
           title="Run Current Code"
@@ -77,7 +70,7 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRu
 
         {quickSymbols.map((sym, idx) => (
           <button
-            key={idx}
+            key={`sym-${idx}`}
             className="kb-key-btn symbol-btn"
             onClick={() => onInsertText(sym)}
           >
@@ -85,11 +78,11 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRu
           </button>
         ))}
 
-        <span className="toolbar-divider"></span>
+        <span className="toolbar-divider" />
 
         {quickShortcuts.map((sc, idx) => (
           <button
-            key={idx}
+            key={`sc-${idx}`}
             className="kb-key-btn shortcut-btn"
             onClick={() => onInsertText(sc.text)}
           >

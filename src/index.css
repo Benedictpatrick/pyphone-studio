@@ -832,6 +832,8 @@ table.pyphone-df-table tr:nth-child(even) {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* Prevent content from being hidden under the fixed keyboard toolbar */
+  padding-bottom: 56px;
 }
 
 .pycharm-toolbar {
@@ -982,26 +984,50 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 /* Sticky Mobile Touch Quick-Keys Keyboard Toolbar (Thumb-Zone Optimized) */
+/* NOTE: top/left/width are set dynamically via JS using window.visualViewport  */
 .mobile-keyboard-toolbar {
   position: fixed;
+  /* Initial position – JS will override with the correct top value instantly */
+  top: auto;
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(9, 9, 9, 0.95);
+  background: rgba(9, 9, 9, 0.97);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-top: 1px solid var(--hairline);
-  z-index: 90;
-  padding: 5px 6px calc(5px + env(safe-area-inset-bottom, 0px));
+  /* High z-index so it sits above editor content */
+  z-index: 9999;
+  padding: 5px 6px;
   display: flex;
   flex-direction: column;
   gap: 0;
-  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
-  transition: bottom 0.15s ease;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
+  /* No CSS transition – JS repositions instantly to avoid lag */
+  transition: none;
 }
 
 [data-theme="light"] .mobile-keyboard-toolbar {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(248, 248, 248, 0.98);
+}
+
+/* Horizontal scroll row of quick-keys */
+.toolbar-section {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  padding: 2px 0 4px;
+  /* Prevent iOS rubber-band from propagating to page */
+  overscroll-behavior-x: contain;
+}
+
+.toolbar-section::-webkit-scrollbar {
+  display: none;
 }
 
 .toolbar-divider {
@@ -2123,8 +2149,9 @@ table.pyphone-df-table tr:nth-child(even) {
 
   .script-view-container,
   .notebook-view-container {
-    padding: 0;
+    padding: 0 0 56px 0;
   }
+
 
   /* Cell adjustments */
   .notebook-cell {
