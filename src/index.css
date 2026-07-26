@@ -2523,4 +2523,12 @@ table.pyphone-df-table tr:nth-child(even) {
   min-height: 36px;
 }
 
+.update-app-btn {
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  min-height: 36px;
+  gap: 6px;
+}
+
+
 

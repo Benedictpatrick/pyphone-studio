@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, X, Trash2, Info, Smartphone, Download, Check } from 'lucide-react';
+import { Settings, X, Trash2, Info, Smartphone, Download, Check, RefreshCw } from 'lucide-react';
 
 const FONT_SIZES = [12, 14, 16, 18];
 
@@ -14,8 +14,35 @@ export default function SettingsModal({
 }) {
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState('');
 
   if (!isOpen) return null;
+
+  const handleForceUpdateApp = async () => {
+    setIsUpdating(true);
+    setUpdateStatus('Clearing cache & fetching latest build...');
+
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+          await reg.unregister();
+        }
+      }
+
+      if ('caches' in window) {
+        const cacheKeys = await caches.keys();
+        await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+      }
+    } catch (e) {
+      console.warn('Cache clear warning:', e);
+    }
+
+    setTimeout(() => {
+      window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now();
+    }, 500);
+  };
 
   const handleClearData = () => {
     localStorage.removeItem('pyphone_notebook_cells_v3');
@@ -160,7 +187,31 @@ export default function SettingsModal({
             </div>
           </div>
 
+          {/* Check for App Updates */}
+          <div className="settings-section app-update-section">
+            <div className="settings-row">
+              <div className="settings-label">
+                <span className="settings-label-text flex items-center gap-1.5">
+                  <RefreshCw className={`w-4 h-4 text-blue-400 inline ${isUpdating ? 'spin' : ''}`} />
+                  <span>App Version & Updates</span>
+                </span>
+                <span className="settings-label-desc">
+                  {updateStatus || 'Force check and download the latest update from server'}
+                </span>
+              </div>
+              <button
+                className="framer-btn-secondary update-app-btn"
+                onClick={handleForceUpdateApp}
+                disabled={isUpdating}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isUpdating ? 'spin' : ''}`} />
+                <span>{isUpdating ? 'Updating...' : 'Update App'}</span>
+              </button>
+            </div>
+          </div>
+
           {/* Clear All Data */}
+
 
           <div className="settings-section settings-danger-section">
             <div className="settings-row">
