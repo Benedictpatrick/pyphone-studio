@@ -363,6 +363,15 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
+[data-theme="dark"] .theme-toggle-btn {
+  border-color: #444;
+}
+
+.tb-icon {
+  color: var(--ink);
+  stroke-width: 2;
+}
+
 .theme-toggle-btn:active {
   transform: scale(0.92);
   background: var(--surface-2);

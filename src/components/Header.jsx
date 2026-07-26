@@ -48,9 +48,9 @@ export default function Header({
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
           >
             {theme === 'dark' ? (
-              <Sun className="w-3.5 h-3.5 text-amber-400" />
+              <Sun className="w-3.5 h-3.5 tb-icon" />
             ) : (
-              <Moon className="w-3.5 h-3.5 text-blue-400" />
+              <Moon className="w-3.5 h-3.5 tb-icon" />
             )}
           </button>
           <button 
@@ -58,7 +58,7 @@ export default function Header({
             onClick={onOpenSettings}
             title="Settings"
           >
-            <Settings className="w-3.5 h-3.5 text-blue-400" />
+            <Settings className="w-3.5 h-3.5 tb-icon" />
           </button>
         </div>
       </div>
