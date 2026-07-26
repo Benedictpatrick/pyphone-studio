@@ -248,8 +248,21 @@ isinstance(__last_res, pd.DataFrame)
         }
       }
     } catch (err) {
-      errorMsg = err.message || String(err);
+      // On some mobile browsers (like iOS Safari), err.message might just be "PythonError".
+      // We extract both message and stack to ensure the full traceback is never lost.
+      const msg = err.message || '';
+      const stack = err.stack || '';
+      if (msg === err.name || msg === 'PythonError' || msg.trim() === '') {
+        errorMsg = stack || String(err);
+      } else {
+        errorMsg = msg;
+        // If stack contains the Python traceback but message doesn't, append it
+        if (stack && stack.includes('Traceback') && !msg.includes('Traceback')) {
+          errorMsg += '\n' + stack;
+        }
+      }
     }
+
 
     // Retrieve captured stdout, stderr, and plots — with safe fallbacks
     let stdout = '';
