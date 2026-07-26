@@ -452,11 +452,22 @@ body {
 }
 
 .notebook-cell {
+  --cell-radius: var(--rounded-xl);
   background: var(--surface-1);
   border: 1px solid var(--hairline);
-  border-radius: var(--rounded-xl);
+  border-radius: var(--cell-radius);
   overflow: visible;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.notebook-cell > :first-child {
+  border-top-left-radius: calc(var(--cell-radius) - 1px);
+  border-top-right-radius: calc(var(--cell-radius) - 1px);
+}
+
+.notebook-cell > :last-child {
+  border-bottom-left-radius: calc(var(--cell-radius) - 1px);
+  border-bottom-right-radius: calc(var(--cell-radius) - 1px);
 }
 
 .notebook-cell.active-cell {
@@ -2238,7 +2249,7 @@ table.pyphone-df-table tr:nth-child(even) {
 
   /* Cell adjustments */
   .notebook-cell {
-    border-radius: 10px;
+    --cell-radius: 10px;
   }
 
   .cells-list {
@@ -2565,7 +2576,6 @@ table.pyphone-df-table tr:nth-child(even) {
   display: flex;
   flex-direction: column;
   min-width: 140px;
-  padding: 4px 0;
   overflow: hidden;
 }
 
