@@ -15,6 +15,7 @@ import {
   Sun,
   Moon
 } from 'lucide-react';
+import PyPhoneStudioLogo from './PyPhoneStudioLogo';
 
 export default function Header({
   mode,
@@ -37,14 +38,8 @@ export default function Header({
   return (
     <header className="framer-header">
       <div className="header-top">
-        <div className="brand-container">
-          <div>
-            <h1 className="brand-title-framer">
-              PyPhone <span className="brand-badge-framer">Studio</span>
-            </h1>
-            <p className="brand-subtitle-framer">Mobile Python Data Science Canvas</p>
-          </div>
-        </div>
+        {/* Exact PyPhone Studio Brand Logo Component */}
+        <PyPhoneStudioLogo />
 
         {/* Minimal Engine Status & Auto-Save */}
         <div className="status-indicators">

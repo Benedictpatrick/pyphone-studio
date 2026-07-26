@@ -115,35 +115,70 @@ body {
   gap: 10px;
 }
 
-.logo-icon-framer {
-  width: 36px;
-  height: 36px;
-  background: var(--surface-1);
-  border: 1px solid var(--hairline);
-  border-radius: var(--rounded-md);
+/* Exact PyPhone Studio Brand Logo Container */
+.pyphone-brand-logo-container {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 12px;
+}
+
+.pyphone-logo-svg {
+  width: 38px;
+  height: 38px;
   flex-shrink: 0;
 }
 
-.brand-title-framer {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--ink);
-  letter-spacing: -1px;
-  line-height: 1;
+.phone-frame-stroke {
+  stroke: var(--ink);
 }
 
-.brand-badge-framer {
-  color: var(--accent-blue);
+.phone-notch-fill {
+  fill: var(--ink);
+}
+
+.pyphone-brand-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pyphone-brand-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.brand-pyphone {
+  color: var(--ink);
   font-weight: 800;
 }
 
-.brand-subtitle-framer {
-  font-size: 0.7rem;
+.brand-studio {
+  color: #0066FF;
+  font-weight: 700;
+}
+
+.pyphone-brand-divider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--hairline);
+  flex-shrink: 0;
+}
+
+.pyphone-brand-subtitle {
+  font-size: 0.78rem;
   color: var(--ink-muted);
   font-weight: 400;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .pyphone-brand-subtitle,
+  .pyphone-brand-divider {
+    display: none;
+  }
 }
 
 /* Minimalist Status Indicators (No Pill Capsules) */
