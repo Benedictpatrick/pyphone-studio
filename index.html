@@ -27,10 +27,14 @@
     <!-- Pyodide WASM Engine CDN -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
     <script>
-      // Clean up any lingering service worker registrations
+      // Kill any lingering SW, then never register one again
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistration().then((reg) => {
-          if (reg) reg.unregister();
+          if (reg) {
+            navigator.serviceWorker.register('/sw.js').then(() => {
+              navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+            });
+          }
         }).catch(() => {});
       }
     </script>
