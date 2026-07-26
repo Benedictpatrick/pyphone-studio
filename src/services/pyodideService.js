@@ -336,8 +336,9 @@ sys.stderr = _orig_stderr
 
   };
 
-  // Chain runs sequentially; if previous run errored, still proceed
-  executionQueue = executionQueue.then(run).catch(() => run());
+  // Chain runs sequentially. A failed earlier run must not block the next one,
+  // but it also must not cause the same user code to execute a second time.
+  executionQueue = executionQueue.catch(() => undefined).then(run);
   return executionQueue;
 }
 

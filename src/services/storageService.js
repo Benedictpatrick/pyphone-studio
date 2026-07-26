@@ -22,7 +22,8 @@ export function loadNotebookState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.NOTEBOOK_CELLS);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const cells = JSON.parse(raw);
+    return Array.isArray(cells) ? cells : null;
   } catch (err) {
     return null;
   }
@@ -52,7 +53,8 @@ export function saveLastMode(mode) {
 
 export function loadLastMode() {
   try {
-    return localStorage.getItem(STORAGE_KEYS.LAST_MODE) || 'notebook';
+    const mode = localStorage.getItem(STORAGE_KEYS.LAST_MODE);
+    return mode === 'script' || mode === 'notebook' ? mode : 'notebook';
   } catch (err) {
     return 'notebook';
   }
@@ -66,7 +68,8 @@ export function getSavedProjects() {
       localStorage.setItem(STORAGE_KEYS.SAVED_PROJECTS, JSON.stringify(DEFAULT_PROJECTS));
       return DEFAULT_PROJECTS;
     }
-    return JSON.parse(raw);
+    const projects = JSON.parse(raw);
+    return Array.isArray(projects) ? projects : DEFAULT_PROJECTS;
   } catch (err) {
     return DEFAULT_PROJECTS;
   }
@@ -79,12 +82,11 @@ export function saveProject(projectData) {
     let updated;
 
     if (existingIndex >= 0) {
-      projects[existingIndex] = {
+      updated = projects.map((project, index) => index === existingIndex ? {
         ...projects[existingIndex],
         ...projectData,
         updatedAt: new Date().toISOString()
-      };
-      updated = projects;
+      } : project);
     } else {
       const newProj = {
         id: `proj-${Date.now()}`,

@@ -192,9 +192,23 @@ export default function App() {
 
   // Keyboard text insertion helper (CodeMirror API)
   const handleInsertText = (textToInsert) => {
-    const viewKey = mode === 'notebook' ? activeCellId : 'script';
+    const targetCell = mode === 'notebook'
+      ? cells.find((cell) => cell.id === activeCellId && cell.type === 'code')
+        || cells.find((cell) => cell.type === 'code')
+      : null;
+    const viewKey = targetCell ? targetCell.id : 'script';
     const view = cmViews.current[viewKey];
-    if (!view) return;
+    if (!view) {
+      if (mode === 'script') {
+        setScriptCode((currentCode) => `${currentCode}${textToInsert}`);
+      } else if (targetCell) {
+        setCells((previousCells) => previousCells.map((cell) =>
+          cell.id === targetCell.id ? { ...cell, code: `${cell.code}${textToInsert}` } : cell
+        ));
+        setActiveCellId(targetCell.id);
+      }
+      return;
+    }
 
     view.focus();
     const { from, to } = view.state.selection.main;
@@ -513,60 +527,7 @@ export default function App() {
           />
         )}
       </main>
-
-      {/* Mobile Keyboard Touch Quick-Keys Toolbar */}
-      <MobileKeyboardToolbar
-        onInsertText={handleInsertText}
-        onRunCurrent={() => {
-          if (mode === 'notebook') {
-            if (activeCellId) handleRunCell(activeCellId);
-          } else {
-            handleRunScript();
-          }
-        }}
-        isRunning={isScriptRunning || cells.some((c) => c.status === 'running')}
-      />
-
-      {/* Modals & Inspectors */}
-      {selectedPlotB64 && (
-        <PlotModal
-          plotBase64={selectedPlotB64}
-          onClose={() => setSelectedPlotB64(null)}
-        />
-      )}
-
-      <SavedProjectsModal 
-        isOpen={isProjectsModalOpen}
-        onClose={() => setIsProjectsModalOpen(false)}
-        projects={savedProjects}
-        onSaveCurrent={handleSaveCurrentProject}
-        onLoadProject={handleLoadProject}
-        onRenameProject={handleRenameProject}
-        onDeleteProject={handleDeleteProject}
-        activeMode={mode}
-        onExportProject={handleExportProject}
-      />
-
-      <VariableExplorer
-        isOpen={isVarExplorerOpen}
-        onClose={() => setIsVarExplorerOpen(false)}
-        variables={activeVariables}
-        onRefresh={handleRefreshVariables}
-      />
-
-      <CheatSheetModal
-        isOpen={isCheatSheetOpen}
-        onClose={() => setIsCheatSheetOpen(false)}
-        onInsertSnippet={(snippet) => handleInsertText(snippet)}
-      />
-
-      <DatasetLoaderModal
-        isOpen={isDatasetModalOpen}
-        onClose={() => setIsDatasetModalOpen(false)}
-        onInsertCodeSnippet={(snippet) => handleInsertText('\n' + snippet + '\n')}
-      />
-
-      <TemplatePickerModal
+       <TemplatePickerModal
         isOpen={isTemplateModalOpen}
         onClose={() => setIsTemplateModalOpen(false)}
         onSelectTemplate={(code) => {
@@ -598,6 +559,50 @@ export default function App() {
         onInstallPwa={handleInstallPwa}
         isAppInstalled={isAppInstalled}
         canInstallPwa={!!deferredPrompt}
+      />
+
+      <SavedProjectsModal
+        isOpen={isProjectsModalOpen}
+        onClose={() => setIsProjectsModalOpen(false)}
+        projects={savedProjects}
+        onSaveCurrent={handleSaveCurrentProject}
+        onLoadProject={handleLoadProject}
+        onRenameProject={handleRenameProject}
+        onDeleteProject={handleDeleteProject}
+        activeMode={mode}
+        onExportProject={handleExportProject}
+      />
+
+      <DatasetLoaderModal
+        isOpen={isDatasetModalOpen}
+        onClose={() => setIsDatasetModalOpen(false)}
+        onInsertCodeSnippet={handleInsertText}
+      />
+
+      <VariableExplorer
+        isOpen={isVarExplorerOpen}
+        onClose={() => setIsVarExplorerOpen(false)}
+        variables={activeVariables}
+        onRefresh={handleRefreshVariables}
+      />
+
+      <CheatSheetModal
+        isOpen={isCheatSheetOpen}
+        onClose={() => setIsCheatSheetOpen(false)}
+        onInsertSnippet={handleInsertText}
+      />
+
+      <PlotModal
+        plotBase64={selectedPlotB64}
+        onClose={() => setSelectedPlotB64(null)}
+      />
+
+      <MobileKeyboardToolbar
+        onInsertText={handleInsertText}
+        onRunCurrent={() => mode === 'script' ? handleRunScript() : handleRunCell(activeCellId)}
+        isRunning={mode === 'script'
+          ? isScriptRunning
+          : cells.some((cell) => cell.id === activeCellId && cell.status === 'running')}
       />
 
     </div>
