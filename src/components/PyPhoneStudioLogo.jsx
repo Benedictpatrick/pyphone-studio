@@ -9,7 +9,7 @@ export default function PyPhoneStudioLogo() {
           <span className="brand-studio">Studio</span>
         </h1>
         <div className="pyphone-brand-divider"></div>
-        <p className="pyphone-brand-subtitle">Mobile Python Data Science Canvas</p>
+        <p className="pyphone-brand-subtitle">Data Analysis and visualization</p>
       </div>
     </div>
   );
