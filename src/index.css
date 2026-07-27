@@ -3438,3 +3438,9 @@ kbd.inline-kbd {
   background: white;
   border-radius: var(--rounded-md);
 }
+
+@media (max-width: 640px) {
+  .keyboard-hint {
+    display: none;
+  }
+}
