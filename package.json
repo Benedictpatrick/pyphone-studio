@@ -18,7 +18,8 @@
     "codemirror": "^6.0.2",
     "lucide-react": "^1.26.0",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "react-zoom-pan-pinch": "^4.0.3"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

@@ -101,11 +101,7 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
 
       // Attempt Seaborn install safely
       try {
-        onProgress({ status: 'loading-seaborn', message: 'Installing Seaborn & mpld3...' });
-        await pyodide.runPythonAsync(`
-import micropip
-await micropip.install(['seaborn', 'mpld3'])
-`);
+        await pyodide.loadPackage(['seaborn']);
       } catch (seabornErr) {
         console.warn('Optional package (Seaborn) skipped:', seabornErr);
       }
@@ -166,19 +162,15 @@ def _custom_show(*args, **kwargs):
                 fignums = [fig.number]
         for fignum in fignums:
             fig = plt.figure(fignum)
-            try:
-                import mpld3
-                html_str = mpld3.fig_to_html(fig)
-                _captured_plots.append(json.dumps({"type": "html", "data": html_str}))
-            except Exception:
-                buf = io.BytesIO()
-                fig.savefig(buf, format='png', bbox_inches='tight', dpi=180, facecolor='white', edgecolor='none')
-                buf.seek(0)
-                img_b64 = base64.b64encode(buf.read()).decode('utf-8')
-                _captured_plots.append(json.dumps({"type": "png", "data": img_b64}))
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', bbox_inches='tight', dpi=180, facecolor='white', edgecolor='none')
+            buf.seek(0)
+            img_b64 = base64.b64encode(buf.read()).decode('utf-8')
+            _captured_plots.append(json.dumps({"type": "png", "data": img_b64}))
         plt.close('all')
     except Exception as e:
-        pass
+        import sys
+        print(f"[Plot Error] {str(e)}", file=sys.stderr)
 
 
 # Override plt.show

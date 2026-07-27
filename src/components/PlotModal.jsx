@@ -1,4 +1,5 @@
 import React from 'react';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { X, Download, Image as ImageIcon, Info } from 'lucide-react';
 
 export default function PlotModal({ plotBase64, onClose }) {
@@ -50,7 +51,7 @@ export default function PlotModal({ plotBase64, onClose }) {
           </div>
         </div>
 
-        <div className="plot-image-container">
+        <div className="plot-image-container" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           {isHtml ? (
             <iframe 
               srcDoc={`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"><style>body{margin:0;padding:0;background:white;}</style></head><body>${plotData}</body></html>`} 
@@ -59,11 +60,22 @@ export default function PlotModal({ plotBase64, onClose }) {
               sandbox="allow-scripts allow-downloads"
             />
           ) : (
-            <img 
-              src={`data:image/png;base64,${plotData}`} 
-              alt="Python Matplotlib Seaborn Graph Output"
-              className="full-plot-img" 
-            />
+            <TransformWrapper
+              initialScale={1}
+              minScale={0.5}
+              maxScale={5}
+              centerOnInit={true}
+              wheel={{ step: 0.1 }}
+            >
+              <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }}>
+                <img 
+                  src={`data:image/png;base64,${plotData}`} 
+                  alt="Python Matplotlib Seaborn Graph Output"
+                  className="full-plot-img" 
+                  style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }}
+                />
+              </TransformComponent>
+            </TransformWrapper>
           )}
         </div>
 
