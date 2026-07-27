@@ -53,7 +53,7 @@ export default function PlotModal({ plotBase64, onClose }) {
         <div className="plot-image-container">
           {isHtml ? (
             <iframe 
-              srcDoc={plotData} 
+              srcDoc={`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"><style>body{margin:0;padding:0;background:white;}</style></head><body>${plotData}</body></html>`} 
               title="Interactive Python Plot"
               className="full-plot-iframe"
               sandbox="allow-scripts allow-downloads"

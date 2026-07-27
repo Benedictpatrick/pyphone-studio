@@ -349,13 +349,14 @@ export default function ScriptView({
                       className="plot-thumbnail-card"
                       onClick={() => onOpenPlotModal(plotObj)}
                     >
+                      <div className="plot-click-shield"></div>
                       <div className="plot-thumb-overlay">
                         <ImageIcon className="w-5 h-5 text-emerald-400" />
                         <span>Tap to Interact / Zoom</span>
                       </div>
                       {plotObj && plotObj.type === 'html' ? (
                         <iframe 
-                          srcDoc={plotObj.data} 
+                          srcDoc={`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"><style>body{margin:0;padding:0;background:white;}</style></head><body>${plotObj.data}</body></html>`} 
                           title={`Plot ${pIdx}`}
                           className="plot-thumb-iframe"
                           sandbox="allow-scripts"
