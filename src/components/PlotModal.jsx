@@ -4,13 +4,28 @@ import { X, Download, Image as ImageIcon, Info } from 'lucide-react';
 export default function PlotModal({ plotBase64, onClose }) {
   if (!plotBase64) return null;
 
+  const isHtml = plotBase64 && plotBase64.type === 'html';
+  const plotData = plotBase64?.data || plotBase64;
+
   const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = `data:image/png;base64,${plotBase64}`;
-    link.download = `python_visualization_${Date.now()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (isHtml) {
+      const blob = new Blob([plotData], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `interactive_plot_${Date.now()}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } else {
+      const link = document.createElement('a');
+      link.href = `data:image/png;base64,${plotData}`;
+      link.download = `python_visualization_${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
@@ -24,9 +39,9 @@ export default function PlotModal({ plotBase64, onClose }) {
               <span>Visualization Inspector</span>
             </div>
             <div className="modal-actions">
-              <button className="framer-btn-primary" onClick={handleDownload} title="Download Graph Image">
+              <button className="framer-btn-primary" onClick={handleDownload} title="Download Graph">
                 <Download className="w-3.5 h-3.5 fill-current" />
-                <span>Save PNG</span>
+                <span>{isHtml ? 'Save HTML' : 'Save PNG'}</span>
               </button>
               <button className="modal-close-btn" onClick={onClose}>
                 <X className="w-5 h-5" />
@@ -36,11 +51,20 @@ export default function PlotModal({ plotBase64, onClose }) {
         </div>
 
         <div className="plot-image-container">
-          <img 
-            src={`data:image/png;base64,${plotBase64}`} 
-            alt="Python Matplotlib Seaborn Graph Output"
-            className="full-plot-img" 
-          />
+          {isHtml ? (
+            <iframe 
+              srcDoc={plotData} 
+              title="Interactive Python Plot"
+              className="full-plot-iframe"
+              sandbox="allow-scripts allow-downloads"
+            />
+          ) : (
+            <img 
+              src={`data:image/png;base64,${plotData}`} 
+              alt="Python Matplotlib Seaborn Graph Output"
+              className="full-plot-img" 
+            />
+          )}
         </div>
 
         <div className="plot-modal-footer">

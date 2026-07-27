@@ -33,6 +33,7 @@ export default function Header({
   onOpenVariables,
   onOpenCheatSheet,
   onOpenSettings,
+  onOpenPackages,
   onAddCell,
   onExportPy,
   onExportIpynb,
@@ -177,6 +178,16 @@ export default function Header({
           {savedProjectsCount > 0 && (
             <span className="ribbon-count-pill">{savedProjectsCount}</span>
           )}
+        </button>
+
+        {/* Packages Button */}
+        <button 
+          className="framer-btn-secondary" 
+          onClick={() => { hapticLight(); onOpenPackages(); }}
+          title="Install Python Packages (PIP)"
+        >
+          <Layers className="w-3.5 h-3.5 text-orange-400" />
+          <span>Packages</span>
         </button>
 
         {mode === 'notebook' && (

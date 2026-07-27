@@ -359,21 +359,31 @@ export default function CodeCell({
               {/* Matplotlib / Seaborn Generated Plots */}
               {cell.output.plots && cell.output.plots.length > 0 && (
                 <div className="cell-plots-gallery">
-                  {cell.output.plots.map((plotB64, pIdx) => (
+                  {cell.output.plots.map((plotObj, pIdx) => (
                     <div 
                       key={pIdx} 
                       className="plot-thumbnail-card"
-                      onClick={() => onOpenPlotModal(plotB64)}
+                      onClick={() => onOpenPlotModal(plotObj)}
                     >
                       <div className="plot-thumb-overlay">
                         <ImageIcon className="w-5 h-5 text-emerald-400" />
-                        <span>Tap to Zoom / Download</span>
+                        <span>Tap to Interact / Zoom</span>
                       </div>
-                      <img 
-                        src={`data:image/png;base64,${plotB64}`} 
-                        alt={`Generated Python Chart ${pIdx + 1}`} 
-                        className="plot-thumb-img"
-                      />
+                      {plotObj && plotObj.type === 'html' ? (
+                        <iframe 
+                          srcDoc={plotObj.data} 
+                          title={`Plot ${pIdx}`}
+                          className="plot-thumb-iframe"
+                          sandbox="allow-scripts"
+                          scrolling="no"
+                        />
+                      ) : (
+                        <img 
+                          src={`data:image/png;base64,${plotObj?.data || plotObj}`} 
+                          alt={`Generated Python Chart ${pIdx + 1}`} 
+                          className="plot-thumb-img"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>

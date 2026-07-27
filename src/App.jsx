@@ -10,6 +10,7 @@ import VariableExplorer from './components/VariableExplorer';
 import CheatSheetModal from './components/CheatSheetModal';
 import SavedProjectsModal from './components/SavedProjectsModal';
 import SettingsModal from './components/SettingsModal';
+import PackageManagerModal from './components/PackageManagerModal';
 import LoadingScreen from './components/LoadingScreen';
 
 import { hapticLight, hapticMedium, hapticSuccess, hapticError, hapticSelection } from './utils/haptics';
@@ -85,6 +86,7 @@ export default function App() {
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isPackagesOpen, setIsPackagesOpen] = useState(false);
 
   // Editor settings (persisted to localStorage)
   const [editorSettings, setEditorSettings] = useState(() => {
@@ -533,6 +535,7 @@ export default function App() {
             onOpenVariables={() => setIsVarExplorerOpen(true)}
             onOpenCheatSheet={() => setIsCheatSheetOpen(true)}
             onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenPackages={() => setIsPackagesOpen(true)}
             onAddCell={handleAddCell}
             onExportPy={handleExportPy}
             onExportIpynb={handleExportIpynb}
@@ -600,6 +603,12 @@ export default function App() {
         }}
       />
 
+
+      <PackageManagerModal
+        isOpen={isPackagesOpen}
+        onClose={() => setIsPackagesOpen(false)}
+      />
+
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -648,7 +657,7 @@ export default function App() {
 
 
 
-      {!(isTemplateModalOpen || isSettingsOpen || isProjectsModalOpen || isDatasetModalOpen || isVarExplorerOpen || isCheatSheetOpen || selectedPlotB64) && (
+      {!(isTemplateModalOpen || isSettingsOpen || isProjectsModalOpen || isDatasetModalOpen || isVarExplorerOpen || isCheatSheetOpen || isPackagesOpen || selectedPlotB64) && (
         <MobileKeyboardToolbar
           onInsertText={handleInsertText}
           onRunCurrent={() => mode === 'script' ? handleRunScript() : handleRunCell(activeCellId)}

@@ -101,10 +101,10 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
 
       // Attempt Seaborn install safely
       try {
-        onProgress({ status: 'loading-seaborn', message: 'Installing Seaborn...' });
+        onProgress({ status: 'loading-seaborn', message: 'Installing Seaborn & mpld3...' });
         await pyodide.runPythonAsync(`
 import micropip
-await micropip.install('seaborn')
+await micropip.install(['seaborn', 'mpld3'])
 `);
       } catch (seabornErr) {
         console.warn('Optional package (Seaborn) skipped:', seabornErr);
@@ -140,6 +140,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import json
 
 # Set working directory safely
 try:
@@ -165,11 +166,16 @@ def _custom_show(*args, **kwargs):
                 fignums = [fig.number]
         for fignum in fignums:
             fig = plt.figure(fignum)
-            buf = io.BytesIO()
-            fig.savefig(buf, format='png', bbox_inches='tight', dpi=180, facecolor='white', edgecolor='none')
-            buf.seek(0)
-            img_b64 = base64.b64encode(buf.read()).decode('utf-8')
-            _captured_plots.append(img_b64)
+            try:
+                import mpld3
+                html_str = mpld3.fig_to_html(fig)
+                _captured_plots.append(json.dumps({"type": "html", "data": html_str}))
+            except ImportError:
+                buf = io.BytesIO()
+                fig.savefig(buf, format='png', bbox_inches='tight', dpi=180, facecolor='white', edgecolor='none')
+                buf.seek(0)
+                img_b64 = base64.b64encode(buf.read()).decode('utf-8')
+                _captured_plots.append(json.dumps({"type": "png", "data": img_b64}))
         plt.close('all')
     except Exception as e:
         pass
@@ -365,9 +371,17 @@ isinstance(__last_res, pd.DataFrame)
     try {
       const pyPlots = await pyodide.runPythonAsync(`_captured_plots`);
       try {
-        plotsArray = pyPlots && pyPlots.toJs
+        const rawArray = pyPlots && pyPlots.toJs
           ? pyPlots.toJs({ depth: -1 })
           : (Array.isArray(pyPlots) ? pyPlots : []);
+          
+        plotsArray = rawArray.map(item => {
+          try {
+            return typeof item === 'string' ? JSON.parse(item) : item;
+          } catch (e) {
+            return { type: "png", data: item };
+          }
+        });
       } finally {
         pyPlots?.destroy?.();
       }
@@ -441,4 +455,22 @@ export async function writeCustomDataset(filename, csvContent) {
   const pyodide = await initPyodide();
   pyodide.FS.writeFile(`/home/pyodide/${filename}`, csvContent);
   return filename;
+}
+
+/**
+ * Dynamically install a pure Python package from PyPI via micropip
+ */
+export async function installPyodidePackage(pkgName, onLog = () => {}) {
+  const pyodide = await initPyodide();
+  try {
+    const micropip = pyodide.pyimport('micropip');
+    onLog(`Calling micropip.install('${pkgName}')...`);
+    // redirect stdout to catch micropip logs if any
+    await micropip.install(pkgName);
+    onLog(`Finished installing ${pkgName}`);
+    micropip.destroy();
+  } catch (err) {
+    onLog(`Error installing ${pkgName}: ${err.message}`);
+    throw err;
+  }
 }

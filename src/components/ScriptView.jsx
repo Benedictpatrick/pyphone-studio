@@ -343,20 +343,31 @@ export default function ScriptView({
                 </p>
               ) : (
                 <div className="script-plots-grid">
-                  {scriptOutput.plots.map((plotB64, pIdx) => (
+                  {scriptOutput.plots.map((plotObj, pIdx) => (
                     <div 
                       key={pIdx} 
                       className="plot-thumbnail-card"
-                      onClick={() => onOpenPlotModal(plotB64)}
+                      onClick={() => onOpenPlotModal(plotObj)}
                     >
-                      <img 
-                        src={`data:image/png;base64,${plotB64}`} 
-                        alt="Python Matplotlib Chart" 
-                        className="plot-thumb-img"
-                      />
                       <div className="plot-thumb-overlay">
-                        <span>Tap to Zoom / Download</span>
+                        <ImageIcon className="w-5 h-5 text-emerald-400" />
+                        <span>Tap to Interact / Zoom</span>
                       </div>
+                      {plotObj && plotObj.type === 'html' ? (
+                        <iframe 
+                          srcDoc={plotObj.data} 
+                          title={`Plot ${pIdx}`}
+                          className="plot-thumb-iframe"
+                          sandbox="allow-scripts"
+                          scrolling="no"
+                        />
+                      ) : (
+                        <img 
+                          src={`data:image/png;base64,${plotObj?.data || plotObj}`} 
+                          alt={`Generated Python Chart ${pIdx + 1}`} 
+                          className="plot-thumb-img"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
