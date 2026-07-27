@@ -13,8 +13,14 @@ const getHapticConfig = () => {
   return { enabled: true, multiplier: 1.0 };
 };
 
+let lastHapticTime = 0;
+
 const vibrate = (pattern) => {
   try {
+    const now = Date.now();
+    if (now - lastHapticTime < 50) return;
+    lastHapticTime = now;
+
     if (!navigator || !navigator.vibrate) return;
     const { enabled, multiplier } = getHapticConfig();
     if (!enabled) return;
