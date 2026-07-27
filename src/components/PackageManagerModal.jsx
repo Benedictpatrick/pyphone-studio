@@ -55,12 +55,18 @@ export default function PackageManagerModal({ isOpen, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content packages-modal" onClick={e => e.stopPropagation()}>
+      <div className="modal-card packages-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Package Manager (PIP)</h2>
-          <button className="icon-btn" onClick={() => { hapticLight(); onClose(); }}>
-            <X size={20} />
-          </button>
+          <div className="bottom-sheet-handle"></div>
+          <div className="modal-header-top-row">
+            <div className="modal-title">
+              <Package className="w-5 h-5 text-blue-400" />
+              <span>Package Manager (PIP)</span>
+            </div>
+            <button className="modal-close-btn" onClick={() => { hapticLight(); onClose(); }}>
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="modal-body">
