@@ -1,6 +1,6 @@
 import React from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
-import { X, Download, Image as ImageIcon, Info } from 'lucide-react';
+import { X, Download, Image as ImageIcon, Info, ExternalLink } from 'lucide-react';
 
 export default function PlotModal({ plotBase64, onClose }) {
   if (!plotBase64) return null;
@@ -9,23 +9,46 @@ export default function PlotModal({ plotBase64, onClose }) {
   const plotData = plotBase64?.data || plotBase64;
 
   const handleDownload = () => {
-    if (isHtml) {
-      const blob = new Blob([plotData], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
+    try {
       const link = document.createElement('a');
-      link.href = url;
-      link.download = `interactive_plot_${Date.now()}.html`;
+      link.download = isHtml ? 'python_plot.html' : 'python_plot.png';
+      
+      if (isHtml) {
+        const blob = new Blob([plotData], { type: 'text/html' });
+        link.href = URL.createObjectURL(blob);
+      } else {
+        link.href = `data:image/png;base64,${plotData}`;
+      }
+      
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } else {
-      const link = document.createElement('a');
-      link.href = `data:image/png;base64,${plotData}`;
-      link.download = `python_visualization_${Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    } catch (e) {
+      console.error('Download failed:', e);
+    }
+  };
+
+  const handleOpenInNewTab = () => {
+    try {
+      if (isHtml) {
+        const blob = new Blob([plotData], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } else {
+        const byteString = atob(plotData);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ab], { type: 'image/png' });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      }
+    } catch (e) {
+      console.error('Failed to open in new tab:', e);
     }
   };
 
@@ -40,9 +63,13 @@ export default function PlotModal({ plotBase64, onClose }) {
               <span>Visualization Inspector</span>
             </div>
             <div className="modal-actions">
+              <button className="framer-btn-secondary" onClick={handleOpenInNewTab} title="Open in New Tab">
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Open in New Tab</span>
+              </button>
               <button className="framer-btn-primary" onClick={handleDownload} title="Download Graph">
                 <Download className="w-3.5 h-3.5 fill-current" />
-                <span>{isHtml ? 'Save HTML' : 'Save PNG'}</span>
+                <span className="hidden sm:inline">{isHtml ? 'Save HTML' : 'Save PNG'}</span>
               </button>
               <button className="modal-close-btn" onClick={onClose}>
                 <X className="w-5 h-5" />
