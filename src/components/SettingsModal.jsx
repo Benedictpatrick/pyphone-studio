@@ -9,8 +9,7 @@ export default function SettingsModal({
   settings,
   onUpdateSettings,
   onInstallPwa,
-  isAppInstalled,
-  canInstallPwa
+  isAppInstalled
 }) {
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);

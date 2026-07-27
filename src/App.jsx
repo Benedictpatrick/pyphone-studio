@@ -13,10 +13,9 @@ import SettingsModal from './components/SettingsModal';
 import PackageManagerModal from './components/PackageManagerModal';
 import LoadingScreen from './components/LoadingScreen';
 
-import { hapticLight, hapticMedium, hapticSuccess, hapticError, hapticSelection } from './utils/haptics';
+import { hapticMedium, hapticSuccess, hapticError, hapticSelection } from './utils/haptics';
 
 import { initPyodide, executePythonCode, getActiveVariables, cancelPythonExecution } from './services/pyodideService';
-import { PYTHON_TEMPLATES } from './templates/pythonTemplates';
 import { exportToHtmlReport } from './services/htmlExportService';
 import { 
   saveNotebookState, 
@@ -616,7 +615,6 @@ export default function App() {
         onUpdateSettings={handleUpdateSettings}
         onInstallPwa={handleInstallPwa}
         isAppInstalled={isAppInstalled}
-        canInstallPwa={!!deferredPrompt}
       />
 
       <SavedProjectsModal
