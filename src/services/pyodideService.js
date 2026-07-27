@@ -123,6 +123,15 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
           console.warn(`Dataset write skipped for ${dataset.filename}:`, e);
         }
       }
+      
+      // Provide a generic 'data.csv' fallback for copy-pasted scripts
+      try {
+        const fallbackData = SAMPLE_DATASETS['titanic'].csv;
+        pyodide.FS.writeFile('/home/pyodide/data.csv', fallbackData);
+        pyodide.FS.writeFile('/data.csv', fallbackData);
+      } catch (e) {
+        console.warn('Fallback data.csv write skipped:', e);
+      }
 
       // Configure Python Matplotlib & Output Interceptors & Variable Inspector
       await pyodide.runPythonAsync(`
