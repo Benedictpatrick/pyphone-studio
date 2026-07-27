@@ -170,7 +170,7 @@ def _custom_show(*args, **kwargs):
                 import mpld3
                 html_str = mpld3.fig_to_html(fig)
                 _captured_plots.append(json.dumps({"type": "html", "data": html_str}))
-            except ImportError:
+            except Exception:
                 buf = io.BytesIO()
                 fig.savefig(buf, format='png', bbox_inches='tight', dpi=180, facecolor='white', edgecolor='none')
                 buf.seek(0)
