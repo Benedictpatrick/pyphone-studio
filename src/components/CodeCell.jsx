@@ -10,7 +10,8 @@ import {
   Image as ImageIcon,
   MoreVertical,
   Undo2,
-  Eraser
+  Eraser,
+  StopCircle
 } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { undo } from '@codemirror/commands';
@@ -18,8 +19,10 @@ import { hapticLight } from '../utils/haptics';
 import { python } from '@codemirror/lang-python';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
-import { EditorView } from '@codemirror/view';
+import { EditorView, keymap } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
+import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
+import { search, searchKeymap } from '@codemirror/search';
 import DataFrameTable from './DataFrameTable';
 import ErrorExplainerBox from './ErrorExplainerBox';
 
@@ -39,9 +42,68 @@ const pyHighlightStyle = HighlightStyle.define([
 const cmTheme = EditorView.theme({
   '&': { backgroundColor: 'transparent', height: 'auto' },
   '.cm-line': { padding: '0' },
+  // Search panel styling
+  '.cm-search': {
+    background: 'var(--surface-1)',
+    borderTop: '1px solid var(--hairline)',
+    padding: '6px 10px',
+    gap: '6px',
+    flexWrap: 'wrap',
+  },
+  '.cm-search input': {
+    background: 'var(--canvas)',
+    border: '1px solid var(--hairline)',
+    borderRadius: '4px',
+    color: 'var(--ink)',
+    padding: '3px 6px',
+    fontSize: '0.8rem',
+  },
+  '.cm-button': {
+    background: 'var(--surface-2)',
+    border: '1px solid var(--hairline)',
+    borderRadius: '4px',
+    color: 'var(--ink)',
+    padding: '2px 8px',
+    cursor: 'pointer',
+    fontSize: '0.75rem',
+  },
+  '.cm-textfield': {
+    background: 'var(--canvas)',
+    border: '1px solid var(--hairline)',
+    borderRadius: '4px',
+    color: 'var(--ink)',
+    padding: '3px 6px',
+    fontSize: '0.8rem',
+  },
+  // Autocomplete dropdown styling
+  '.cm-tooltip.cm-tooltip-autocomplete': {
+    background: 'var(--surface-1)',
+    border: '1px solid var(--hairline)',
+    borderRadius: '6px',
+    overflow: 'hidden',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+  },
+  '.cm-tooltip-autocomplete > ul > li': {
+    padding: '4px 10px',
+    fontSize: '0.82rem',
+    color: 'var(--ink)',
+  },
+  '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+    background: 'var(--accent-blue)',
+    color: '#fff',
+  },
+  '.cm-completionLabel': { fontSize: '0.82rem' },
+  '.cm-completionDetail': { fontSize: '0.75rem', opacity: '0.7', marginLeft: '6px' },
 });
 
-const baseCmExtensions = [python(), syntaxHighlighting(pyHighlightStyle), cmTheme];
+const baseCmExtensions = [
+  python(),
+  syntaxHighlighting(pyHighlightStyle),
+  cmTheme,
+  autocompletion({ activateOnTyping: true }),
+  closeBrackets(),
+  search({ top: false }),
+];
 
 export default function CodeCell({
   cell,
@@ -53,25 +115,45 @@ export default function CodeCell({
   onMoveCell,
   onDuplicateCell,
   onOpenPlotModal,
+  onCancelExecution,
   activeCellId,
   setActiveCellId,
   onCodeMirrorReady,
   settings = {}
 }) {
   const { fontSize = 15, tabSize = 4, wordWrap = false } = settings;
-
-  const cmExtensions = useMemo(() => {
-    const dynamicTheme = EditorView.theme({
-      '&': { backgroundColor: 'transparent', height: 'auto', fontSize: `${fontSize}px` },
-      '.cm-line': { padding: '0' },
-    });
-    return [...baseCmExtensions, dynamicTheme, EditorState.tabSize.of(tabSize), ...(wordWrap ? [EditorView.lineWrapping] : [])];
-  }, [fontSize, tabSize, wordWrap]);
   const isRunning = cell.status === 'running';
   const { showLineNumbers = true } = settings;
 
   const [cmView, setCmView] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
+
+  // Build dynamic extensions — including Shift+Enter to run cell
+  const cmExtensions = useMemo(() => {
+    const dynamicTheme = EditorView.theme({
+      '&': { backgroundColor: 'transparent', height: 'auto', fontSize: `${fontSize}px` },
+      '.cm-line': { padding: '0' },
+    });
+
+    const runCellKeymap = keymap.of([
+      {
+        key: 'Shift-Enter',
+        run: () => {
+          onRunCell(cell.id);
+          return true;
+        }
+      }
+    ]);
+
+    return [
+      ...baseCmExtensions,
+      dynamicTheme,
+      EditorState.tabSize.of(tabSize),
+      runCellKeymap,
+      keymap.of([...closeBracketsKeymap, ...completionKeymap, ...searchKeymap]),
+      ...(wordWrap ? [EditorView.lineWrapping] : []),
+    ];
+  }, [fontSize, tabSize, wordWrap, cell.id, onRunCell]);
 
   const handleCreate = useCallback((view) => {
     setCmView(view);
@@ -110,18 +192,34 @@ export default function CodeCell({
         </div>
 
         <div className="cell-actions">
-          <button
-            className="cell-act-btn run-cell-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRunCell(cell.id);
-            }}
-            disabled={isRunning}
-            title="Execute Cell (Run)"
-          >
-            <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
-            <span>Run</span>
-          </button>
+          {isRunning ? (
+            /* Cancel button — shown while cell is running */
+            <button
+              className="cell-act-btn cancel-cell-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                hapticLight();
+                onCancelExecution?.();
+              }}
+              title="Cancel Execution (Ctrl+C)"
+            >
+              <StopCircle className="w-3.5 h-3.5 text-rose-400" />
+              <span>Cancel</span>
+            </button>
+          ) : (
+            <button
+              className="cell-act-btn run-cell-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRunCell(cell.id);
+              }}
+              disabled={isRunning}
+              title="Execute Cell (Shift+Enter)"
+            >
+              <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+              <span>Run</span>
+            </button>
+          )}
 
           <button
             className="cell-act-btn icon-only"
@@ -206,7 +304,9 @@ export default function CodeCell({
             foldGutter: false,
             indentOnInput: true,
             highlightActiveLine: false,
-            autocompletion: false
+            autocompletion: false,   // We add it manually above for full control
+            closeBrackets: false,    // We add it manually above
+            searchKeymap: false,     // We add it manually above
           }}
           placeholder="# Type Python code here (e.g. import pandas as pd...)"
           className="code-cell-cm"
@@ -224,6 +324,7 @@ export default function CodeCell({
             <div className="cell-running-bar">
               <Loader2 className="w-4 h-4 spin text-emerald-400 mr-2 inline" />
               <span>Executing Python code in WebAssembly Pyodide...</span>
+              <span className="run-hint"> (Shift+Enter to re-run · Cancel above to stop)</span>
             </div>
           )}
 

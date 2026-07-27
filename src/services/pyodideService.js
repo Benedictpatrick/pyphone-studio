@@ -4,11 +4,42 @@ import { SAMPLE_DATASETS } from './datasetService';
 let pyodideInstance = null;
 let isLoading = false;
 let loadPromise = null;
-let pendingInputValues = [];
+// ── Interrupt / Cancel Support ──────────────────────────────────────────────
+let interruptBuffer = null;      // Uint8Array backed by SharedArrayBuffer
+let _executionRunning = false;   // soft flag for UI
+let _cancelReject = null;        // used when SAB is not available
 
-export function setPythonInputValues(values = []) {
-  pendingInputValues = [...values];
+/**
+ * Returns true if code is currently being executed.
+ */
+export function isExecutionRunning() {
+  return _executionRunning;
 }
+
+/**
+ * Returns true if native interrupt (SharedArrayBuffer SIGINT) is supported.
+ */
+export function isInterruptSupported() {
+  return interruptBuffer !== null;
+}
+
+/**
+ * Cancel the currently running Python execution.
+ * - If SharedArrayBuffer is available: sends SIGINT (KeyboardInterrupt) into Pyodide.
+ * - Otherwise: rejects the JS-side promise (Python keeps running until the call returns,
+ *   but the UI unblocks and the result is discarded).
+ */
+export function cancelPythonExecution() {
+  if (interruptBuffer) {
+    // SIGINT value = 2, Pyodide polls this and raises KeyboardInterrupt
+    interruptBuffer[0] = 2;
+  }
+  if (_cancelReject) {
+    _cancelReject(new Error('Execution cancelled by user'));
+    _cancelReject = null;
+  }
+}
+
 
 /**
  * Initialize Pyodide WASM runtime and pre-load Python Data Science packages
@@ -52,7 +83,7 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
 
       const pyodide = await window.loadPyodide({
         indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/',
-        stdin: () => pendingInputValues.length ? pendingInputValues.shift() : null
+        stdin: () => window.prompt('Python Input Required:')
       });
 
       // Load built-in C-extension packages sequentially for mobile stability
@@ -208,6 +239,16 @@ async def _pyphone_run_code(code_str):
         raise Exception("PYPHONE_EXEC_ERROR")
 `);
 
+      // Setup interrupt buffer if SharedArrayBuffer is available (requires COOP headers)
+      try {
+        if (typeof SharedArrayBuffer !== 'undefined') {
+          interruptBuffer = new Uint8Array(new SharedArrayBuffer(1));
+          pyodide.setInterruptBuffer(interruptBuffer);
+        }
+      } catch (_) {
+        interruptBuffer = null;
+      }
+
       pyodideInstance = pyodide;
       isLoading = false;
       onProgress({ status: 'ready', message: 'Python Engine Ready!' });
@@ -230,6 +271,10 @@ let executionQueue = Promise.resolve();
  */
 export async function executePythonCode(codeString) {
   const run = async () => {
+    // Reset interrupt buffer before each run
+    if (interruptBuffer) interruptBuffer[0] = 0;
+    _executionRunning = true;
+    _cancelReject = null;
     const pyodide = await initPyodide();
 
     // Reset captured output buffers and redirect stdout/stderr
@@ -342,6 +387,7 @@ sys.stderr = _orig_stderr
       finalStdout = finalStdout ? `${finalStdout}\n[Warning]\n${combinedStderr}` : `[Warning]\n${combinedStderr}`;
     }
 
+    _executionRunning = false;
     return {
       stdout: finalStdout,
       stderr: stderr || '',
@@ -354,9 +400,19 @@ sys.stderr = _orig_stderr
 
   };
 
+  // Wrap with a cancellable promise when SAB is not available
+  const runWithCancelFallback = () => {
+    const runPromise = run().finally(() => { _executionRunning = false; });
+    if (interruptBuffer) return runPromise; // SAB path — cancel is native
+    return new Promise((resolve, reject) => {
+      _cancelReject = reject;
+      runPromise.then(resolve, reject);
+    });
+  };
+
   // Chain runs sequentially. A failed earlier run must not block the next one,
   // but it also must not cause the same user code to execute a second time.
-  executionQueue = executionQueue.catch(() => undefined).then(run);
+  executionQueue = executionQueue.catch(() => undefined).then(runWithCancelFallback);
   return executionQueue;
 }
 

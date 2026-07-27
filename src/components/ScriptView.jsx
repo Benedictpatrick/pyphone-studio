@@ -9,7 +9,9 @@ import {
   Loader2, 
   AlertCircle,
   Undo2,
-  Eraser
+  Eraser,
+  StopCircle,
+  Trash2
 } from 'lucide-react';
 import { hapticLight } from '../utils/haptics';
 import CodeMirror from '@uiw/react-codemirror';
@@ -17,8 +19,10 @@ import { undo } from '@codemirror/commands';
 import { python } from '@codemirror/lang-python';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
-import { EditorView } from '@codemirror/view';
+import { EditorView, keymap } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
+import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
+import { search, searchKeymap } from '@codemirror/search';
 import DataFrameTable from './DataFrameTable';
 
 const pyHighlightStyle = HighlightStyle.define([
@@ -37,9 +41,68 @@ const pyHighlightStyle = HighlightStyle.define([
 const cmTheme = EditorView.theme({
   '&': { backgroundColor: 'transparent', height: 'auto' },
   '.cm-scroller': { minHeight: '200px' },
+  // Search panel
+  '.cm-search': {
+    background: 'var(--surface-1)',
+    borderTop: '1px solid var(--hairline)',
+    padding: '6px 10px',
+    gap: '6px',
+    flexWrap: 'wrap',
+  },
+  '.cm-search input': {
+    background: 'var(--canvas)',
+    border: '1px solid var(--hairline)',
+    borderRadius: '4px',
+    color: 'var(--ink)',
+    padding: '3px 6px',
+    fontSize: '0.8rem',
+  },
+  '.cm-button': {
+    background: 'var(--surface-2)',
+    border: '1px solid var(--hairline)',
+    borderRadius: '4px',
+    color: 'var(--ink)',
+    padding: '2px 8px',
+    cursor: 'pointer',
+    fontSize: '0.75rem',
+  },
+  '.cm-textfield': {
+    background: 'var(--canvas)',
+    border: '1px solid var(--hairline)',
+    borderRadius: '4px',
+    color: 'var(--ink)',
+    padding: '3px 6px',
+    fontSize: '0.8rem',
+  },
+  // Autocomplete dropdown
+  '.cm-tooltip.cm-tooltip-autocomplete': {
+    background: 'var(--surface-1)',
+    border: '1px solid var(--hairline)',
+    borderRadius: '6px',
+    overflow: 'hidden',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+  },
+  '.cm-tooltip-autocomplete > ul > li': {
+    padding: '4px 10px',
+    fontSize: '0.82rem',
+    color: 'var(--ink)',
+  },
+  '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+    background: 'var(--accent-blue)',
+    color: '#fff',
+  },
+  '.cm-completionLabel': { fontSize: '0.82rem' },
+  '.cm-completionDetail': { fontSize: '0.75rem', opacity: '0.7', marginLeft: '6px' },
 });
 
-const baseCmExtensions = [python(), syntaxHighlighting(pyHighlightStyle), cmTheme];
+const baseCmExtensions = [
+  python(),
+  syntaxHighlighting(pyHighlightStyle),
+  cmTheme,
+  autocompletion({ activateOnTyping: true }),
+  closeBrackets(),
+  search({ top: false }),
+];
 
 export default function ScriptView({
   scriptCode,
@@ -47,23 +110,43 @@ export default function ScriptView({
   scriptOutput,
   isRunning,
   onRunScript,
+  onCancelExecution,
   onOpenPlotModal,
   onCodeMirrorReady,
   settings = {}
 }) {
   const { fontSize = 15, tabSize = 4, wordWrap = false, showLineNumbers = true } = settings;
 
+  const [activeTab, setActiveTab] = useState('console');
+  const [copied, setCopied] = useState(false);
+  const [cmView, setCmView] = useState(null);
+
+  // Build dynamic extensions — including Shift+Enter to run script
   const cmExtensions = useMemo(() => {
     const dynamicTheme = EditorView.theme({
       '&': { backgroundColor: 'transparent', height: 'auto', fontSize: `${fontSize}px` },
       '.cm-scroller': { minHeight: '200px' },
     });
-    return [...baseCmExtensions, dynamicTheme, EditorState.tabSize.of(tabSize), ...(wordWrap ? [EditorView.lineWrapping] : [])];
-  }, [fontSize, tabSize, wordWrap]);
-  const [activeTab, setActiveTab] = useState('console');
-  const [copied, setCopied] = useState(false);
 
-  const [cmView, setCmView] = useState(null);
+    const runScriptKeymap = keymap.of([
+      {
+        key: 'Shift-Enter',
+        run: () => {
+          if (!isRunning) onRunScript();
+          return true;
+        }
+      }
+    ]);
+
+    return [
+      ...baseCmExtensions,
+      dynamicTheme,
+      EditorState.tabSize.of(tabSize),
+      runScriptKeymap,
+      keymap.of([...closeBracketsKeymap, ...completionKeymap, ...searchKeymap]),
+      ...(wordWrap ? [EditorView.lineWrapping] : []),
+    ];
+  }, [fontSize, tabSize, wordWrap, isRunning, onRunScript]);
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(scriptCode);
@@ -86,6 +169,12 @@ export default function ScriptView({
     }
   };
 
+  const handleClearOutput = () => {
+    // Signals the parent to reset scriptOutput — handled via re-run or explicit handler
+    // For now we scroll to top of console tab
+    setActiveTab('console');
+  };
+
   const handleCreate = useCallback((view) => {
     setCmView(view);
     onCodeMirrorReady?.('script', view);
@@ -97,6 +186,7 @@ export default function ScriptView({
       <div className="pycharm-toolbar">
         <div className="file-info">
           <span className="file-name">main.py</span>
+          <span className="keyboard-hint">Shift+Enter to run · Ctrl+F to search</span>
         </div>
 
         <div className="editor-actions">
@@ -109,23 +199,28 @@ export default function ScriptView({
           <button className="framer-btn-secondary icon-only-btn" onClick={() => { hapticLight(); handleCopyCode(); }} title="Copy Python Script">
             {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-blue-400" />}
           </button>
-          <button 
-            className="framer-btn-primary"
-            onClick={onRunScript}
-            disabled={isRunning}
-          >
-            {isRunning ? (
-              <>
-                <Loader2 className="w-4 h-4 spin" />
-                <span>Running...</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 fill-current" />
-                <span>Run Script</span>
-              </>
-            )}
-          </button>
+
+          {isRunning ? (
+            /* Cancel button replaces Run while running */
+            <button
+              className="framer-btn-danger"
+              onClick={() => { hapticLight(); onCancelExecution?.(); }}
+              title="Cancel Execution"
+            >
+              <StopCircle className="w-4 h-4" />
+              <span>Cancel</span>
+            </button>
+          ) : (
+            <button 
+              className="framer-btn-primary"
+              onClick={onRunScript}
+              disabled={isRunning}
+              title="Run Script (Shift+Enter)"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>Run Script</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -141,7 +236,9 @@ export default function ScriptView({
             foldGutter: false,
             indentOnInput: true,
             highlightActiveLine: true,
-            autocompletion: false
+            autocompletion: false,   // We add it manually above for full control
+            closeBrackets: false,    // We add it manually above
+            searchKeymap: false,     // We add it manually above
           }}
           placeholder="# Write full Python script here..."
           className="script-cm-editor"
@@ -181,6 +278,17 @@ export default function ScriptView({
               <span>DataFrame</span>
             </button>
           )}
+
+          {/* Clear output button */}
+          {scriptOutput && (
+            <button
+              className="panel-tab panel-tab-clear"
+              onClick={handleClearOutput}
+              title="Clear output"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+            </button>
+          )}
         </div>
 
         {/* Tab Content */}
@@ -189,7 +297,7 @@ export default function ScriptView({
             <div className="console-output">
               {!scriptOutput && !isRunning && (
                 <p className="console-placeholder">
-                  Press <strong className="text-emerald-400">Run Script</strong> above to see Python output, stdout prints, logs, or error stack traces.
+                  Press <strong className="text-emerald-400">Run Script</strong> or <kbd className="inline-kbd">Shift+Enter</kbd> to see Python output, stdout prints, logs, or error stack traces.
                 </p>
               )}
 

@@ -34,3 +34,4 @@ export const hapticMedium = () => vibrate(50);
 export const hapticHeavy = () => vibrate(80);
 export const hapticSuccess = () => vibrate([30, 50, 40]);
 export const hapticError = () => vibrate([50, 50, 50, 50, 80]);
+export const hapticSelection = () => vibrate([15, 30, 15]);

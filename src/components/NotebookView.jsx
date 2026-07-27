@@ -12,6 +12,7 @@ export default function NotebookView({
   onMoveCell,
   onDuplicateCell,
   onOpenPlotModal,
+  onCancelExecution,
   activeCellId,
   setActiveCellId,
   onCodeMirrorReady,
@@ -50,6 +51,7 @@ export default function NotebookView({
               onMoveCell={onMoveCell}
               onDuplicateCell={onDuplicateCell}
               onOpenPlotModal={onOpenPlotModal}
+              onCancelExecution={onCancelExecution}
               activeCellId={activeCellId}
               setActiveCellId={setActiveCellId}
               onCodeMirrorReady={onCodeMirrorReady}

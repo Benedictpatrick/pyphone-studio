@@ -10,11 +10,11 @@ import VariableExplorer from './components/VariableExplorer';
 import CheatSheetModal from './components/CheatSheetModal';
 import SavedProjectsModal from './components/SavedProjectsModal';
 import SettingsModal from './components/SettingsModal';
-import PythonInputModal from './components/PythonInputModal';
+import LoadingScreen from './components/LoadingScreen';
 
-import { hapticLight, hapticMedium, hapticSuccess, hapticError } from './utils/haptics';
+import { hapticLight, hapticMedium, hapticSuccess, hapticError, hapticSelection } from './utils/haptics';
 
-import { initPyodide, executePythonCode, getActiveVariables, setPythonInputValues } from './services/pyodideService';
+import { initPyodide, executePythonCode, getActiveVariables, cancelPythonExecution } from './services/pyodideService';
 import { PYTHON_TEMPLATES } from './templates/pythonTemplates';
 import { exportToHtmlReport } from './services/htmlExportService';
 import { 
@@ -85,8 +85,6 @@ export default function App() {
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [inputRequest, setInputRequest] = useState(null);
-  const inputResolver = useRef(null);
 
   // Editor settings (persisted to localStorage)
   const [editorSettings, setEditorSettings] = useState(() => {
@@ -187,6 +185,11 @@ export default function App() {
     if (editorSettings.autoSave) saveLastMode(mode);
   }, [mode, editorSettings.autoSave]);
 
+  // Cancel running Python execution
+  const handleCancelExecution = () => {
+    cancelPythonExecution();
+  };
+
   // Refresh Python variables helper
   const handleRefreshVariables = async () => {
     try {
@@ -223,54 +226,11 @@ export default function App() {
     });
   };
 
-  const collectPythonInputs = (code) => {
-    const prompts = [];
-    const inputPattern = /\binput\s*\(\s*(?:(['"])((?:\\.|(?!\1).)*)\1)?\s*\)/g;
-    let match;
-
-    while ((match = inputPattern.exec(code)) !== null) {
-      const prompt = match[2]
-        ? match[2].replace(/\\n/g, '\n').replace(/\\(['"])/g, '$1')
-        : 'Enter a value';
-      prompts.push(prompt || 'Enter a value');
-    }
-
-    if (prompts.length === 0) return Promise.resolve([]);
-
-    return new Promise((resolve) => {
-      inputResolver.current = resolve;
-      setInputRequest({ prompts, index: 0, values: [] });
-    });
-  };
-
-  const handlePythonInputSubmit = (value) => {
-    if (!inputRequest) return;
-    const values = [...inputRequest.values, value];
-
-    if (inputRequest.index + 1 < inputRequest.prompts.length) {
-      setInputRequest({ ...inputRequest, index: inputRequest.index + 1, values });
-      return;
-    }
-
-    inputResolver.current?.(values);
-    inputResolver.current = null;
-    setInputRequest(null);
-  };
-
-  const handlePythonInputCancel = () => {
-    inputResolver.current?.(null);
-    inputResolver.current = null;
-    setInputRequest(null);
-  };
 
   // Run Notebook Cell
   const handleRunCell = async (cellId) => {
     const cellToRun = cells.find((c) => c.id === cellId);
     if (!cellToRun || cellToRun.type !== 'code') return;
-
-    const inputValues = await collectPythonInputs(cellToRun.code);
-    if (inputValues === null) return;
-    setPythonInputValues(inputValues);
 
     setCells((prev) =>
       prev.map((c) => (c.id === cellId ? { ...c, status: 'running', output: null } : c))
@@ -326,12 +286,7 @@ export default function App() {
     }
   };
 
-  // Run Script Mode Code
   const handleRunScript = async () => {
-    const inputValues = await collectPythonInputs(scriptCode);
-    if (inputValues === null) return;
-    setPythonInputValues(inputValues);
-
     setIsScriptRunning(true);
     setScriptOutput(null);
     hapticMedium();
@@ -558,28 +513,31 @@ export default function App() {
 
   return (
     <div className="app-canvas-container" data-mode={mode}>
-      {/* Header */}
-      <Header
-        mode={mode}
-        setMode={setMode}
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
-        engineStatus={engineStatus}
-        onRunAll={handleRunAll}
-        onRetryEngine={() => handleRetryEngine(true)}
-        onOpenProjects={() => setIsProjectsModalOpen(true)}
-
-        savedProjectsCount={savedProjects.length}
-        onOpenDatasets={() => setIsDatasetModalOpen(true)}
-        onOpenTemplates={() => setIsTemplateModalOpen(true)}
-        onOpenVariables={() => setIsVarExplorerOpen(true)}
-        onOpenCheatSheet={() => setIsCheatSheetOpen(true)}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        onAddCell={handleAddCell}
-        onExportPy={handleExportPy}
-        onExportIpynb={handleExportIpynb}
-        onExportHtmlReport={handleExportHtmlReport}
-      />
+      {engineStatus.status !== 'ready' && engineStatus.status !== 'error' ? (
+        <LoadingScreen engineStatus={engineStatus} />
+      ) : (
+        <>
+          {/* Header */}
+          <Header
+            mode={mode}
+            setMode={setMode}
+            theme={theme}
+            onToggleTheme={handleToggleTheme}
+            engineStatus={engineStatus}
+            onRunAll={handleRunAll}
+            onRetryEngine={() => handleRetryEngine(true)}
+            onOpenProjects={() => setIsProjectsModalOpen(true)}
+            savedProjectsCount={savedProjects.length}
+            onOpenDatasets={() => setIsDatasetModalOpen(true)}
+            onOpenTemplates={() => setIsTemplateModalOpen(true)}
+            onOpenVariables={() => setIsVarExplorerOpen(true)}
+            onOpenCheatSheet={() => setIsCheatSheetOpen(true)}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            onAddCell={handleAddCell}
+            onExportPy={handleExportPy}
+            onExportIpynb={handleExportIpynb}
+            onExportHtmlReport={handleExportHtmlReport}
+          />
 
       {/* Main Workspace: Notebook vs Script View */}
       <main className="main-workspace">
@@ -597,6 +555,7 @@ export default function App() {
               setCells((prev) => prev.map((c) => (c.id === id ? { ...c, code } : c)))
             }
             onOpenPlotModal={(b64) => setSelectedPlotB64(b64)}
+            onCancelExecution={handleCancelExecution}
             onCodeMirrorReady={handleCodeMirrorReady}
             settings={editorSettings}
           />
@@ -607,13 +566,17 @@ export default function App() {
             scriptOutput={scriptOutput}
             isRunning={isScriptRunning}
             onRunScript={handleRunScript}
+            onCancelExecution={handleCancelExecution}
             onOpenPlotModal={(b64) => setSelectedPlotB64(b64)}
             onCodeMirrorReady={handleCodeMirrorReady}
             settings={editorSettings}
           />
         )}
       </main>
-       <TemplatePickerModal
+      </>
+      )}
+      
+      <TemplatePickerModal
         isOpen={isTemplateModalOpen}
         onClose={() => setIsTemplateModalOpen(false)}
         onSelectTemplate={(code) => {
@@ -683,13 +646,9 @@ export default function App() {
         onClose={() => setSelectedPlotB64(null)}
       />
 
-      <PythonInputModal
-        request={inputRequest}
-        onSubmit={handlePythonInputSubmit}
-        onCancel={handlePythonInputCancel}
-      />
 
-      {!(isTemplateModalOpen || isSettingsOpen || isProjectsModalOpen || isDatasetModalOpen || isVarExplorerOpen || isCheatSheetOpen || selectedPlotB64 || inputRequest) && (
+
+      {!(isTemplateModalOpen || isSettingsOpen || isProjectsModalOpen || isDatasetModalOpen || isVarExplorerOpen || isCheatSheetOpen || selectedPlotB64) && (
         <MobileKeyboardToolbar
           onInsertText={handleInsertText}
           onRunCurrent={() => mode === 'script' ? handleRunScript() : handleRunCell(activeCellId)}
@@ -698,7 +657,6 @@ export default function App() {
             : cells.some((cell) => cell.id === activeCellId && cell.status === 'running')}
         />
       )}
-
     </div>
   );
 }
