@@ -2,7 +2,7 @@
 
 import { sanitizeHtml } from '../lib/sanitize';
 
-export function exportToHtmlReport({ title = "Python Data Analysis Report", cells = [], scriptCode = "", scriptOutput = null, mode = "notebook" }) {
+export function exportToHtmlReport({ title = "Python Program & Code Report", cells = [], scriptCode = "", scriptOutput = null, mode = "notebook" }) {
   const dateStr = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',

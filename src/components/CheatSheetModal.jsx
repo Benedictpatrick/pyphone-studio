@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, BookOpen, Copy, Check, Plus } from 'lucide-react';
+import { X, BookOpen, Check, Plus } from 'lucide-react';
 import { CHEAT_SHEET_SECTIONS } from '../services/cheatSheetService';
 
 export default function CheatSheetModal({ isOpen, onClose, onInsertSnippet }) {

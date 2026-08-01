@@ -7,7 +7,8 @@ import {
   FileCode, 
   Download, 
   Plus, 
-  Layers,
+  Package,
+  Variable,
   FileText,
   Sun,
   Moon,
@@ -186,7 +187,7 @@ export default function Header({
           onClick={() => { hapticLight(); onOpenPackages(); }}
           title="Install Python Packages (PIP)"
         >
-          <Layers className="w-3.5 h-3.5 text-orange-400" />
+          <Package className="w-3.5 h-3.5 text-orange-400" />
           <span>Packages</span>
         </button>
 
@@ -206,7 +207,7 @@ export default function Header({
           onClick={onOpenVariables}
           title="Variable Explorer"
         >
-          <Layers className="w-3.5 h-3.5 text-blue-400" />
+          <Variable className="w-3.5 h-3.5 text-blue-400" />
           <span>Variables</span>
         </button>
 

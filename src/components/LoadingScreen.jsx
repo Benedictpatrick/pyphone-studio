@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Terminal } from 'lucide-react';
+import PyPhoneStudioLogo from './PyPhoneStudioLogo';
 
 export default function LoadingScreen({ engineStatus }) {
   // Map engineStatus to a progress percentage
@@ -38,6 +38,11 @@ export default function LoadingScreen({ engineStatus }) {
   return ( 
     <div className="loading-screen-container">
       <div className="loading-screen-content">
+        {/* Top PyPhone Studio Brand Logo */}
+        <div className="loading-logo-wrapper">
+          <PyPhoneStudioLogo />
+        </div>
+
         <div className="loader-wrapper">
           <div id="ghost">
             <div id="red">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Database, FileSpreadsheet, Plus, Check, Upload, FileText } from 'lucide-react';
+import { X, Database, FileSpreadsheet, Plus, Check, Upload } from 'lucide-react';
 import { SAMPLE_DATASETS } from '../services/datasetService';
 import { writeCustomDataset } from '../services/pyodideService';
 

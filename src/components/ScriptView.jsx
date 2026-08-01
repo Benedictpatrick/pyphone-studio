@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { 
   Play, 
   Terminal, 
@@ -11,7 +11,10 @@ import {
   Undo2,
   Eraser,
   StopCircle,
-  Trash2
+  Trash2,
+  Plus,
+  FileCode,
+  X
 } from 'lucide-react';
 import { hapticLight } from '../utils/haptics';
 import CodeMirror from '@uiw/react-codemirror';
@@ -24,6 +27,7 @@ import { EditorState } from '@codemirror/state';
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { search, searchKeymap } from '@codemirror/search';
 import DataFrameTable from './DataFrameTable';
+import { syncWorkspaceFiles } from '../services/pyodideService';
 
 const pyHighlightStyle = HighlightStyle.define([
   { tag: tags.keyword, color: 'var(--py-keyword)', fontWeight: '600' },
@@ -121,6 +125,95 @@ export default function ScriptView({
   const [copied, setCopied] = useState(false);
   const [cmView, setCmView] = useState(null);
 
+  // VS Code Multi-File Tabs state
+  const [files, setFiles] = useState(() => ({
+    'main.py': scriptCode || '# Write full Python script here...\n'
+  }));
+  const [activeFileName, setActiveFileName] = useState('main.py');
+  
+  // VS Code Inline Tab Input state
+  const [isAddingFile, setIsAddingFile] = useState(false);
+  const [newFileNameInput, setNewFileNameInput] = useState('');
+  const newFileInputRef = useRef(null);
+
+  // Focus input when inline file input appears
+  useEffect(() => {
+    if (isAddingFile && newFileInputRef.current) {
+      newFileInputRef.current.focus();
+      newFileInputRef.current.select();
+    }
+  }, [isAddingFile]);
+
+  // Keep main.py synced with parent scriptCode
+  useEffect(() => {
+    if (files['main.py'] !== scriptCode && scriptCode !== undefined) {
+      setFiles(prev => ({ ...prev, 'main.py': scriptCode }));
+    }
+  }, [scriptCode]);
+
+  const currentFileContent = files[activeFileName] || '';
+
+  const handleCodeChange = (newVal) => {
+    setFiles(prev => ({ ...prev, [activeFileName]: newVal }));
+    if (activeFileName === 'main.py') {
+      setScriptCode(newVal);
+    }
+  };
+
+  const handleStartAddFile = () => {
+    hapticLight();
+    let num = 2;
+    while (files[`file${num}.py`]) {
+      num++;
+    }
+    setNewFileNameInput(`file${num}.py`);
+    setIsAddingFile(true);
+  };
+
+  const handleConfirmAddFile = () => {
+    let cleanName = newFileNameInput.trim();
+    if (!cleanName) {
+      setIsAddingFile(false);
+      return;
+    }
+    if (!cleanName.endsWith('.py')) cleanName += '.py';
+
+    if (files[cleanName]) {
+      setActiveFileName(cleanName);
+      setIsAddingFile(false);
+      return;
+    }
+
+    const defaultContent = `# Module: ${cleanName}\n\ndef example_function():\n    return "Hello from ${cleanName}"\n`;
+    setFiles(prev => ({ ...prev, [cleanName]: defaultContent }));
+    setActiveFileName(cleanName);
+    setIsAddingFile(false);
+
+    // Sync into Pyodide virtual FS
+    syncWorkspaceFiles({ [cleanName]: defaultContent });
+  };
+
+  const handleCloseFile = (fileNameToClose, e) => {
+    e.stopPropagation();
+    hapticLight();
+    const fileKeys = Object.keys(files);
+    if (fileKeys.length <= 1) return;
+
+    const nextFiles = { ...files };
+    delete nextFiles[fileNameToClose];
+    setFiles(nextFiles);
+    if (activeFileName === fileNameToClose) {
+      const remainingKeys = Object.keys(nextFiles);
+      setActiveFileName(remainingKeys[0]);
+    }
+  };
+
+  const handleRunScriptWithSync = useCallback(async () => {
+    // Write all open files into Pyodide Virtual FS (/home/pyodide/) before executing
+    await syncWorkspaceFiles(files);
+    onRunScript();
+  }, [files, onRunScript]);
+
   // Build dynamic extensions — including Shift+Enter to run script
   const cmExtensions = useMemo(() => {
     const dynamicTheme = EditorView.theme({
@@ -132,7 +225,7 @@ export default function ScriptView({
       {
         key: 'Shift-Enter',
         run: () => {
-          if (!isRunning) onRunScript();
+          if (!isRunning) handleRunScriptWithSync();
           return true;
         }
       }
@@ -146,10 +239,10 @@ export default function ScriptView({
       keymap.of([...closeBracketsKeymap, ...completionKeymap, ...searchKeymap]),
       ...(wordWrap ? [EditorView.lineWrapping] : []),
     ];
-  }, [fontSize, tabSize, wordWrap, isRunning, onRunScript]);
+  }, [fontSize, tabSize, wordWrap, isRunning, handleRunScriptWithSync]);
 
   const handleCopyCode = () => {
-    navigator.clipboard.writeText(scriptCode);
+    navigator.clipboard.writeText(currentFileContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -164,14 +257,10 @@ export default function ScriptView({
   };
 
   const handleClear = () => {
-    if (window.confirm("Are you sure you want to clear the entire script?")) {
-      setScriptCode('');
-    }
+    handleCodeChange('');
   };
 
   const handleClearOutput = () => {
-    // Signals the parent to reset scriptOutput — handled via re-run or explicit handler
-    // For now we scroll to top of console tab
     setActiveTab('console');
   };
 
@@ -182,26 +271,96 @@ export default function ScriptView({
 
   return (
     <div className="script-view-container">
-      {/* PyCharm Editor Toolbar */}
+      {/* VS Code Multi-File Tab Bar */}
+      <div className="vscode-file-tabs-bar">
+        <div className="file-tabs-scroll-area">
+          {Object.keys(files).map(fileName => (
+            <div
+              key={fileName}
+              className={`vscode-file-tab ${fileName === activeFileName ? 'active' : ''}`}
+              onClick={() => { hapticLight(); setActiveFileName(fileName); }}
+            >
+              <FileCode className="w-3.5 h-3.5 text-blue-400" />
+              <span className="tab-filename">{fileName}</span>
+              {Object.keys(files).length > 1 && (
+                <button
+                  className="tab-close-btn"
+                  onClick={(e) => handleCloseFile(fileName, e)}
+                  title={`Close ${fileName}`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          ))}
+
+          {/* VS Code Inline New File Input / Button */}
+          {isAddingFile ? (
+            <div className="inline-new-file-wrapper">
+              <FileCode className="w-3.5 h-3.5 text-emerald-400" />
+              <input
+                ref={newFileInputRef}
+                type="text"
+                className="inline-new-file-input"
+                placeholder="file_name.py"
+                value={newFileNameInput}
+                onChange={(e) => setNewFileNameInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleConfirmAddFile();
+                  if (e.key === 'Escape') setIsAddingFile(false);
+                }}
+              />
+              <button 
+                className="inline-action-btn check" 
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={handleConfirmAddFile}
+                title="Create file (Enter)"
+              >
+                <Check className="w-3.5 h-3.5 text-white" />
+              </button>
+              <button 
+                className="inline-action-btn cancel" 
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setIsAddingFile(false)}
+                title="Cancel (Esc)"
+              >
+                <X className="w-3.5 h-3.5 text-white" />
+              </button>
+            </div>
+          ) : (
+            <button 
+              className="new-file-tab-btn" 
+              onClick={handleStartAddFile}
+              title="Create New Python File (e.g. utils.py)"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>New File</span>
+            </button>
+          )}
+        </div>
+
+        <span className="keyboard-hint desktop-only">Shift+Enter to run · Ctrl+F to search</span>
+      </div>
+
+      {/* PyCharm / VS Code Editor Toolbar */}
       <div className="pycharm-toolbar">
         <div className="file-info">
-          <span className="file-name">main.py</span>
-          <span className="keyboard-hint">Shift+Enter to run · Ctrl+F to search</span>
+          <span className="file-name">{activeFileName}</span>
+          <span className="file-count-badge">{Object.keys(files).length} files in workspace</span>
         </div>
 
         <div className="editor-actions">
           <button className="framer-btn-secondary icon-only-btn" onClick={() => { hapticLight(); handleUndo(); }} title="Undo">
             <Undo2 className="w-4 h-4 text-slate-400" />
           </button>
-          <button className="framer-btn-secondary icon-only-btn" onClick={() => { hapticLight(); handleClear(); }} title="Clear Script">
+          <button className="framer-btn-secondary icon-only-btn" onClick={() => { hapticLight(); handleClear(); }} title={`Clear ${activeFileName}`}>
             <Eraser className="w-4 h-4 text-rose-400" />
           </button>
-          <button className="framer-btn-secondary icon-only-btn" onClick={() => { hapticLight(); handleCopyCode(); }} title="Copy Python Script">
+          <button className="framer-btn-secondary icon-only-btn" onClick={() => { hapticLight(); handleCopyCode(); }} title={`Copy ${activeFileName}`}>
             {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-blue-400" />}
           </button>
 
           {isRunning ? (
-            /* Cancel button replaces Run while running */
             <button
               className="framer-btn-danger"
               onClick={() => { hapticLight(); onCancelExecution?.(); }}
@@ -213,9 +372,9 @@ export default function ScriptView({
           ) : (
             <button 
               className="framer-btn-primary"
-              onClick={onRunScript}
+              onClick={handleRunScriptWithSync}
               disabled={isRunning}
-              title="Run Script (Shift+Enter)"
+              title="Run Script & Sync Files (Shift+Enter)"
             >
               <Play className="w-4 h-4 fill-current" />
               <span>Run Script</span>
@@ -227,8 +386,8 @@ export default function ScriptView({
       {/* Script Code Area */}
       <div className="pycharm-editor-wrapper">
         <CodeMirror
-          value={scriptCode}
-          onChange={(val) => setScriptCode(val)}
+          value={currentFileContent}
+          onChange={handleCodeChange}
           extensions={cmExtensions}
           onCreateEditor={handleCreate}
           basicSetup={{
@@ -236,17 +395,17 @@ export default function ScriptView({
             foldGutter: false,
             indentOnInput: true,
             highlightActiveLine: true,
-            autocompletion: false,   // We add it manually above for full control
-            closeBrackets: false,    // We add it manually above
-            searchKeymap: false,     // We add it manually above
+            autocompletion: false,
+            closeBrackets: false,
+            searchKeymap: false,
           }}
-          placeholder="# Write full Python script here..."
+          placeholder={`# Write ${activeFileName} Python code here...`}
           className="script-cm-editor"
           theme="none"
         />
       </div>
 
-      {/* PyCharm Bottom Terminal / Output Tabs */}
+      {/* PyCharm / VS Code Bottom Terminal / Output Tabs */}
       <div className="pycharm-output-panel">
         <div className="panel-tabs-bar">
           <button 
@@ -297,14 +456,14 @@ export default function ScriptView({
             <div className="console-output">
               {!scriptOutput && !isRunning && (
                 <p className="console-placeholder">
-                  Press <strong className="text-emerald-400">Run Script</strong> or <kbd className="inline-kbd">Shift+Enter</kbd> to see Python output, stdout prints, logs, or error stack traces.
+                  Press <strong className="text-emerald-400">Run Script</strong> or <kbd className="inline-kbd">Shift+Enter</kbd> to execute {activeFileName} and see Python output, stdout prints, logs, or error stack traces.
                 </p>
               )}
 
               {isRunning && (
                 <div className="console-running">
                   <Loader2 className="w-4 h-4 spin text-emerald-400 inline mr-2" />
-                  <span>Executing main.py in Python WebAssembly environment...</span>
+                  <span>Executing {activeFileName} in Python WASM environment...</span>
                 </div>
               )}
 

@@ -274,15 +274,41 @@ async def _pyphone_run_code(code_str):
 let executionQueue = Promise.resolve();
 
 /**
+ * Write multi-file workspace files into Pyodide virtual FS (/home/pyodide/)
+ */
+export async function syncWorkspaceFiles(filesDict = {}) {
+  const pyodide = await initPyodide();
+  for (const [filename, content] of Object.entries(filesDict)) {
+    if (!filename) continue;
+    try {
+      pyodide.FS.writeFile(`/home/pyodide/${filename}`, content || '');
+      pyodide.FS.writeFile(`/${filename}`, content || '');
+    } catch (e) {
+      console.warn(`File write skipped for ${filename}:`, e);
+    }
+  }
+}
+
+/**
  * Execute Python code block and return stdout, stderr, plots, and evaluated result
  */
-export async function executePythonCode(codeString) {
+export async function executePythonCode(codeString, extraFiles = {}) {
   const run = async () => {
     // Reset interrupt buffer before each run
     if (interruptBuffer) interruptBuffer[0] = 0;
     _executionRunning = true;
     _cancelReject = null;
     const pyodide = await initPyodide();
+
+    // Sync multi-file workspace scripts into Pyodide Virtual FS before execution
+    if (extraFiles && typeof extraFiles === 'object') {
+      for (const [fn, content] of Object.entries(extraFiles)) {
+        try {
+          pyodide.FS.writeFile(`/home/pyodide/${fn}`, content || '');
+          pyodide.FS.writeFile(`/${fn}`, content || '');
+        } catch (_) {}
+      }
+    }
 
     // Reset captured output buffers and redirect stdout/stderr
     await pyodide.runPythonAsync(`
@@ -459,19 +485,147 @@ export async function writeCustomDataset(filename, csvContent) {
 }
 
 /**
- * Dynamically install a pure Python package from PyPI via micropip
+ * Dynamically install a Python package via Pyodide loadPackage or micropip fallback
  */
 export async function installPyodidePackage(pkgName, onLog = () => {}) {
   const pyodide = await initPyodide();
+  const cleanName = pkgName.trim().toLowerCase();
+  onLog(`Installing ${cleanName}...`);
+
   try {
-    const micropip = pyodide.pyimport('micropip');
-    onLog(`Calling micropip.install('${pkgName}')...`);
-    // redirect stdout to catch micropip logs if any
-    await micropip.install(pkgName);
-    onLog(`Finished installing ${pkgName}`);
-    micropip.destroy();
+    // Try Pyodide native WASM wheel first (super fast for seaborn, scipy, scikit-learn)
+    await pyodide.loadPackage(cleanName);
+    onLog(`Loaded ${cleanName} via Pyodide WASM engine.`);
+  } catch (_) {
+    // Fall back to micropip for pure Python PyPI packages
+    try {
+      const micropip = pyodide.pyimport('micropip');
+      onLog(`Fetching ${cleanName} from PyPI via micropip...`);
+      await micropip.install(cleanName);
+      onLog(`Successfully installed ${cleanName} via micropip.`);
+      micropip.destroy();
+    } catch (err) {
+      onLog(`Error installing ${cleanName}: ${err.message}`);
+      throw err;
+    }
+  }
+
+  // Pre-import module into Python sys.modules so it's instantly active in memory
+  try {
+    const importName = cleanName === 'scikit-learn' ? 'sklearn' 
+      : cleanName === 'beautifulsoup4' ? 'bs4'
+      : cleanName === 'pillow' ? 'PIL'
+      : cleanName;
+    await pyodide.runPythonAsync(`
+try:
+    import ${importName}
+except Exception:
+    pass
+`);
+  } catch (_) {}
+}
+
+/**
+ * List all installed packages in the Pyodide Python environment
+ */
+export async function listInstalledPyodidePackages() {
+  if (!pyodideInstance) return {};
+  try {
+    const rawJson = await pyodideInstance.runPythonAsync(`
+import sys, json, os
+
+_pkgs = {}
+
+# 1. Check micropip.list()
+try:
+    import micropip
+    for _k, _v in micropip.list().items():
+        _ver = str(getattr(_v, 'version', _v))
+        _pkgs[str(_k).lower()] = _ver
+except Exception:
+    pass
+
+# 2. Check importlib.metadata
+try:
+    import importlib.metadata
+    for _d in importlib.metadata.distributions():
+        _name = _d.metadata['Name'].lower()
+        _pkgs[_name] = _d.version
+except Exception:
+    pass
+
+# 3. Check known data science & popular packages via lazy import check
+_known_packages = [
+    ('numpy', 'numpy'),
+    ('pandas', 'pandas'),
+    ('matplotlib', 'matplotlib'),
+    ('seaborn', 'seaborn'),
+    ('micropip', 'micropip'),
+    ('scipy', 'scipy'),
+    ('requests', 'requests'),
+    ('sympy', 'sympy'),
+    ('sklearn', 'scikit-learn'),
+    ('statsmodels', 'statsmodels'),
+    ('networkx', 'networkx'),
+    ('polars', 'polars'),
+    ('bs4', 'beautifulsoup4'),
+    ('PIL', 'pillow'),
+    ('bokeh', 'bokeh'),
+    ('xgboost', 'xgboost'),
+    ('lightgbm', 'lightgbm')
+]
+
+for _mod_name, _pub_name in _known_packages:
+    if _pub_name not in _pkgs:
+        try:
+            _m = __import__(_mod_name)
+            _v = getattr(_m, '__version__', 'loaded')
+            _pkgs[_pub_name] = str(_v)
+        except Exception:
+            pass
+
+json.dumps(_pkgs)
+`);
+
+    const parsed = JSON.parse(rawJson || '{}');
+    
+    // Merge JS pyodideInstance.loadedPackages if present
+    if (pyodideInstance && pyodideInstance.loadedPackages) {
+      for (const [pkg, ver] of Object.entries(pyodideInstance.loadedPackages)) {
+        const lower = pkg.toLowerCase();
+        if (!parsed[lower]) {
+          parsed[lower] = String(ver || 'loaded');
+        }
+      }
+    }
+
+    return parsed;
   } catch (err) {
-    onLog(`Error installing ${pkgName}: ${err.message}`);
-    throw err;
+    console.warn('Failed to fetch installed packages:', err);
+    return {};
   }
 }
+
+/**
+ * Uninstall a package from the Pyodide Python environment
+ */
+export async function uninstallPyodidePackage(pkgName) {
+  if (!pyodideInstance) return;
+  try {
+    await pyodideInstance.runPythonAsync(`
+import sys, micropip
+_pkg = "${pkgName.replace(/"/g, '')}"
+try:
+    micropip.uninstall(_pkg)
+except Exception:
+    pass
+for _mod in list(sys.modules.keys()):
+    if _mod == _pkg or _mod.startswith(_pkg + '.'):
+        try: del sys.modules[_mod]
+        except Exception: pass
+`);
+  } catch (err) {
+    console.warn(`Failed to uninstall ${pkgName}:`, err);
+  }
+}
+
