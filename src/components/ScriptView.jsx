@@ -28,6 +28,7 @@ import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } 
 import { search, searchKeymap } from '@codemirror/search';
 import DataFrameTable from './DataFrameTable';
 import { syncWorkspaceFiles } from '../services/pyodideService';
+import { pythonAutocompletions } from '../utils/pythonCompletions';
 
 const pyHighlightStyle = HighlightStyle.define([
   { tag: tags.keyword, color: 'var(--py-keyword)', fontWeight: '600' },
@@ -103,7 +104,7 @@ const baseCmExtensions = [
   python(),
   syntaxHighlighting(pyHighlightStyle),
   cmTheme,
-  autocompletion({ activateOnTyping: true }),
+  autocompletion({ activateOnTyping: true, override: [pythonAutocompletions] }),
   closeBrackets(),
   search({ top: false }),
 ];

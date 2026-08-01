@@ -23,6 +23,7 @@ import { EditorView, keymap } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { search, searchKeymap } from '@codemirror/search';
+import { pythonAutocompletions } from '../utils/pythonCompletions';
 import DataFrameTable from './DataFrameTable';
 import ErrorExplainerBox from './ErrorExplainerBox';
 
@@ -100,7 +101,7 @@ const baseCmExtensions = [
   python(),
   syntaxHighlighting(pyHighlightStyle),
   cmTheme,
-  autocompletion({ activateOnTyping: true }),
+  autocompletion({ activateOnTyping: true, override: [pythonAutocompletions] }),
   closeBrackets(),
   search({ top: false }),
 ];
