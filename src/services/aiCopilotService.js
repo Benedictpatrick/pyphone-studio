@@ -38,6 +38,7 @@ class AICopilotService {
     this.onProgressCallback = null;
     this.onGenerateComplete = null;
     this.onGenerateError = null;
+    this.onDownloadComplete = null;
   }
 
   handleWorkerMessage(event) {
@@ -53,6 +54,10 @@ class AICopilotService {
       if (this.onProgressCallback) {
         this.onProgressCallback({ progress: 100, message: 'Model Ready!' });
         this.onProgressCallback = null;
+      }
+      if (this.onDownloadComplete) {
+        this.onDownloadComplete();
+        this.onDownloadComplete = null;
       }
     } else if (type === 'complete' && this.onGenerateComplete) {
       this.onGenerateComplete(payload.text);
@@ -102,7 +107,11 @@ class AICopilotService {
       this.isLoading = true;
       this.progress = 0;
       this.onProgressCallback = onProgress;
-      this.worker.postMessage({ type: 'init' });
+      
+      return new Promise((resolve) => {
+        this.onDownloadComplete = resolve;
+        this.worker.postMessage({ type: 'init' });
+      });
     } else {
       onProgress?.({ progress: 100, message: `${targetModel.name} Ready!` });
       this.isLoaded = true;
