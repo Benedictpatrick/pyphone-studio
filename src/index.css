@@ -3323,6 +3323,19 @@ table.pyphone-df-table tr:nth-child(even) {
   object-fit: cover;
 }
 
+.pyxi-msg-avatar {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+  display: inline-block !important;
+}
+
 .pycopilot-header-title {
   display: flex;
   align-items: center;

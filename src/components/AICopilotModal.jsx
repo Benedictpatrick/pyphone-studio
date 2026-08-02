@@ -179,7 +179,12 @@ export default function AICopilotModal({
           <div key={idx} className={`pycopilot-bubble ${msg.sender}`}>
             {msg.sender === 'ai' && (
               <div className="pyxi-bubble-sender font-semibold text-xs text-sky-400 flex items-center gap-1.5 mb-1">
-                <img src="/pyxi-mascot.jpg" alt="Pyxi" className="w-4 h-4 rounded-full border border-sky-400/40 object-cover" />
+                <img 
+                  src="/pyxi-mascot.jpg" 
+                  alt="Pyxi" 
+                  className="pyxi-msg-avatar" 
+                  style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }}
+                />
                 <span>Pyxi</span>
               </div>
             )}
