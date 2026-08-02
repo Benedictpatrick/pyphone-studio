@@ -265,8 +265,13 @@ export default function ScriptView({
 
   // Interactive REPL Line Evaluator
   const handleRunReplCommand = async () => {
-    const cmd = replInput.trim();
+    let cmd = replInput.trim();
     if (!cmd || isEvaluatingRepl) return;
+
+    // Auto-strip accidental trailing backslashes from single-line REPL input
+    if (cmd.endsWith('\\') && !cmd.endsWith('\\\\')) {
+      cmd = cmd.slice(0, -1).trim();
+    }
 
     hapticLight();
     setIsEvaluatingRepl(true);
@@ -275,9 +280,18 @@ export default function ScriptView({
     try {
       await syncWorkspaceFiles(files);
       const res = await executePythonCode(cmd, files);
+      
+      // Format concise, clean error message for interactive REPL syntax errors
+      let cleanError = res.error;
+      if (cleanError && cleanError.includes('SyntaxError')) {
+        const errLines = cleanError.split('\n').map(l => l.trim()).filter(Boolean);
+        const syntaxErrLine = errLines.find(l => l.startsWith('SyntaxError'));
+        cleanError = syntaxErrLine || errLines[errLines.length - 1];
+      }
+
       setReplLogs(prev => [
         ...prev,
-        { cmd, stdout: res.stdout, result: res.result, error: res.error }
+        { cmd, stdout: res.stdout, result: res.result, error: cleanError }
       ]);
     } catch (err) {
       setReplLogs(prev => [
