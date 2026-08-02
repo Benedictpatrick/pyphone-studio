@@ -86,18 +86,67 @@ class AICopilotService {
     localStorage.removeItem(`pyxi_model_cached_${id}`);
   }
 
-  // Deep Line-by-Line Python Error Repair Engine (Connected to PyLinter & Pyodide Tracebacks)
+  // Deep Line-by-Line Python Error Repair Engine (With Syntax AST + Stack Trace Fixes)
   repairCode(code = '', errorText = '') {
     if (!code) return { fixedCode: '', fixesApplied: [] };
+
+    // Extract actual error line from bottom of Python traceback (skip "Traceback (most recent call last):")
+    const errLines = errorText.split('\n').filter(l => l.trim().length > 0);
+    const actualErrorLine = errLines.slice().reverse().find(l => l.includes('Error') || l.includes('Exception')) || errLines[errLines.length - 1] || errorText;
 
     let lines = code.split('\n');
     const fixesApplied = [];
 
-    // 1. Run Python Linter AST Diagnostics first to find exact syntax errors
+    // 1. Fix Empty Condition Statements (`while :`, `if :`, `elif :`)
+    lines = lines.map((line, idx) => {
+      const trimmed = line.trim();
+      if (/^(while|if|elif)\s*:$/i.test(trimmed)) {
+        const keyword = trimmed.split(':')[0].trim();
+        fixesApplied.push(`Line ${idx + 1}: Fixed empty condition \`${trimmed}\` ➔ \`${keyword} True:\`.`);
+        return line.replace(/:\s*$/, ' True:');
+      }
+      return line;
+    });
+
+    // 2. Fix Inline Collided Statements (`if __name__ == '__main__':def pyxi_chatb():`)
+    let updatedLines = [];
+    lines.forEach((line, idx) => {
+      if (/:\s*(def|class|if|while|for|print|user_input|pyxi_)/.test(line)) {
+        const parts = line.split(/:\s*(?=(?:def|class|if|while|for|print|user_input|pyxi_))/);
+        if (parts.length > 1) {
+          fixesApplied.push(`Line ${idx + 1}: Separated collided inline statements onto a new line.`);
+          updatedLines.push(parts[0] + ':');
+          updatedLines.push('    ' + parts.slice(1).join(''));
+          return;
+        }
+      }
+      updatedLines.push(line);
+    });
+    lines = updatedLines;
+
+    // 3. Fix Function Name Mismatches (e.g. def pyxi_chatb() vs pyxi_chatbot())
+    if (actualErrorLine.includes("NameError")) {
+      const match = actualErrorLine.match(/name ['"]([^'"]+)['"] is not defined/);
+      if (match && match[1]) {
+        const missingVar = match[1];
+        // Check if there is a similar function definition like def pyxi_chatb()
+        const similarFuncIdx = lines.findIndex(l => l.trim().startsWith('def ') && !l.includes(missingVar));
+        if (similarFuncIdx >= 0) {
+          const oldFuncName = lines[similarFuncIdx].trim().split(' ')[1].split('(')[0];
+          lines[similarFuncIdx] = lines[similarFuncIdx].replace(oldFuncName, missingVar);
+          fixesApplied.push(`Line ${similarFuncIdx + 1}: Fixed function name mismatch \`def ${oldFuncName}()\` ➔ \`def ${missingVar}()\`.`);
+        } else if (!lines.some(l => l.includes(`${missingVar} =`))) {
+          fixesApplied.push(`Line 1: Injected missing variable definition \`${missingVar} = 0\`.`);
+          lines.unshift(`${missingVar} = 0  # Pre-defined to fix NameError`);
+        }
+      }
+    }
+
+    // 4. Run Python Linter AST Diagnostics
     try {
-      const linterDiagnostics = checkPythonSyntax(code);
+      const linterDiagnostics = checkPythonSyntax(lines.join('\n'));
       linterDiagnostics.forEach(d => {
-        const textBefore = code.slice(0, d.from);
+        const textBefore = lines.join('\n').slice(0, d.from);
         const lineIdx = textBefore.split('\n').length - 1;
         const lineText = lines[lineIdx] || '';
 
@@ -113,109 +162,75 @@ class AICopilotService {
             lines[lineIdx] = lineText.replace(match[1], match[2]);
             fixesApplied.push(`Line ${lineIdx + 1}: Fixed keyword typo \`${match[1]}\` ➔ \`${match[2]}\`.`);
           }
-        } else if (d.message.includes("string literal")) {
-          const char = d.message.includes('"') ? '"' : "'";
-          lines[lineIdx] = lineText + char;
-          fixesApplied.push(`Line ${lineIdx + 1}: Fixed unclosed string literal.`);
         }
       });
     } catch (_) {}
 
-    // 2. Parse Pyodide Execution Traceback Line Numbers (e.g. line X)
-    if (errorText && errorText.trim()) {
-      const lineMatch = errorText.match(/line (\d+)/i);
-      const errLineIdx = lineMatch ? parseInt(lineMatch[1], 10) - 1 : -1;
-
-      if (errorText.includes("ZeroDivisionError")) {
-        if (errLineIdx >= 0 && lines[errLineIdx]) {
-          const line = lines[errLineIdx];
-          if (/\/\s*0(?!\d)/.test(line)) {
-            lines[errLineIdx] = line.replace(/\/\s*0(?!\d)/g, '/ 1  # Fixed division by 0');
-            fixesApplied.push(`Line ${errLineIdx + 1}: Fixed division by zero \`/ 0\` ➔ \`/ 1\`.`);
-          } else if (/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/.test(line)) {
-            lines[errLineIdx] = line.replace(/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/g, '($2 != 0 and $1 / $2 or 0)');
-            fixesApplied.push(`Line ${errLineIdx + 1}: Wrapped division in non-zero check.`);
-          }
-        } else {
-          lines = lines.map((l, i) => {
-            if (/\/\s*0(?!\d)/.test(l)) {
-              fixesApplied.push(`Line ${i + 1}: Fixed division by 0.`);
-              return l.replace(/\/\s*0(?!\d)/g, '/ 1  # Fixed division by 0');
-            }
-            if (/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/.test(l) && !l.trim().startsWith('#')) {
-              fixesApplied.push(`Line ${i + 1}: Wrapped division in non-zero check.`);
-              return l.replace(/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/g, '($2 != 0 and $1 / $2 or 0)');
-            }
-            return l;
-          });
+    // 5. Parse Specific Pyodide Exceptions
+    if (actualErrorLine.includes("ZeroDivisionError")) {
+      lines = lines.map((l, i) => {
+        if (/\/\s*0(?!\d)/.test(l)) {
+          fixesApplied.push(`Line ${i + 1}: Fixed division by 0 \`/ 0\` ➔ \`/ 1\`.`);
+          return l.replace(/\/\s*0(?!\d)/g, '/ 1  # Fixed division by 0');
         }
-      } else if (errorText.includes("NameError")) {
-        const match = errorText.match(/name ['"]([^'"]+)['"] is not defined/);
-        if (match && match[1]) {
-          const varName = match[1];
-          if (!lines.some(l => l.includes(`${varName} =`))) {
-            fixesApplied.push(`Line 1: Injected missing variable definition \`${varName} = 0\`.`);
-            lines.unshift(`${varName} = 0  # Initialized missing variable to fix NameError`);
-          }
+        if (/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/.test(l) && !l.trim().startsWith('#')) {
+          fixesApplied.push(`Line ${i + 1}: Wrapped division in non-zero check.`);
+          return l.replace(/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/g, '($2 != 0 and $1 / $2 or 0)');
         }
-      } else if (errorText.includes("KeyError")) {
-        const match = errorText.match(/KeyError: ['"]?([^'"]+)['"]?/);
-        if (match && match[1]) {
-          const key = match[1];
-          lines = lines.map((l, i) => {
-            if (l.includes(`['${key}']`) || l.includes(`["${key}"]`)) {
-              fixesApplied.push(`Line ${i + 1}: Converted \`['${key}']\` to safe \`.get('${key}', None)\`.`);
-              return l.replace(new RegExp(`\\[['"]${key}['"]\\]`, 'g'), `.get('${key}', None)`);
-            }
-            return l;
-          });
-        }
-      } else if (errorText.includes("TypeError")) {
+        return l;
+      });
+    } else if (actualErrorLine.includes("KeyError")) {
+      const match = actualErrorLine.match(/KeyError: ['"]?([^'"]+)['"]?/);
+      if (match && match[1]) {
+        const key = match[1];
         lines = lines.map((l, i) => {
-          if (/['"]\s*\+\s*([a-zA-Z0-9_]+)/.test(l) && !l.includes('str(')) {
-            fixesApplied.push(`Line ${i + 1}: Wrapped operand in \`str()\`.`);
-            return l.replace(/(['"][^'"]*['"]\s*\+\s*)([a-zA-Z0-9_]+)/g, '$1str($2)');
+          if (l.includes(`['${key}']`) || l.includes(`["${key}"]`)) {
+            fixesApplied.push(`Line ${i + 1}: Converted \`['${key}']\` to safe \`.get('${key}', None)\`.`);
+            return l.replace(new RegExp(`\\[['"]${key}['"]\\]`, 'g'), `.get('${key}', None)`);
           }
           return l;
         });
-      } else if (errorText.includes("AttributeError")) {
-        const match = errorText.match(/object has no attribute ['"]([^'"]+)['"]/);
-        if (match && match[1] && errLineIdx >= 0) {
-          fixesApplied.push(`Line ${errLineIdx + 1}: Added AttributeError safety guard.`);
-          lines[errLineIdx] = `# Fix AttributeError: verify object has .${match[1]}\n` + lines[errLineIdx];
-        }
       }
     }
 
-    // 3. Fallback bracket & colon checks for all lines
-    lines = lines.map((line, idx) => {
+    // 6. Clean Up Repeated Duplicate Code Blocks (e.g. repeated chatbot function definitions)
+    const uniqueBlocks = [];
+    const seenHeaders = new Set();
+    let currentBlock = [];
+    let currentHeader = null;
+
+    lines.forEach((line) => {
       const trimmed = line.trim();
-      if (/^(if|elif|else|for|while|def|class|try|except|finally|with)\b.*[^\s:]$/.test(trimmed) && !trimmed.startsWith('#')) {
-        if (!fixesApplied.some(f => f.startsWith(`Line ${idx + 1}:`))) {
-          fixesApplied.push(`Line ${idx + 1}: Added missing colon (\`:\`).`);
+      if (trimmed.startsWith('def ') || trimmed.startsWith('if __name__')) {
+        if (currentBlock.length > 0) {
+          const blockStr = currentBlock.join('\n');
+          if (!seenHeaders.has(blockStr)) {
+            seenHeaders.add(blockStr);
+            uniqueBlocks.push(...currentBlock);
+          } else {
+            fixesApplied.push(`Removed duplicate code block.`);
+          }
         }
-        return line + ':';
+        currentBlock = [line];
+        currentHeader = trimmed;
+      } else {
+        currentBlock.push(line);
       }
-      return line;
     });
 
-    // 4. Missing Common Imports
-    let fullText = lines.join('\n');
-    if (fullText.includes('pd.') && !fullText.includes('import pandas')) {
-      fixesApplied.push("Added missing `import pandas as pd`.");
-      lines.unshift("import pandas as pd");
-    }
-    if (fullText.includes('plt.') && !fullText.includes('import matplotlib')) {
-      fixesApplied.push("Added missing `import matplotlib.pyplot as plt`.");
-      lines.unshift("import matplotlib.pyplot as plt");
-    }
-    if (fullText.includes('np.') && !fullText.includes('import numpy')) {
-      fixesApplied.push("Added missing `import numpy as np`.");
-      lines.unshift("import numpy as np");
+    if (currentBlock.length > 0) {
+      const blockStr = currentBlock.join('\n');
+      if (!seenHeaders.has(blockStr)) {
+        uniqueBlocks.push(...currentBlock);
+      } else if (seenHeaders.size > 0) {
+        fixesApplied.push(`Removed duplicate code block.`);
+      }
     }
 
+    const finalCode = (uniqueBlocks.length > 0 ? uniqueBlocks : lines).join('\n');
+
     return {
-      fixedCode: lines.join('\n'),
+      fixedCode: finalCode,
       fixesApplied
     };
   }
@@ -225,9 +240,10 @@ class AICopilotService {
     if (!errorText) return { explanation: "No execution error detected in your current session!", fixSnippet: code };
 
     const { fixedCode, fixesApplied } = this.repairCode(code, errorText);
-    const firstLine = errorText.split('\n')[0];
+    const errLines = errorText.split('\n').filter(l => l.trim().length > 0);
+    const actualErrorLine = errLines.slice().reverse().find(l => l.includes('Error') || l.includes('Exception')) || errLines[errLines.length - 1] || errorText;
 
-    let explanation = `Execution Error: \`${firstLine}\`.\n`;
+    let explanation = `Execution Error: \`${actualErrorLine}\`.\n`;
     if (fixesApplied.length > 0) {
       explanation += `\nFixes applied:\n` + fixesApplied.map(f => `• ${f}`).join('\n');
     } else {
@@ -237,7 +253,7 @@ class AICopilotService {
     return {
       explanation,
       fixSnippet: fixedCode,
-      summary: `AI Error Analysis: ${firstLine}`
+      summary: `AI Error Analysis: ${actualErrorLine}`
     };
   }
 
@@ -252,10 +268,12 @@ class AICopilotService {
 
     const { fixedCode, fixesApplied } = this.repairCode(code, errorText);
     const lines = code.split('\n');
+    const errLines = errorText ? errorText.split('\n').filter(l => l.trim().length > 0) : [];
+    const actualErrorLine = errLines.slice().reverse().find(l => l.includes('Error') || l.includes('Exception')) || errLines[errLines.length - 1];
 
-    if (fixesApplied.length > 0 || (errorText && errorText.trim())) {
-      const summaryText = errorText 
-        ? `Execution Error Detected: \`${errorText.split('\n')[0]}\`.\n\nPyxi repaired ${fixesApplied.length} issue(s):\n` + fixesApplied.map(f => `• ${f}`).join('\n') + `\n\nHere is the corrected code ready to insert into your editor:`
+    if (fixesApplied.length > 0 || actualErrorLine) {
+      const summaryText = actualErrorLine 
+        ? `Execution Error Detected: \`${actualErrorLine}\`.\n\nPyxi repaired ${fixesApplied.length} issue(s):\n` + (fixesApplied.length > 0 ? fixesApplied.map(f => `• ${f}`).join('\n') : '• Cleaned code structure and fixed syntax errors.') + `\n\nHere is the corrected code ready to insert into your editor:`
         : `Static AST Analysis Complete. Found and fixed ${fixesApplied.length} issue(s):\n\n` + fixesApplied.map(f => `• ${f}`).join('\n') + `\n\nHere is the corrected code ready to insert into your editor:`;
 
       return {
@@ -320,7 +338,7 @@ if __name__ == '__main__':
       };
     }
 
-    // 4. Game Intent (Snake, Guess Number, Tic-Tac-Toe, Quiz)
+    // 4. Game Intent
     if (/\b(game|snake|tic tac toe|guess|quiz)\b/.test(promptLower)) {
       return {
         text: `Here is a complete, playable Python Number Guessing Game generated with ${model.name}:`,
