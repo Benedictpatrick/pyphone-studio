@@ -3292,6 +3292,7 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 /* Pyxi Mascot Avatar Styling */
+/* Pyxi Mascot Avatar Styling */
 .pyxi-header-btn {
   padding: 4px;
 }
@@ -3301,20 +3302,19 @@ table.pyphone-df-table tr:nth-child(even) {
   height: 22px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid rgba(56, 189, 248, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .pyxi-icon-badge {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   overflow: hidden;
-  border: 1.5px solid rgba(56, 189, 248, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0f172a;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+  background: #0f1117;
 }
 
 .pyxi-avatar-img-header {
@@ -3332,155 +3332,11 @@ table.pyphone-df-table tr:nth-child(even) {
   max-height: 18px !important;
   border-radius: 50% !important;
   object-fit: cover !important;
-  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
   display: inline-block !important;
 }
 
-/* Pyxi Model Picker Panel Styling */
-.pyxi-model-picker-panel {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-  background: var(--canvas);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.picker-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--hairline);
-}
-
-.picker-panel-title {
-  font-size: 0.84rem;
-  font-weight: 700;
-  color: var(--ink);
-  margin: 0;
-}
-
-.model-cards-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.model-card-item {
-  background: var(--surface-1);
-  border: 1px solid var(--hairline);
-  border-radius: var(--rounded-md);
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  transition: all 0.15s ease;
-}
-
-.model-card-item.selected {
-  border-color: #38bdf8;
-  background: rgba(14, 165, 233, 0.05);
-}
-
-.model-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.model-card-name-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.model-card-title {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--ink);
-  margin: 0;
-}
-
-.model-tag-pill {
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 100px;
-}
-
-.model-tag-pill.sky {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-}
-
-.model-tag-pill.emerald {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-}
-
-.model-size-badge {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--ink-subtle);
-}
-
-.model-card-desc {
-  font-size: 0.75rem;
-  color: var(--ink-muted);
-  margin: 0;
-  line-height: 1.4;
-}
-
-.model-card-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.model-action-btn {
-  flex: 1;
-  background: transparent;
-  border: 1px solid var(--hairline);
-  border-radius: var(--rounded-sm);
-  color: var(--ink);
-  font-size: 0.74rem;
-  font-weight: 600;
-  padding: 5px 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-}
-
-.model-action-btn.primary {
-  background: rgba(14, 165, 233, 0.15);
-  border-color: rgba(14, 165, 233, 0.4);
-  color: #38bdf8;
-}
-
-.model-action-btn.download {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #10b981;
-}
-
-.model-action-btn.active {
-  background: rgba(16, 185, 129, 0.2);
-  border-color: #10b981;
-  color: #10b981;
-}
-
-.model-delete-btn {
-  background: transparent;
-  border: 1px solid var(--hairline);
-  border-radius: var(--rounded-sm);
-  padding: 4px 8px;
-  cursor: pointer;
-}
-
+/* Pyxi Header & Linear IDE Minimal Dark Theme */
 .pycopilot-header-title {
   display: flex;
   align-items: center;
@@ -3502,35 +3358,25 @@ table.pyphone-df-table tr:nth-child(even) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #38bdf8;
-  transition: background 0.15s ease;
+  color: #94a3b8;
+  transition: all 0.15s ease;
 }
 
 .pycopilot-settings-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.pycopilot-icon-badge {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--rounded-md);
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
 }
 
 .pycopilot-title {
   font-size: 0.84rem;
   font-weight: 700;
-  color: var(--ink);
+  color: #f8fafc;
   margin: 0;
 }
 
 .pycopilot-subtitle {
   font-size: 0.68rem;
-  color: #10b981;
+  color: #94a3b8;
   display: block;
 }
 
@@ -3543,46 +3389,50 @@ table.pyphone-df-table tr:nth-child(even) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s ease;
+  color: #94a3b8;
+  transition: all 0.15s ease;
 }
 
 .pycopilot-close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
 }
 
 .pycopilot-model-bar {
-  background: rgba(56, 189, 248, 0.06);
-  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
-  padding: 6px 12px;
+  background: #141720;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 12px;
   flex-shrink: 0;
 }
 
 .pycopilot-download-btn {
   width: 100%;
-  background: transparent;
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  color: #38bdf8;
-  font-size: 0.74rem;
+  background: #1e2230;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  font-size: 0.78rem;
   font-weight: 600;
-  padding: 5px 8px;
-  border-radius: var(--rounded-sm);
+  padding: 6px 12px;
+  border-radius: var(--rounded-md);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .pycopilot-download-btn:hover {
-  background: rgba(56, 189, 248, 0.12);
+  background: #282e40;
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .pycopilot-download-progress {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.74rem;
-  color: #38bdf8;
+  font-size: 0.76rem;
+  color: #94a3b8;
   justify-content: center;
 }
 
