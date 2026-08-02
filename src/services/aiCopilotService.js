@@ -438,71 +438,9 @@ class AICopilotService {
       return realAIResult;
     }
 
-    // 2. Explanation Fallback (If Neural Endpoint Offline)
-    if (isExplanationIntent) {
-      if (activeCode && activeCode.trim()) {
-        const lines = activeCode.trim().split('\n');
-        const funcMatch = activeCode.match(/def\s+([a-zA-Z0-9_]+)\s*\((.*?)\):/);
-        const funcName = funcMatch ? funcMatch[1] : 'your script';
-        const docstring = activeCode.match(/"""([\s\S]*?)"""/);
-
-        let codeExplanation = `### Code Walkthrough for \`${funcName}\` (${lines.length} lines):\n\n`;
-        if (docstring && docstring[1]) {
-          codeExplanation += `**Purpose**: ${docstring[1].trim()}\n\n`;
-        }
-        codeExplanation += `1. **Function Header**: Defines \`def ${funcName}()\` as the main entry point.\n`;
-        codeExplanation += `2. **Execution Steps**: Runs the statements sequentially from top to bottom.\n`;
-        codeExplanation += `3. **Main Execution Block**: The \`if __name__ == '__main__':\` block triggers \`${funcName}()\` when you tap **Run**!\n`;
-
-        return {
-          text: codeExplanation,
-          code: null
-        };
-      } else {
-        return {
-          text: "Your active editor is empty! Paste or write a Python script in your editor first, then ask me to explain how it works.",
-          code: null
-        };
-      }
-    }
-
-    // 3. Conversational Greetings
-    if (/^(hi|hello|hey|greetings|hola|sup|good morning|good evening)\b/.test(promptLower)) {
-      return {
-        text: `Hello! I am Pyxi, powered by ${model.name}. How can I help with your Python code or data analysis today?`,
-        code: null
-      };
-    }
-
-    // 4. Identity & Capability Questions
-    if (promptLower.includes('who are you') || promptLower.includes('what can you do')) {
-      return {
-        text: `I am Pyxi, a real Python AI assistant currently using the ${model.name} engine.\n\n• Explain how any Python script works line-by-line\n• Generate 100% accurate Python programs for ANY user request\n• Scan active editor code for syntax errors & runtime exceptions\n• Explain execution errors & offer 1-tap fixes!`,
-        code: null
-      };
-    }
-
-    // 5. Smart Local Program Generators (Fallback)
-    if (/\b(addition|add|sum|plus|calculator|math)\b/.test(promptLower)) {
-      const nums = (userPrompt.match(/-?\d+(\.\d+)?/g) || []).map(Number);
-      const n1 = nums[0] !== undefined ? nums[0] : 10;
-      const n2 = nums[1] !== undefined ? nums[1] : 20;
-
-      return {
-        text: `Here is a complete Python Addition Program:`,
-        code: `def add_numbers(a: float, b: float) -> float:
-    """Calculate the sum of two numbers."""
-    return a + b
-
-num1, num2 = ${n1}, ${n2}
-result = add_numbers(num1, num2)
-print(f"Sum of {num1} + {num2} = {result}")`
-      };
-    }
-
     return {
-      text: `I'm sorry, my Neural AI engine is currently unreachable, but here is a starter template for your program.`,
-      code: `def python_program():\n    """Python Solution for: ${userPrompt}"""\n    print("Program execution started...")\n\nif __name__ == '__main__':\n    python_program()`
+      text: `❌ **Neural AI Unreachable**\n\nI'm sorry, but I was unable to connect to the cloud neural engine. Please check your internet connection, or switch to the Local Offline model from the settings menu!`,
+      code: null
     };
   }
 }
