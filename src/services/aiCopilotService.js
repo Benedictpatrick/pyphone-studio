@@ -182,11 +182,12 @@ class AICopilotService {
     };
   }
 
-  // Local AI Response Engine
+  // Local AI Response Engine (Intent Engine with Word Boundary Matching)
   async generateResponse(userPrompt, activeCode = '') {
     const promptLower = userPrompt.toLowerCase().trim();
     const model = this.getSelectedModel();
 
+    // 1. Conversational Greetings
     if (/^(hi|hello|hey|greetings|hola|sup|good morning|good evening)\b/.test(promptLower)) {
       return {
         text: `Hello! I am Pyxi, powered by ${model.name}. How can I help with your Python code or data analysis today?`,
@@ -194,14 +195,45 @@ class AICopilotService {
       };
     }
 
+    // 2. Identity & Capability Questions
     if (promptLower.includes('who are you') || promptLower.includes('what can you do')) {
       return {
-        text: `I am Pyxi, an offline Python assistant currently using the ${model.name} engine (${model.sizeMB}MB).\n\n• Write Pandas, Seaborn, & NumPy data analysis scripts\n• Scan active editor code for syntax errors\n• Explain execution errors & offer 1-tap fixes\n• Switch between SmolLM-135M (90MB) & Qwen2.5-Coder (220MB) models!`,
+        text: `I am Pyxi, an offline Python assistant currently using the ${model.name} engine (${model.sizeMB}MB).\n\n• Write Chatbots, Scrapers, Pandas & Data Analysis scripts\n• Scan active editor code for syntax errors\n• Explain execution errors & offer 1-tap fixes\n• Switch between SmolLM-135M (90MB) & Qwen2.5-Coder (220MB) models!`,
         code: null
       };
     }
 
-    if (promptLower.includes('pandas') || promptLower.includes('dataframe') || promptLower.includes('csv') || promptLower.includes('filter') || promptLower.includes('data analysis')) {
+    // 3. Chatbot / AI Bot Script Intent (Fixed False-Positive)
+    if (/\b(chatbot|chat bot|bot|conversation|conversational|ai assistant)\b/.test(promptLower)) {
+      return {
+        text: `Here is a complete, interactive Python CLI Chatbot script generated with ${model.name}:`,
+        code: `def pyxi_chatbot():
+    print("=== Python CLI Chatbot Initialized ===")
+    print("Type 'quit' or 'exit' anytime to stop chatting.\\n")
+    
+    knowledge_base = {
+        "hello": "Hi there! How can I help you today?",
+        "how are you": "I am a Python chatbot running smoothly inside PyPhone Studio!",
+        "what is python": "Python is a versatile, high-level programming language.",
+        "name": "I am PyBot, a lightweight Python chatbot script!"
+    }
+    
+    while True:
+        user_input = input("You: ").strip().lower()
+        if user_input in ['quit', 'exit', 'bye']:
+            print("Chatbot: Goodbye! Have a great day!")
+            break
+        
+        reply = knowledge_base.get(user_input, f"Chatbot: That's interesting! Tell me more about '{user_input}'.")
+        print(f"Chatbot: {reply}")
+
+if __name__ == '__main__':
+    pyxi_chatbot()`
+      };
+    }
+
+    // 4. Pandas Data Processing
+    if (/\b(pandas|dataframe|csv|filter|data analysis|groupby)\b/.test(promptLower)) {
       return {
         text: `Here is a complete Pandas data analysis template generated with ${model.name}:`,
         code: `import pandas as pd
@@ -214,12 +246,13 @@ print("=== Head ===")
 print(df.head())
 
 # Summary statistics
-print("\n=== Summary Stats ===")
+print("\\n=== Summary Stats ===")
 print(df.describe())`
       };
     }
 
-    if (promptLower.includes('plot') || promptLower.includes('chart') || promptLower.includes('matplotlib') || promptLower.includes('seaborn')) {
+    // 5. Data Visualization (Matplotlib / Seaborn)
+    if (/\b(plot|chart|matplotlib|seaborn|histogram|scatter)\b/.test(promptLower)) {
       return {
         text: `Here is a clean Matplotlib & Seaborn visualization template:`,
         code: `import matplotlib.pyplot as plt
@@ -241,7 +274,8 @@ plt.show()`
       };
     }
 
-    if (promptLower.includes('machine learning') || promptLower.includes('sklearn') || promptLower.includes('model') || promptLower.includes('regression')) {
+    // 6. Machine Learning (Scikit-Learn)
+    if (/\b(machine learning|sklearn|scikit|regression|classification|train)\b/.test(promptLower)) {
       return {
         text: `Here is a Scikit-Learn Linear Regression model template:`,
         code: `from sklearn.linear_model import LinearRegression
@@ -258,7 +292,8 @@ print("Predictions for X=[6, 7]:", predictions)`
       };
     }
 
-    if (promptLower.includes('loop') || promptLower.includes('for') || promptLower.includes('while')) {
+    // 7. Loop Intent (Strict word boundaries to prevent matching "code for chatbot")
+    if (/\b(loop|loops|for loop|while loop|iteration|iterate)\b/.test(promptLower)) {
       return {
         text: `Here are examples of Python \`for\` loops over lists and dictionaries:`,
         code: `fruits = ['apple', 'banana', 'cherry']
@@ -271,7 +306,8 @@ for name, score in scores.items():
       };
     }
 
-    if (promptLower.includes('function') || promptLower.includes('def') || promptLower.includes('calculate')) {
+    // 8. Function Intent
+    if (/\b(function|functions|def|method)\b/.test(promptLower)) {
       return {
         text: `Here is a clean Python function template with docstrings:`,
         code: `def calculate_metrics(values: list[float]) -> dict:
@@ -290,9 +326,52 @@ print("Metrics:", metrics)`
       };
     }
 
+    // 9. Web Scraping / Parsing
+    if (/\b(scrape|scraper|scraping|beautifulsoup|bs4)\b/.test(promptLower)) {
+      return {
+        text: `Here is a BeautifulSoup Web Scraping template:`,
+        code: `from bs4 import BeautifulSoup
+
+html_doc = """
+<html><head><title>The Python Page</title></head>
+<body>
+<p className="title"><b>Python Tutorials</b></p>
+<ul className="items">
+  <li><a href="/data" id="link1">Data Science</a></li>
+  <li><a href="/web" id="link2">Web Scraping</a></li>
+</ul>
+</body></html>
+"""
+
+soup = BeautifulSoup(html_doc, 'html.parser')
+print("Page Title:", soup.title.string)
+
+print("\nAll Links:")
+for link in soup.find_all('a'):
+    print(f"{link.text}: {link.get('href')}")`
+      };
+    }
+
+    // Fallback: Custom Query Python Generator
+    const sanitizedTitle = userPrompt.replace(/[^a-zA-Z0-9_\s]/g, '').trim().replace(/\s+/g, '_').toLowerCase();
+    const funcName = sanitizedTitle ? `build_${sanitizedTitle.slice(0, 24)}` : 'python_script';
+
     return {
-      text: `Pyxi (${model.name}) response for "${userPrompt}":`,
-      code: `# Generated by Pyxi (${model.name})\n\ndef solution():\n    # Implement logic for: ${userPrompt}\n    pass\n\nsolution()`
+      text: `Here is a structured Python script for "${userPrompt}" generated with ${model.name}:`,
+      code: `def ${funcName}():
+    """
+    Python Solution for: ${userPrompt}
+    Generated by Pyxi (${model.name})
+    """
+    print("Executing ${userPrompt}...")
+    
+    # Write your logic below
+    results = []
+    
+    return results
+
+if __name__ == '__main__':
+    ${funcName}()`
     };
   }
 }
