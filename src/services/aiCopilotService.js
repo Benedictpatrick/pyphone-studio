@@ -42,6 +42,25 @@ class AICopilotService {
       type: 'module'
     });
     this.worker.addEventListener('message', this.handleWorkerMessage.bind(this));
+    this.worker.addEventListener('error', (err) => {
+      console.error("Web Worker fatally crashed (OOM or syntax error):", err);
+      if (this.onGenerateError) {
+        this.onGenerateError("Worker crashed unexpectedly. Your device may have run out of memory.");
+        this.onGenerateError = null;
+        this.onGenerateComplete = null;
+      }
+      if (this.onDownloadComplete) {
+        this.onDownloadComplete(false);
+        this.onDownloadComplete = null;
+      }
+      this.isLoading = false;
+      this.isLoaded = false;
+      
+      // Auto-recover worker
+      this.worker.terminate();
+      this.worker = new Worker(new URL('../workers/aiWorker.js', import.meta.url), { type: 'module' });
+      this.worker.addEventListener('message', this.handleWorkerMessage.bind(this));
+    });
     
     this.onProgressCallback = null;
     this.onGenerateComplete = null;
@@ -64,13 +83,15 @@ class AICopilotService {
         this.onProgressCallback = null;
       }
       if (this.onDownloadComplete) {
-        this.onDownloadComplete();
+        this.onDownloadComplete(true);
         this.onDownloadComplete = null;
       }
-    } else if (type === 'complete' && this.onGenerateComplete) {
-      this.onGenerateComplete(payload.text);
-      this.onGenerateComplete = null;
-      this.onGenerateError = null;
+    } else if (type === 'complete') {
+      if (this.onGenerateComplete) {
+        this.onGenerateComplete(payload.text);
+        this.onGenerateComplete = null;
+        this.onGenerateError = null;
+      }
     } else if (type === 'error') {
       if (this.onGenerateError) {
         this.onGenerateError(payload);
@@ -133,8 +154,24 @@ class AICopilotService {
 
   generateWithWorker(prompt) {
     return new Promise((resolve, reject) => {
-      this.onGenerateComplete = resolve;
-      this.onGenerateError = reject;
+      // 60-second timeout to absolutely guarantee it never hangs forever
+      const timeoutId = setTimeout(() => {
+        if (this.onGenerateError) {
+          this.onGenerateError("Generation timed out. The model took too long to respond on this device.");
+          this.onGenerateError = null;
+          this.onGenerateComplete = null;
+        }
+      }, 60000);
+
+      this.onGenerateComplete = (res) => { 
+        clearTimeout(timeoutId); 
+        resolve(res); 
+      };
+      this.onGenerateError = (err) => { 
+        clearTimeout(timeoutId); 
+        reject(err); 
+      };
+
       this.worker.postMessage({
         type: 'generate',
         payload: { prompt, model: this.activeModelId }
