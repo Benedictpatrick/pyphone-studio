@@ -54,7 +54,7 @@ class AICopilotService {
     if (type === 'progress' && this.onProgressCallback) {
       this.onProgressCallback({ 
         progress: payload.progress || 0, 
-        message: `Downloading ${payload.file || 'model weights'}... ${Math.round(payload.progress || 0)}%` 
+        message: `Downloading ${payload.file || 'model weights'}...` 
       });
     } else if (type === 'ready') {
       this.isLoaded = true;
@@ -422,7 +422,7 @@ class AICopilotService {
     const isExplanationIntent = /\b(explain|how does|how do|what does|understand|walkthrough|tell me how|describe|working of)\b/.test(promptLower);
 
     // 1. Try Local Worker AI if selected
-    if (model.id === 'smollm-135m-python') {
+    if (model.id !== 'qwen25-coder-70b') {
       const isCached = await this.checkModelCached(model.id);
       if (!isCached && !this.isLoaded) {
         return {
