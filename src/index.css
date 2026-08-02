@@ -3765,16 +3765,60 @@ table.pyphone-df-table tr:nth-child(even) {
   align-items: center;
 }
 
+/* Animated Moving Gradient Glow Analyze Code Button */
 .mini-chip.highlight-chip {
-  background: rgba(14, 165, 233, 0.12);
-  border: 1px solid rgba(14, 165, 233, 0.35);
-  color: #38bdf8;
+  position: relative;
+  background: #0b0d14;
+  border-radius: 100px;
+  padding: 5px 13px;
+  color: #f0f9ff;
+  font-size: 0.74rem;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  z-index: 1;
+  border: none;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25), 0 0 20px rgba(168, 85, 247, 0.2);
+  transition: all 0.2s ease;
+}
+
+.mini-chip.highlight-chip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 100px;
+  padding: 1.5px;
+  background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc, #e879f9, #38bdf8);
+  background-size: 300% 100%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: 2;
+  animation: glowMove 3s linear infinite;
+}
+
+@keyframes glowMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .mini-chip.highlight-chip:hover {
-  background: rgba(14, 165, 233, 0.22);
-  border-color: #38bdf8;
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.45), 0 0 28px rgba(232, 121, 249, 0.35);
+  color: #ffffff;
+}
+
+.mini-chip.highlight-chip:active {
+  transform: scale(0.98);
 }
 
 .mini-chip:hover {
