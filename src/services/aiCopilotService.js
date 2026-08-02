@@ -84,52 +84,124 @@ class AICopilotService {
     localStorage.removeItem(`pyxi_model_cached_${id}`);
   }
 
+  // Helper: Smart Line-by-Line Python Code Repair Engine
+  repairCode(code = '', errorText = '') {
+    if (!code) return { fixedCode: '', fixesApplied: [] };
+
+    let lines = code.split('\n');
+    const fixesApplied = [];
+
+    // 1. Repair ZeroDivisionError (e.g. / 0 or a / b)
+    if (errorText.includes("ZeroDivisionError") || lines.some(l => /\/\s*0(?!\d)/.test(l))) {
+      lines = lines.map((line, idx) => {
+        // Direct division by literal 0
+        if (/\/\s*0(?!\d)/.test(line)) {
+          fixesApplied.push(`Line ${idx + 1}: Replaced division by literal 0 with safe division check.`);
+          return line.replace(/\/\s*0(?!\d)/g, '/ 1  # Replaced division by 0');
+        }
+        // Variable division: a / b -> (b != 0 and a / b or 0)
+        if (/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/.test(line) && !line.trim().startsWith('#')) {
+          fixesApplied.push(`Line ${idx + 1}: Wrapped division in a non-zero denominator check.`);
+          return line.replace(/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/g, '($2 != 0 and $1 / $2 or 0)');
+        }
+        return line;
+      });
+    }
+
+    // 2. Repair NameError (e.g. name 'xyz' is not defined)
+    if (errorText.includes("NameError")) {
+      const match = errorText.match(/name ['"]([^'"]+)['"] is not defined/);
+      if (match && match[1]) {
+        const varName = match[1];
+        if (!code.includes(`${varName} =`)) {
+          fixesApplied.push(`Added missing variable definition \`${varName} = 0\` at top.`);
+          lines.unshift(`${varName} = 0  # Pre-defined to fix NameError`);
+        }
+      }
+    }
+
+    // 3. Repair KeyError (e.g. dict['key'] -> dict.get('key', None))
+    if (errorText.includes("KeyError")) {
+      const match = errorText.match(/KeyError: ['"]?([^'"]+)['"]?/);
+      if (match && match[1]) {
+        const key = match[1];
+        lines = lines.map((line, idx) => {
+          if (line.includes(`['${key}']`) || line.includes(`["${key}"]`)) {
+            fixesApplied.push(`Line ${idx + 1}: Replaced \`['${key}']\` with safe \`.get('${key}', None)\`.`);
+            return line.replace(new RegExp(`\\[['"]${key}['"]\\]`, 'g'), `.get('${key}', None)`);
+          }
+          return line;
+        });
+      }
+    }
+
+    // 4. Repair Missing Colons `:` on control statements
+    lines = lines.map((line, idx) => {
+      const trimmed = line.trim();
+      if (/^(if|elif|else|for|while|def|class|try|except|finally|with)\b.*[^\s:]$/.test(trimmed) && !trimmed.startsWith('#')) {
+        fixesApplied.push(`Line ${idx + 1}: Added missing colon (\`:\`) to \`${trimmed.split(' ')[0]}\` statement.`);
+        return line + ':';
+      }
+      return line;
+    });
+
+    // 5. Repair Unclosed Parentheses / Brackets line-by-line
+    lines = lines.map((line, idx) => {
+      if (line.trim().startsWith('#')) return line;
+      const openP = (line.match(/\(/g) || []).length;
+      const closeP = (line.match(/\)/g) || []).length;
+      if (openP > closeP) {
+        fixesApplied.push(`Line ${idx + 1}: Added missing closing parenthesis \`)\`.`);
+        return line + ')'.repeat(openP - closeP);
+      }
+      const openB = (line.match(/\[/g) || []).length;
+      const closeB = (line.match(/\]/g) || []).length;
+      if (openB > closeB) {
+        fixesApplied.push(`Line ${idx + 1}: Added missing closing bracket \`]\`.`);
+        return line + ']'.repeat(openB - closeB);
+      }
+      return line;
+    });
+
+    // 6. Repair Common Missing Imports
+    let fullText = lines.join('\n');
+    if (fullText.includes('pd.') && !fullText.includes('import pandas')) {
+      fixesApplied.push("Added missing `import pandas as pd`.");
+      lines.unshift("import pandas as pd");
+    }
+    if (fullText.includes('plt.') && !fullText.includes('import matplotlib')) {
+      fixesApplied.push("Added missing `import matplotlib.pyplot as plt`.");
+      lines.unshift("import matplotlib.pyplot as plt");
+    }
+    if (fullText.includes('np.') && !fullText.includes('import numpy')) {
+      fixesApplied.push("Added missing `import numpy as np`.");
+      lines.unshift("import numpy as np");
+    }
+
+    return {
+      fixedCode: lines.join('\n'),
+      fixesApplied
+    };
+  }
+
   // 1-tap Explain Python Execution Error & Return Corrected Code
   explainError(code = '', errorText = '') {
     if (!errorText) return { explanation: "No execution error detected in your current session!", fixSnippet: code };
 
-    let explanation = "";
-    let fixSnippet = code;
+    const { fixedCode, fixesApplied } = this.repairCode(code, errorText);
+    const firstLine = errorText.split('\n')[0];
 
-    if (errorText.includes("ZeroDivisionError")) {
-      explanation = "ZeroDivisionError occurs when dividing a number by zero (`0`). Wrap your division in a non-zero check.";
-      fixSnippet = code.replace(/([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)/g, (match, num, den) => {
-        return `(${den} != 0 and (${num} / ${den}) or 0)`;
-      });
-      if (fixSnippet === code) {
-        fixSnippet = "# Fix: Added zero check before division\n" + code;
-      }
-    } else if (errorText.includes("SyntaxError: Expected ':'") || errorText.includes("SyntaxError")) {
-      explanation = "Python requires a colon (`:`) at the end of `if`, `for`, `while`, `def`, and `class` statements.";
-      fixSnippet = code.replace(/^( *)(if|elif|else|for|while|def|class)( +[^\n:]+)(\n|$)/gm, '$1$2$3:\n');
-    } else if (errorText.includes("ModuleNotFoundError") || errorText.includes("No module named")) {
-      const match = errorText.match(/No module named ['"]([^'"]+)['"]/);
-      const pkg = match ? match[1] : 'the package';
-      explanation = `The Python module \`${pkg}\` is not installed yet. Open Package Manager (📦 icon) and tap Install to add \`${pkg}\` to your Pyodide environment.`;
-      fixSnippet = `# Open Package Manager (📦 icon) to install ${pkg}\n` + code;
-    } else if (errorText.includes("NameError")) {
-      const match = errorText.match(/name ['"]([^'"]+)['"] is not defined/);
-      const varName = match ? match[1] : 'variable';
-      explanation = `The variable or function \`${varName}\` was referenced before it was defined or imported.`;
-      fixSnippet = `${varName} = None  # Defined ${varName}\n` + code;
-    } else if (errorText.includes("KeyError")) {
-      const match = errorText.match(/KeyError: ['"]?([^'"]+)['"]?/);
-      const key = match ? match[1] : 'key';
-      explanation = `KeyError: '${key}' does not exist in the dictionary. Use \`.get('${key}', default)\` for safe lookups.`;
-      fixSnippet = code.replace(new RegExp(`\\[['"]${key}['"]\\]`, 'g'), `.get('${key}', None)`);
-    } else if (errorText.includes("IndentationError")) {
-      explanation = "Python relies on consistent indentation (4 spaces). Ensure lines inside code blocks are properly indented.";
-      fixSnippet = code;
+    let explanation = `Execution Error: \`${firstLine}\`.\n`;
+    if (fixesApplied.length > 0) {
+      explanation += `\nFixes applied:\n` + fixesApplied.map(f => `• ${f}`).join('\n');
     } else {
-      const firstLine = errorText.split('\n')[0];
-      explanation = `Execution failed with \`${firstLine}\`. Check variable definitions and function arguments.`;
-      fixSnippet = code;
+      explanation += `Review line syntax and variable values. Below is your code snippet:`;
     }
 
     return {
       explanation,
-      fixSnippet,
-      summary: `AI Error Analysis: ${errorText.split('\n')[0]}`
+      fixSnippet: fixedCode,
+      summary: `AI Error Analysis: ${firstLine}`
     };
   }
 
@@ -142,90 +214,16 @@ class AICopilotService {
       };
     }
 
+    const { fixedCode, fixesApplied } = this.repairCode(code, errorText);
     const lines = code.split('\n');
-    const issues = [];
-    let fixedCode = code;
 
-    // 1. Inspect Active Terminal Execution Error if Present!
-    if (errorText && errorText.trim()) {
-      const firstErrLine = errorText.split('\n').find(l => l.includes('Error') || l.includes('Exception')) || errorText.split('\n')[0];
-
-      if (errorText.includes("ZeroDivisionError")) {
-        issues.push(`Runtime Error: \`ZeroDivisionError\` — Division by zero occurred during execution.`);
-        fixedCode = fixedCode.replace(/([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)/g, (match, num, den) => {
-          return `(${den} != 0 and (${num} / ${den}) or 0)`;
-        });
-        if (fixedCode === code) {
-          fixedCode = "# Fix: Wrapped division with zero check\n" + code;
-        }
-      } else if (errorText.includes("NameError")) {
-        const match = errorText.match(/name ['"]([^'"]+)['"] is not defined/);
-        const varName = match ? match[1] : 'variable';
-        issues.push(`Runtime Error: \`NameError\` — \`${varName}\` is referenced before definition.`);
-        if (!fixedCode.includes(`${varName} =`)) {
-          fixedCode = `${varName} = None  # Define ${varName} before using\n` + fixedCode;
-        }
-      } else if (errorText.includes("TypeError")) {
-        issues.push(`Runtime Error: \`TypeError\` — Operation performed on incompatible object types.`);
-        fixedCode = "# Fix: Verify object types and add explicit type casting\n" + fixedCode;
-      } else if (errorText.includes("KeyError")) {
-        const match = errorText.match(/KeyError: ['"]?([^'"]+)['"]?/);
-        const key = match ? match[1] : 'key';
-        issues.push(`Runtime Error: \`KeyError\` — Key \`'${key}'\` not found in dictionary.`);
-        fixedCode = fixedCode.replace(new RegExp(`\\[['"]${key}['"]\\]`, 'g'), `.get('${key}', None)`);
-      } else if (errorText.includes("IndexError")) {
-        issues.push(`Runtime Error: \`IndexError\` — Attempted to access an index out of list bounds.`);
-        fixedCode = "# Fix: Ensure index is within list range\n" + fixedCode;
-      } else if (errorText.includes("ModuleNotFoundError") || errorText.includes("No module named")) {
-        const match = errorText.match(/No module named ['"]([^'"]+)['"]/);
-        const pkg = match ? match[1] : 'package';
-        issues.push(`Runtime Error: \`ModuleNotFoundError\` — \`${pkg}\` package is not installed.`);
-        fixedCode = `# Open Package Manager (📦 icon) to install ${pkg}\n` + fixedCode;
-      } else {
-        issues.push(`Execution Error: \`${firstErrLine}\``);
-      }
-    }
-
-    // 2. Perform Static Syntax & Structure Checks
-    lines.forEach((line, idx) => {
-      const trimmed = line.trim();
-      if (/^(if|elif|else|for|while|def|class)\b.*[^\s:]$/.test(trimmed) && !trimmed.startsWith('#')) {
-        issues.push(`Line ${idx + 1}: Missing colon (\`:\`) at end of \`${trimmed.split(' ')[0]}\` statement.`);
-      }
-    });
-
-    const openParens = (code.match(/\(/g) || []).length;
-    const closeParens = (code.match(/\)/g) || []).length;
-    if (openParens !== closeParens) {
-      issues.push(`Unmatched parentheses: ${openParens} opening \`(\` vs ${closeParens} closing \`)\`.`);
-    }
-
-    const openBrackets = (code.match(/\[/g) || []).length;
-    const closeBrackets = (code.match(/\]/g) || []).length;
-    if (openBrackets !== closeBrackets) {
-      issues.push(`Unmatched square brackets: ${openBrackets} opening \`[\` vs ${closeBrackets} closing \`]\`.`);
-    }
-
-    // Common missing imports
-    if (code.includes('pd.') && !code.includes('import pandas')) {
-      issues.push("Using `pd.` but `pandas` is not imported.");
-      fixedCode = "import pandas as pd\n" + fixedCode;
-    }
-    if (code.includes('plt.') && !code.includes('import matplotlib')) {
-      issues.push("Using `plt.` but `matplotlib.pyplot` is not imported.");
-      fixedCode = "import matplotlib.pyplot as plt\n" + fixedCode;
-    }
-    if (code.includes('np.') && !code.includes('import numpy')) {
-      issues.push("Using `np.` but `numpy` is not imported.");
-      fixedCode = "import numpy as np\n" + fixedCode;
-    }
-
-    // 3. Return Results
-    if (issues.length > 0) {
-      fixedCode = fixedCode.replace(/^( *)(if|elif|else|for|while|def|class)( +[^\n:]+)(\n|$)/gm, '$1$2$3:\n');
+    if (fixesApplied.length > 0 || (errorText && errorText.trim())) {
+      const summaryText = errorText 
+        ? `Execution Error Detected: \`${errorText.split('\n')[0]}\`.\n\nPyxi repaired ${fixesApplied.length} issue(s):\n` + fixesApplied.map(f => `• ${f}`).join('\n') + `\n\nHere is the corrected code ready to insert into your editor:`
+        : `Static Analysis Complete. Found and fixed ${fixesApplied.length} issue(s):\n\n` + fixesApplied.map(f => `• ${f}`).join('\n') + `\n\nHere is the corrected code ready to insert into your editor:`;
 
       return {
-        text: `Analysis complete. Found ${issues.length} issue(s):\n\n` + issues.map(i => `• ${i}`).join('\n') + `\n\nHere is the corrected code ready to insert into your editor:`,
+        text: summaryText,
         code: fixedCode
       };
     }
