@@ -2508,6 +2508,43 @@ table.pyphone-df-table tr:nth-child(even) {
     grid-template-columns: 1fr;
   }
 
+  /* Hide redundant file-info on mobile screens to prevent header overcrowding */
+  .pycharm-toolbar .file-info {
+    display: none;
+  }
+
+  .pycharm-toolbar {
+    padding: 6px 8px;
+  }
+
+  .editor-actions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 4px;
+  }
+
+  .editor-actions .framer-btn-secondary.icon-only-btn {
+    padding: 6px 8px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .editor-actions .framer-btn-primary,
+  .editor-actions .framer-btn-danger {
+    padding: 6px 12px;
+    min-height: 36px;
+    font-size: 0.76rem;
+  }
+
+  .vscode-file-tab {
+    padding: 6px 10px;
+    font-size: 0.78rem;
+  }
+
+  .vscode-file-tabs-bar {
+    padding: 0 4px;
+  }
+
   /* Saved Projects Modal compact */
   .save-workspace-box {
     padding: 10px;
