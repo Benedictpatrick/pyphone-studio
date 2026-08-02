@@ -96,18 +96,6 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, onOp
           <span>RUN</span>
         </button>
 
-        <button
-          className="kb-ai-btn"
-          onClick={() => {
-            hapticMedium();
-            onOpenAICopilot?.();
-          }}
-          title="Open Local AI Copilot"
-        >
-          <Bot className="w-3.5 h-3.5 text-emerald-400" />
-          <span>AI</span>
-        </button>
-
         {quickSymbols.map((sym, idx) => (
           <button
             key={`sym-${idx}`}
