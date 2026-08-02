@@ -72,6 +72,7 @@ export default function AICopilotModal({
 
   const handleDownloadModel = async (modelId) => {
     hapticLight();
+    setShowModelPicker(false);
     setIsDownloading(true);
     await aiCopilotService.downloadModel(modelId, ({ progress, message }) => {
       setDownloadProgress(progress);
@@ -79,7 +80,6 @@ export default function AICopilotModal({
     });
     setIsDownloading(false);
     await refreshModelStatuses();
-    setShowModelPicker(false);
     hapticSuccess();
   };
 
@@ -209,9 +209,18 @@ export default function AICopilotModal({
       {!isCurrentModelCached && !showModelPicker && (
         <div className="pycopilot-model-bar">
           {isDownloading ? (
-            <div className="pycopilot-download-progress">
-              <Loader2 className="w-3.5 h-3.5 spin text-sky-400" />
-              <span>{downloadStatus || `Downloading ${activeModel.name} (${downloadProgress}%)`}</span>
+            <div className="pycopilot-download-progress flex flex-col w-full gap-2 p-3 bg-slate-900 rounded-lg border border-slate-700 shadow-md">
+              <div className="flex items-center gap-2 text-sky-400 text-xs font-semibold">
+                <Loader2 className="w-3.5 h-3.5 spin" />
+                <span className="truncate">{downloadStatus || `Downloading ${activeModel.name}...`}</span>
+                <span className="ml-auto flex-shrink-0">{Math.round(downloadProgress || 0)}%</span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div 
+                  className="bg-sky-400 h-1.5 transition-all duration-300 ease-out" 
+                  style={{ width: `${Math.round(downloadProgress || 0)}%` }}
+                ></div>
+              </div>
             </div>
           ) : (
             <button className="pycopilot-download-btn" onClick={() => handleDownloadModel(activeModel.id)}>
