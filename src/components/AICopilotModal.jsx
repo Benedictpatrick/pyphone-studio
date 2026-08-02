@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Bot, 
+  Terminal, 
   X, 
   Download, 
-  Sparkles, 
   Check, 
   Copy, 
   Send, 
@@ -11,7 +10,10 @@ import {
   Wrench,
   Loader2,
   Cpu,
-  Minimize2
+  BarChart2,
+  LineChart,
+  Repeat,
+  Zap
 } from 'lucide-react';
 import { hapticLight, hapticSuccess } from '../utils/haptics';
 import { aiCopilotService } from '../services/aiCopilotService';
@@ -32,8 +34,8 @@ export default function AICopilotModal({
   const [chatLogs, setChatLogs] = useState([
     {
       sender: 'ai',
-      text: 'Hello! I am your PyPhone AI Coding Assistant. Ask me to write code, create charts, or explain errors.',
-      code: `# Ask me:\n# "Write a function to calculate averages"\n# "Create a Seaborn plot"`
+      text: 'PyCopilot initialized. Ask for Python scripts, data processing functions, or error resolution.',
+      code: `# Examples:\n# "Write a function to process CSV data"\n# "Create a Seaborn plot"`
     }
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -95,7 +97,7 @@ export default function AICopilotModal({
       ...prev,
       {
         sender: 'ai',
-        text: `🛠️ ${errAnalysis.explanation}`,
+        text: `Resolution: ${errAnalysis.explanation}`,
         code: errAnalysis.fixSnippet
       }
     ]);
@@ -114,34 +116,34 @@ export default function AICopilotModal({
   };
 
   return (
-    <div className="ai-chatbot-drawer">
-      {/* Dark Chatbot Header */}
-      <div className="chatbot-header">
-        <div className="chatbot-header-title">
-          <div className="ai-status-dot-icon">
-            <Bot className="w-4 h-4 text-emerald-400" />
+    <div className="pycopilot-drawer">
+      {/* Header */}
+      <div className="pycopilot-header">
+        <div className="pycopilot-header-title">
+          <div className="pycopilot-icon-badge">
+            <Terminal className="w-4 h-4 text-emerald-400" />
           </div>
           <div>
-            <h4 className="chatbot-title">AI Coding Assistant</h4>
-            <span className="chatbot-subtitle">WebGPU Local AI · Private</span>
+            <h4 className="pycopilot-title">PyCopilot</h4>
+            <span className="pycopilot-subtitle">Local Python Engine · Offline</span>
           </div>
         </div>
 
-        <button className="chatbot-close-btn" onClick={onClose} title="Minimize Chatbot">
+        <button className="pycopilot-close-btn" onClick={onClose} title="Close PyCopilot">
           <X className="w-4 h-4 text-slate-400" />
         </button>
       </div>
 
       {/* Model Download Bar (if not downloaded) */}
       {!isCached && (
-        <div className="chatbot-model-bar">
+        <div className="pycopilot-model-bar">
           {isDownloading ? (
-            <div className="chatbot-download-progress">
-              <Loader2 className="w-3.5 h-3.5 spin text-amber-400" />
+            <div className="pycopilot-download-progress">
+              <Loader2 className="w-3.5 h-3.5 spin text-sky-400" />
               <span>{downloadStatus || `Downloading model (${downloadProgress}%)`}</span>
             </div>
           ) : (
-            <button className="chatbot-download-btn" onClick={handleDownloadModel}>
+            <button className="pycopilot-download-btn" onClick={handleDownloadModel}>
               <Download className="w-3.5 h-3.5" />
               <span>Download Local Model (90MB)</span>
             </button>
@@ -151,20 +153,20 @@ export default function AICopilotModal({
 
       {/* Error Explainer Alert (if execution error present) */}
       {lastError && (
-        <div className="chatbot-error-banner" onClick={handleExplainError}>
+        <div className="pycopilot-error-banner" onClick={handleExplainError}>
           <Wrench className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
-          <span>Error detected! Tap to analyze &amp; get 1-tap fix.</span>
+          <span>Execution error detected. Tap to generate fix.</span>
         </div>
       )}
 
       {/* Chat Messages Body */}
-      <div className="chatbot-messages-body">
+      <div className="pycopilot-messages-body">
         {chatLogs.map((msg, idx) => (
-          <div key={idx} className={`chatbot-bubble ${msg.sender}`}>
+          <div key={idx} className={`pycopilot-bubble ${msg.sender}`}>
             <p className="bubble-txt">{msg.text}</p>
 
             {msg.code && (
-              <div className="chatbot-code-box">
+              <div className="pycopilot-code-box">
                 <div className="code-box-toolbar">
                   <span className="code-lang-label">python</span>
                   <div className="code-box-actions">
@@ -173,6 +175,7 @@ export default function AICopilotModal({
                       onClick={() => handleCopySnippet(msg.code, idx)}
                     >
                       {copiedIdx === idx ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedIdx === idx ? 'Copied' : 'Copy'}</span>
                     </button>
 
                     <button 
@@ -192,10 +195,10 @@ export default function AICopilotModal({
         ))}
 
         {isGenerating && (
-          <div className="chatbot-bubble ai">
-            <div className="chatbot-typing">
+          <div className="pycopilot-bubble ai">
+            <div className="pycopilot-typing">
               <Loader2 className="w-3.5 h-3.5 spin text-emerald-400 inline mr-2" />
-              <span>Generating Python code...</span>
+              <span>Generating Python solution...</span>
             </div>
           </div>
         )}
@@ -203,28 +206,32 @@ export default function AICopilotModal({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Prompts Row */}
-      <div className="chatbot-chips-bar">
+      {/* Clean Icon Chips Row */}
+      <div className="pycopilot-chips-bar">
         <button className="mini-chip" onClick={() => handleSendPrompt("Pandas CSV Data Analysis")}>
-          📊 Pandas
+          <BarChart2 className="w-3 h-3 text-sky-400 inline mr-1" />
+          <span>Pandas</span>
         </button>
         <button className="mini-chip" onClick={() => handleSendPrompt("Seaborn Scatter Chart")}>
-          🎨 Seaborn
+          <LineChart className="w-3 h-3 text-emerald-400 inline mr-1" />
+          <span>Seaborn</span>
         </button>
         <button className="mini-chip" onClick={() => handleSendPrompt("Python Loop Examples")}>
-          🔄 Loop
+          <Repeat className="w-3 h-3 text-amber-400 inline mr-1" />
+          <span>Loop</span>
         </button>
         <button className="mini-chip" onClick={() => handleSendPrompt("Write Python Metrics Function")}>
-          ⚡ Function
+          <Zap className="w-3 h-3 text-purple-400 inline mr-1" />
+          <span>Function</span>
         </button>
       </div>
 
       {/* Input Bar */}
-      <div className="chatbot-input-bar">
+      <div className="pycopilot-input-bar">
         <input
           type="text"
-          className="chatbot-input"
-          placeholder="Ask Python AI question..."
+          className="pycopilot-input"
+          placeholder="Ask PyCopilot for code..."
           value={userPrompt}
           onChange={(e) => setUserPrompt(e.target.value)}
           onKeyDown={(e) => {
@@ -232,7 +239,7 @@ export default function AICopilotModal({
           }}
         />
         <button 
-          className="chatbot-send-btn"
+          className="pycopilot-send-btn"
           onClick={() => handleSendPrompt()}
           disabled={isGenerating || !userPrompt.trim()}
         >

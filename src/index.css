@@ -3251,29 +3251,29 @@ table.pyphone-df-table tr:nth-child(even) {
   cursor: not-allowed;
 }
 
-/* ── Sleek Floating Dark AI Chatbot Drawer ─────────────────────────── */
-.ai-chatbot-drawer {
+/* ── PyCopilot Professional Dark Floating Drawer ───────────────────── */
+.pycopilot-drawer {
   position: fixed;
   bottom: 20px;
   right: 20px;
   width: 380px;
   height: 520px;
-  max-height: 85vh;
+  max-height: calc(100vh - 40px);
   background: var(--surface-1);
   border: 1px solid var(--hairline);
   border-radius: var(--rounded-xl);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--hairline);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--hairline);
   display: flex;
   flex-direction: column;
   z-index: 999;
   overflow: hidden;
-  animation: chatbotPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: pycopilotPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes chatbotPop {
+@keyframes pycopilotPop {
   from {
     opacity: 0;
-    transform: translateY(20px) scale(0.95);
+    transform: translateY(16px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -3281,46 +3281,47 @@ table.pyphone-df-table tr:nth-child(even) {
   }
 }
 
-.chatbot-header {
+.pycopilot-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
   background: var(--surface-2);
   border-bottom: 1px solid var(--hairline);
+  flex-shrink: 0;
 }
 
-.chatbot-header-title {
+.pycopilot-header-title {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.ai-status-dot-icon {
+.pycopilot-icon-badge {
   width: 28px;
   height: 28px;
   border-radius: var(--rounded-md);
-  background: rgba(16, 185, 129, 0.15);
+  background: rgba(16, 185, 129, 0.12);
   border: 1px solid rgba(16, 185, 129, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.chatbot-title {
+.pycopilot-title {
   font-size: 0.84rem;
   font-weight: 700;
   color: var(--ink);
   margin: 0;
 }
 
-.chatbot-subtitle {
+.pycopilot-subtitle {
   font-size: 0.68rem;
   color: #10b981;
   display: block;
 }
 
-.chatbot-close-btn {
+.pycopilot-close-btn {
   background: transparent;
   border: none;
   padding: 6px;
@@ -3332,21 +3333,22 @@ table.pyphone-df-table tr:nth-child(even) {
   transition: background 0.15s ease;
 }
 
-.chatbot-close-btn:hover {
+.pycopilot-close-btn:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.chatbot-model-bar {
-  background: rgba(245, 158, 11, 0.08);
-  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+.pycopilot-model-bar {
+  background: rgba(56, 189, 248, 0.06);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
   padding: 6px 12px;
+  flex-shrink: 0;
 }
 
-.chatbot-download-btn {
+.pycopilot-download-btn {
   width: 100%;
   background: transparent;
-  border: 1px dashed rgba(245, 158, 11, 0.5);
-  color: #f59e0b;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
   font-size: 0.74rem;
   font-weight: 600;
   padding: 5px 8px;
@@ -3358,20 +3360,20 @@ table.pyphone-df-table tr:nth-child(even) {
   cursor: pointer;
 }
 
-.chatbot-download-btn:hover {
-  background: rgba(245, 158, 11, 0.15);
+.pycopilot-download-btn:hover {
+  background: rgba(56, 189, 248, 0.12);
 }
 
-.chatbot-download-progress {
+.pycopilot-download-progress {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 0.74rem;
-  color: #f59e0b;
+  color: #38bdf8;
   justify-content: center;
 }
 
-.chatbot-error-banner {
+.pycopilot-error-banner {
   background: rgba(239, 68, 68, 0.1);
   border-bottom: 1px solid rgba(239, 68, 68, 0.25);
   padding: 6px 12px;
@@ -3382,10 +3384,12 @@ table.pyphone-df-table tr:nth-child(even) {
   color: #f87171;
   cursor: pointer;
   font-weight: 500;
+  flex-shrink: 0;
 }
 
-.chatbot-messages-body {
+.pycopilot-messages-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 12px;
   display: flex;
@@ -3394,7 +3398,7 @@ table.pyphone-df-table tr:nth-child(even) {
   background: var(--canvas);
 }
 
-.chatbot-bubble {
+.pycopilot-bubble {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -3403,13 +3407,13 @@ table.pyphone-df-table tr:nth-child(even) {
   max-width: 88%;
 }
 
-.chatbot-bubble.ai {
+.pycopilot-bubble.ai {
   align-self: flex-start;
   background: var(--surface-1);
   border: 1px solid var(--hairline);
 }
 
-.chatbot-bubble.user {
+.pycopilot-bubble.user {
   align-self: flex-end;
   background: rgba(14, 165, 233, 0.15);
   border: 1px solid rgba(14, 165, 233, 0.3);
@@ -3422,7 +3426,7 @@ table.pyphone-df-table tr:nth-child(even) {
   line-height: 1.45;
 }
 
-.chatbot-code-box {
+.pycopilot-code-box {
   margin-top: 6px;
   background: #0d0f17;
   border: 1px solid var(--hairline);
@@ -3478,9 +3482,14 @@ table.pyphone-df-table tr:nth-child(even) {
   font-size: 0.76rem;
   color: #38bdf8;
   overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.chatbot-chips-bar {
+.code-snippet-pre::-webkit-scrollbar {
+  display: none;
+}
+
+.pycopilot-chips-bar {
   display: flex;
   gap: 6px;
   overflow-x: auto;
@@ -3488,9 +3497,10 @@ table.pyphone-df-table tr:nth-child(even) {
   background: var(--surface-1);
   border-top: 1px solid var(--hairline);
   scrollbar-width: none;
+  flex-shrink: 0;
 }
 
-.chatbot-chips-bar::-webkit-scrollbar {
+.pycopilot-chips-bar::-webkit-scrollbar {
   display: none;
 }
 
@@ -3505,6 +3515,8 @@ table.pyphone-df-table tr:nth-child(even) {
   white-space: nowrap;
   cursor: pointer;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
 }
 
 .mini-chip:hover {
@@ -3512,15 +3524,16 @@ table.pyphone-df-table tr:nth-child(even) {
   color: #10b981;
 }
 
-.chatbot-input-bar {
+.pycopilot-input-bar {
   display: flex;
   gap: 6px;
   padding: 8px 10px;
   background: var(--surface-1);
   border-top: 1px solid var(--hairline);
+  flex-shrink: 0;
 }
 
-.chatbot-input {
+.pycopilot-input {
   flex: 1;
   background: var(--surface-2);
   border: 1px solid var(--hairline);
@@ -3531,11 +3544,11 @@ table.pyphone-df-table tr:nth-child(even) {
   outline: none;
 }
 
-.chatbot-input:focus {
+.pycopilot-input:focus {
   border-color: #10b981;
 }
 
-.chatbot-send-btn {
+.pycopilot-send-btn {
   background: #10b981;
   border: none;
   padding: 6px 10px;
@@ -3546,19 +3559,20 @@ table.pyphone-df-table tr:nth-child(even) {
   cursor: pointer;
 }
 
-.chatbot-send-btn:disabled {
+.pycopilot-send-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
 /* Mobile full bottom drawer */
 @media (max-width: 640px) {
-  .ai-chatbot-drawer {
+  .pycopilot-drawer {
     bottom: 0;
     right: 0;
     left: 0;
     width: 100vw;
     height: 75vh;
+    max-height: 80vh;
     border-radius: 20px 20px 0 0;
   }
 }

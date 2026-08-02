@@ -14,7 +14,7 @@ import {
   Moon,
   FolderCode,
   Settings,
-  Bot
+  Terminal
 } from 'lucide-react';
 import PyPhoneStudioLogo from './PyPhoneStudioLogo';
 import { hapticLight } from '../utils/haptics';
@@ -65,9 +65,9 @@ export default function Header({
           <button 
             className="theme-toggle-btn ai-header-btn"
             onClick={() => { hapticLight(); onOpenAICopilot?.(); }}
-            title="Local AI Assistant"
+            title="PyCopilot - Local Python AI"
           >
-            <Bot className="w-3.5 h-3.5 text-emerald-400" />
+            <Terminal className="w-3.5 h-3.5 text-emerald-400" />
           </button>
           <button 
             className="theme-toggle-btn"
