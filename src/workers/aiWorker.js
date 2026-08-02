@@ -14,13 +14,15 @@ class PipelineSingleton {
       this.model = modelId;
       this.instance = pipeline(this.task, modelId, {
         progress_callback,
-        device: 'webgpu' // Prefer WebGPU, fall back to wasm/cpu handled by library
+        device: 'webgpu', // Prefer WebGPU, fall back to wasm/cpu handled by library
+        dtype: 'q4'
       }).catch(err => {
         // Fallback to WASM if WebGPU is not supported
         console.warn("WebGPU initialization failed, falling back to WASM", err);
         return pipeline(this.task, modelId, {
           progress_callback,
-          device: 'wasm'
+          device: 'wasm',
+          dtype: 'q4'
         });
       });
     }
