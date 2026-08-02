@@ -101,7 +101,7 @@ export default function AICopilotModal({
     setIsGenerating(true);
 
     setTimeout(() => {
-      const result = aiCopilotService.analyzeActiveCode(activeCode);
+      const result = aiCopilotService.analyzeActiveCode(activeCode, lastError);
       setChatLogs(prev => [
         ...prev,
         {

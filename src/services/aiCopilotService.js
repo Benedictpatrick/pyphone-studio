@@ -84,31 +84,45 @@ class AICopilotService {
     localStorage.removeItem(`pyxi_model_cached_${id}`);
   }
 
-  // 1-tap Explain Python Execution Error
-  explainError(code, errorText) {
-    if (!errorText) return { explanation: "No execution error detected in your current session!", fixSnippet: "" };
+  // 1-tap Explain Python Execution Error & Return Corrected Code
+  explainError(code = '', errorText = '') {
+    if (!errorText) return { explanation: "No execution error detected in your current session!", fixSnippet: code };
 
     let explanation = "";
-    let fixSnippet = "";
+    let fixSnippet = code;
 
-    if (errorText.includes("SyntaxError: Expected ':'")) {
+    if (errorText.includes("ZeroDivisionError")) {
+      explanation = "ZeroDivisionError occurs when dividing a number by zero (`0`). Wrap your division in a non-zero check.";
+      fixSnippet = code.replace(/([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)/g, (match, num, den) => {
+        return `(${den} != 0 and (${num} / ${den}) or 0)`;
+      });
+      if (fixSnippet === code) {
+        fixSnippet = "# Fix: Added zero check before division\n" + code;
+      }
+    } else if (errorText.includes("SyntaxError: Expected ':'") || errorText.includes("SyntaxError")) {
       explanation = "Python requires a colon (`:`) at the end of `if`, `for`, `while`, `def`, and `class` statements.";
-      fixSnippet = code.replace(/(if|for|while|def|class|else|elif)([^\n:]+)(\n|$)/g, '$1$2:\n');
+      fixSnippet = code.replace(/^( *)(if|elif|else|for|while|def|class)( +[^\n:]+)(\n|$)/gm, '$1$2$3:\n');
     } else if (errorText.includes("ModuleNotFoundError") || errorText.includes("No module named")) {
       const match = errorText.match(/No module named ['"]([^'"]+)['"]/);
       const pkg = match ? match[1] : 'the package';
       explanation = `The Python module \`${pkg}\` is not installed yet. Open Package Manager (📦 icon) and tap Install to add \`${pkg}\` to your Pyodide environment.`;
-      fixSnippet = `# Open Package Manager (📦 icon) to install ${pkg}`;
+      fixSnippet = `# Open Package Manager (📦 icon) to install ${pkg}\n` + code;
     } else if (errorText.includes("NameError")) {
       const match = errorText.match(/name ['"]([^'"]+)['"] is not defined/);
       const varName = match ? match[1] : 'variable';
       explanation = `The variable or function \`${varName}\` was referenced before it was defined or imported.`;
-      fixSnippet = `${varName} = 0  # Define ${varName} before using it\n` + code;
+      fixSnippet = `${varName} = None  # Defined ${varName}\n` + code;
+    } else if (errorText.includes("KeyError")) {
+      const match = errorText.match(/KeyError: ['"]?([^'"]+)['"]?/);
+      const key = match ? match[1] : 'key';
+      explanation = `KeyError: '${key}' does not exist in the dictionary. Use \`.get('${key}', default)\` for safe lookups.`;
+      fixSnippet = code.replace(new RegExp(`\\[['"]${key}['"]\\]`, 'g'), `.get('${key}', None)`);
     } else if (errorText.includes("IndentationError")) {
       explanation = "Python relies on consistent indentation (4 spaces). Ensure lines inside code blocks are properly indented.";
       fixSnippet = code;
     } else {
-      explanation = `Execution failed with \`${errorText.split('\n')[0]}\`. Review your line syntax and variable definitions.`;
+      const firstLine = errorText.split('\n')[0];
+      explanation = `Execution failed with \`${firstLine}\`. Check variable definitions and function arguments.`;
       fixSnippet = code;
     }
 
@@ -119,8 +133,8 @@ class AICopilotService {
     };
   }
 
-  // Deep Code Analysis Engine for Active Editor Code
-  analyzeActiveCode(code = '') {
+  // Deep Code & Runtime Error Analysis Engine for Active Editor Code
+  analyzeActiveCode(code = '', errorText = '') {
     if (!code || !code.trim()) {
       return {
         text: "Your active editor is empty. Write or paste some Python code in main.py or a notebook cell first, then tap Analyze Code!",
@@ -132,7 +146,47 @@ class AICopilotService {
     const issues = [];
     let fixedCode = code;
 
-    // Check for missing colons
+    // 1. Inspect Active Terminal Execution Error if Present!
+    if (errorText && errorText.trim()) {
+      const firstErrLine = errorText.split('\n').find(l => l.includes('Error') || l.includes('Exception')) || errorText.split('\n')[0];
+
+      if (errorText.includes("ZeroDivisionError")) {
+        issues.push(`Runtime Error: \`ZeroDivisionError\` — Division by zero occurred during execution.`);
+        fixedCode = fixedCode.replace(/([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)/g, (match, num, den) => {
+          return `(${den} != 0 and (${num} / ${den}) or 0)`;
+        });
+        if (fixedCode === code) {
+          fixedCode = "# Fix: Wrapped division with zero check\n" + code;
+        }
+      } else if (errorText.includes("NameError")) {
+        const match = errorText.match(/name ['"]([^'"]+)['"] is not defined/);
+        const varName = match ? match[1] : 'variable';
+        issues.push(`Runtime Error: \`NameError\` — \`${varName}\` is referenced before definition.`);
+        if (!fixedCode.includes(`${varName} =`)) {
+          fixedCode = `${varName} = None  # Define ${varName} before using\n` + fixedCode;
+        }
+      } else if (errorText.includes("TypeError")) {
+        issues.push(`Runtime Error: \`TypeError\` — Operation performed on incompatible object types.`);
+        fixedCode = "# Fix: Verify object types and add explicit type casting\n" + fixedCode;
+      } else if (errorText.includes("KeyError")) {
+        const match = errorText.match(/KeyError: ['"]?([^'"]+)['"]?/);
+        const key = match ? match[1] : 'key';
+        issues.push(`Runtime Error: \`KeyError\` — Key \`'${key}'\` not found in dictionary.`);
+        fixedCode = fixedCode.replace(new RegExp(`\\[['"]${key}['"]\\]`, 'g'), `.get('${key}', None)`);
+      } else if (errorText.includes("IndexError")) {
+        issues.push(`Runtime Error: \`IndexError\` — Attempted to access an index out of list bounds.`);
+        fixedCode = "# Fix: Ensure index is within list range\n" + fixedCode;
+      } else if (errorText.includes("ModuleNotFoundError") || errorText.includes("No module named")) {
+        const match = errorText.match(/No module named ['"]([^'"]+)['"]/);
+        const pkg = match ? match[1] : 'package';
+        issues.push(`Runtime Error: \`ModuleNotFoundError\` — \`${pkg}\` package is not installed.`);
+        fixedCode = `# Open Package Manager (📦 icon) to install ${pkg}\n` + fixedCode;
+      } else {
+        issues.push(`Execution Error: \`${firstErrLine}\``);
+      }
+    }
+
+    // 2. Perform Static Syntax & Structure Checks
     lines.forEach((line, idx) => {
       const trimmed = line.trim();
       if (/^(if|elif|else|for|while|def|class)\b.*[^\s:]$/.test(trimmed) && !trimmed.startsWith('#')) {
@@ -140,7 +194,6 @@ class AICopilotService {
       }
     });
 
-    // Check for unclosed brackets
     const openParens = (code.match(/\(/g) || []).length;
     const closeParens = (code.match(/\)/g) || []).length;
     if (openParens !== closeParens) {
@@ -153,7 +206,7 @@ class AICopilotService {
       issues.push(`Unmatched square brackets: ${openBrackets} opening \`[\` vs ${closeBrackets} closing \`]\`.`);
     }
 
-    // Check for common imports used without being imported
+    // Common missing imports
     if (code.includes('pd.') && !code.includes('import pandas')) {
       issues.push("Using `pd.` but `pandas` is not imported.");
       fixedCode = "import pandas as pd\n" + fixedCode;
@@ -167,17 +220,18 @@ class AICopilotService {
       fixedCode = "import numpy as np\n" + fixedCode;
     }
 
+    // 3. Return Results
     if (issues.length > 0) {
       fixedCode = fixedCode.replace(/^( *)(if|elif|else|for|while|def|class)( +[^\n:]+)(\n|$)/gm, '$1$2$3:\n');
 
       return {
-        text: `Analysis complete. Found ${issues.length} potential issue(s):\n\n` + issues.map(i => `• ${i}`).join('\n') + `\n\nHere is the suggested clean fix:`,
+        text: `Analysis complete. Found ${issues.length} issue(s):\n\n` + issues.map(i => `• ${i}`).join('\n') + `\n\nHere is the corrected code ready to insert into your editor:`,
         code: fixedCode
       };
     }
 
     return {
-      text: `Code Analysis Result: No syntax errors detected in your script (${lines.length} lines)! Your Python code structure is clean and ready to run.`,
+      text: `Code Analysis Result: No syntax errors or execution issues detected in your script (${lines.length} lines)! Your Python code structure is clean and ready to run.`,
       code: fixedCode
     };
   }
@@ -198,12 +252,12 @@ class AICopilotService {
     // 2. Identity & Capability Questions
     if (promptLower.includes('who are you') || promptLower.includes('what can you do')) {
       return {
-        text: `I am Pyxi, an offline Python assistant currently using the ${model.name} engine (${model.sizeMB}MB).\n\n• Write Chatbots, Scrapers, Pandas & Data Analysis scripts\n• Scan active editor code for syntax errors\n• Explain execution errors & offer 1-tap fixes\n• Switch between SmolLM-135M (90MB) & Qwen2.5-Coder (220MB) models!`,
+        text: `I am Pyxi, an offline Python assistant currently using the ${model.name} engine (${model.sizeMB}MB).\n\n• Write Chatbots, Scrapers, Pandas & Data Analysis scripts\n• Scan active editor code for syntax errors & runtime exceptions\n• Explain execution errors & offer 1-tap fixes\n• Switch between SmolLM-135M (90MB) & Qwen2.5-Coder (220MB) models!`,
         code: null
       };
     }
 
-    // 3. Chatbot / AI Bot Script Intent (Fixed False-Positive)
+    // 3. Chatbot / AI Bot Script Intent
     if (/\b(chatbot|chat bot|bot|conversation|conversational|ai assistant)\b/.test(promptLower)) {
       return {
         text: `Here is a complete, interactive Python CLI Chatbot script generated with ${model.name}:`,
@@ -292,7 +346,7 @@ print("Predictions for X=[6, 7]:", predictions)`
       };
     }
 
-    // 7. Loop Intent (Strict word boundaries to prevent matching "code for chatbot")
+    // 7. Loop Intent
     if (/\b(loop|loops|for loop|while loop|iteration|iterate)\b/.test(promptLower)) {
       return {
         text: `Here are examples of Python \`for\` loops over lists and dictionaries:`,
