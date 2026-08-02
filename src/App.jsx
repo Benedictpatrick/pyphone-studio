@@ -670,6 +670,7 @@ export default function App() {
         <MobileKeyboardToolbar
           onInsertText={handleInsertText}
           onRunCurrent={() => mode === 'script' ? handleRunScript() : handleRunCell(activeCellId)}
+          onOpenAICopilot={() => setIsAICopilotOpen(true)}
           isRunning={mode === 'script'
             ? isScriptRunning
             : cells.some((cell) => cell.id === activeCellId && cell.status === 'running')}

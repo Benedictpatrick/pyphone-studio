@@ -191,6 +191,17 @@ export default function Header({
           )}
         </button>
 
+        {/* AI Assistant Button */}
+        <button 
+          className="framer-btn-secondary ai-copilot-ribbon-btn" 
+          onClick={() => { hapticLight(); onOpenAICopilot?.(); }}
+          title="Local AI Coding Assistant"
+        >
+          <Bot className="w-3.5 h-3.5 text-emerald-400" />
+          <span>AI Assistant</span>
+          <span className="ribbon-ai-pill">Local</span>
+        </button>
+
         {/* Packages Button */}
         <button 
           className="framer-btn-secondary" 

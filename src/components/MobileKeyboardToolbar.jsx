@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { Play } from 'lucide-react';
+import { Play, Bot } from 'lucide-react';
 import { hapticLight, hapticMedium } from '../utils/haptics';
 
-export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRunning }) {
+export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, onOpenAICopilot, isRunning }) {
   const toolbarRef = useRef(null);
 
   useEffect(() => {
@@ -94,6 +94,18 @@ export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRu
         >
           <Play className="w-3.5 h-3.5 fill-current" />
           <span>RUN</span>
+        </button>
+
+        <button
+          className="kb-ai-btn"
+          onClick={() => {
+            hapticMedium();
+            onOpenAICopilot?.();
+          }}
+          title="Open Local AI Copilot"
+        >
+          <Bot className="w-3.5 h-3.5 text-emerald-400" />
+          <span>AI</span>
         </button>
 
         {quickSymbols.map((sym, idx) => (
