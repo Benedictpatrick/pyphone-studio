@@ -1,8 +1,11 @@
-import { linter } from '@codemirror/lint';
+import { linter, lintGutter } from '@codemirror/lint';
 
 export function checkPythonSyntax(code) {
+  if (!code || typeof code !== 'string') return [];
+
   const diagnostics = [];
   const lines = code.split('\n');
+  const docLen = code.length;
 
   let bracketStack = [];
   const bracketPairs = { '(': ')', '[': ']', '{': '}' };
@@ -12,7 +15,7 @@ export function checkPythonSyntax(code) {
   lines.forEach((lineText, lineIdx) => {
     const trimmed = lineText.trim();
     const lineStartPos = currentOffset;
-    const lineEndPos = currentOffset + lineText.length;
+    const lineEndPos = Math.min(docLen, Math.max(lineStartPos + 1, currentOffset + lineText.length));
     currentOffset += lineText.length + 1; // +1 for newline
 
     if (!trimmed || trimmed.startsWith('#')) return;
@@ -34,7 +37,7 @@ export function checkPythonSyntax(code) {
       }
     }
 
-    // 2. Unclosed string quotes on single line (non-multiline)
+    // 2. Unclosed string quotes on single line
     let inString = false;
     let stringChar = '';
     for (let i = 0; i < lineText.length; i++) {
@@ -60,7 +63,7 @@ export function checkPythonSyntax(code) {
     // 3. Trailing line continuation backslash check
     if (trimmed.endsWith('\\') && (lineIdx === lines.length - 1 || lines[lineIdx + 1].trim() === '')) {
       diagnostics.push({
-        from: lineStartPos,
+        from: Math.max(0, lineEndPos - 1),
         to: lineEndPos,
         severity: 'error',
         message: `SyntaxError: Unexpected trailing '\\' at end of line (line continuation without next line)`
@@ -75,9 +78,11 @@ export function checkPythonSyntax(code) {
       'prnt': 'print'
     };
     if (commonTypos[firstWord]) {
+      const typoFrom = lineStartPos + lineText.indexOf(firstWord);
+      const typoTo = Math.min(docLen, typoFrom + firstWord.length);
       diagnostics.push({
-        from: lineStartPos,
-        to: lineStartPos + firstWord.length,
+        from: typoFrom,
+        to: typoTo,
         severity: 'error',
         message: `SyntaxError: Invalid keyword '${firstWord}'. Did you mean '${commonTypos[firstWord]}'?`
       });
@@ -90,18 +95,20 @@ export function checkPythonSyntax(code) {
         bracketStack.push({ char, lineIdx, pos: lineStartPos + i });
       } else if ([')', ']', '}'].includes(char)) {
         if (bracketStack.length === 0) {
+          const charPos = Math.min(docLen - 1, lineStartPos + i);
           diagnostics.push({
-            from: lineStartPos + i,
-            to: lineStartPos + i + 1,
+            from: charPos,
+            to: charPos + 1,
             severity: 'error',
             message: `SyntaxError: Unmatched closing '${char}'`
           });
         } else {
           const last = bracketStack.pop();
           if (bracketPairs[last.char] !== char) {
+            const charPos = Math.min(docLen - 1, lineStartPos + i);
             diagnostics.push({
-              from: lineStartPos + i,
-              to: lineStartPos + i + 1,
+              from: charPos,
+              to: charPos + 1,
               severity: 'error',
               message: `SyntaxError: Mismatched bracket '${char}' for '${last.char}'`
             });
@@ -113,9 +120,10 @@ export function checkPythonSyntax(code) {
 
   // Unclosed brackets remaining
   bracketStack.forEach(b => {
+    const charPos = Math.min(docLen - 1, b.pos);
     diagnostics.push({
-      from: b.pos,
-      to: b.pos + 1,
+      from: charPos,
+      to: charPos + 1,
       severity: 'error',
       message: `SyntaxError: Unclosed '${b.char}'`
     });
@@ -124,6 +132,7 @@ export function checkPythonSyntax(code) {
   return diagnostics;
 }
 
-export const pythonLinterExtension = linter((view) => {
-  return checkPythonSyntax(view.state.doc.toString());
-});
+export const pythonLinterExtension = [
+  linter((view) => checkPythonSyntax(view.state.doc.toString()), { delay: 150 }),
+  lintGutter()
+];

@@ -4237,3 +4237,70 @@ kbd.inline-kbd {
     display: none;
   }
 }
+
+/* ── CodeMirror Live Linter & Squiggly Error Underlines ───────────── */
+.cm-lintRange-error {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="3"><path d="M0 3 L3 0 L6 3" stroke="%23ef4444" stroke-width="1.2" fill="none"/></svg>');
+  background-position: bottom left;
+  background-repeat: repeat-x;
+  background-size: 6px 3px;
+  padding-bottom: 2px;
+  background-color: rgba(239, 68, 68, 0.15);
+}
+
+.cm-lintRange-warning {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="3"><path d="M0 3 L3 0 L6 3" stroke="%23f59e0b" stroke-width="1.2" fill="none"/></svg>');
+  background-position: bottom left;
+  background-repeat: repeat-x;
+  background-size: 6px 3px;
+  padding-bottom: 2px;
+  background-color: rgba(245, 158, 11, 0.15);
+}
+
+/* Lint Gutter markers (red dot on line numbers) */
+.cm-gutter-lint {
+  width: 14px;
+}
+
+.cm-lint-marker-error {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  margin-left: 2px;
+}
+
+.cm-lint-marker-warning {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  margin-left: 2px;
+}
+
+/* Hover Tooltip */
+.cm-tooltip-lint {
+  background: var(--surface-1) !important;
+  border: 1px solid var(--hairline) !important;
+  border-radius: var(--rounded-md) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  padding: 6px 10px !important;
+}
+
+.cm-diagnostic-error {
+  color: #ef4444 !important;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cm-diagnostic-warning {
+  color: #f59e0b !important;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
