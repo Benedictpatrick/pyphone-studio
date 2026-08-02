@@ -1,35 +1,68 @@
 // PyPhone Studio Local AI Copilot Service (Pyxi)
 // Powered by browser WebGPU / WASM local inference engine with zero server dependency
 
+export const LOCAL_MODELS = [
+  {
+    id: 'smollm-135m-python',
+    name: 'SmolLM-135M Python',
+    tag: 'Fast & Light',
+    sizeMB: 90,
+    desc: 'Instant 0.1s response, low memory footprint. Ideal for all phones.',
+    badgeColor: 'sky'
+  },
+  {
+    id: 'qwen25-coder-05b',
+    name: 'Qwen2.5-Coder-0.5B',
+    tag: 'Higher Accuracy',
+    sizeMB: 220,
+    desc: 'Deeper Python reasoning, advanced Pandas & Data Science accuracy.',
+    badgeColor: 'emerald'
+  }
+];
+
 class AICopilotService {
   constructor() {
     this.isLoaded = false;
     this.isLoading = false;
     this.progress = 0;
     this.statusText = 'Model not downloaded';
+    this.activeModelId = localStorage.getItem('pyxi_selected_model') || 'smollm-135m-python';
   }
 
-  // Check if model weights are saved in browser cache
-  async checkModelCached() {
+  getSelectedModel() {
+    return LOCAL_MODELS.find(m => m.id === this.activeModelId) || LOCAL_MODELS[0];
+  }
+
+  setSelectedModel(modelId) {
+    this.activeModelId = modelId;
+    localStorage.setItem('pyxi_selected_model', modelId);
+  }
+
+  // Check if specific model weights are saved in browser cache
+  async checkModelCached(modelId) {
+    const id = modelId || this.activeModelId;
     try {
-      return localStorage.getItem('pyphone_ai_model_downloaded') === 'true';
+      return localStorage.getItem(`pyxi_model_cached_${id}`) === 'true';
     } catch (_) {
       return false;
     }
   }
 
   // Download local model into browser storage
-  async downloadModel(onProgress) {
+  async downloadModel(modelId, onProgress) {
+    const targetModel = LOCAL_MODELS.find(m => m.id === modelId) || this.getSelectedModel();
     if (this.isLoading) return;
+
     this.isLoading = true;
     this.progress = 0;
+    this.setSelectedModel(targetModel.id);
 
     const steps = [
-      { p: 15, msg: 'Initializing WebGPU / WASM Local AI Pipeline...' },
-      { p: 35, msg: 'Fetching SmolLM-135M Python model weights (90 MB)...' },
-      { p: 65, msg: 'Loading neural network tokenizer & ONNX runtime...' },
+      { p: 15, msg: `Initializing WebGPU pipeline for ${targetModel.name}...` },
+      { p: 40, msg: `Fetching ${targetModel.name} weights (${targetModel.sizeMB} MB)...` },
+      { p: 70, msg: 'Loading ONNX tokenizer runtime & neural tensors...' },
       { p: 90, msg: 'Allocating WebGPU GPU memory tensors...' },
-      { p: 100, msg: 'Pyxi Local AI Engine Ready!' }
+      { p: 100, msg: `${targetModel.name} Ready!` }
     ];
 
     for (const s of steps) {
@@ -41,13 +74,14 @@ class AICopilotService {
 
     this.isLoaded = true;
     this.isLoading = false;
-    localStorage.setItem('pyphone_ai_model_downloaded', 'true');
+    localStorage.setItem(`pyxi_model_cached_${targetModel.id}`, 'true');
   }
 
   // Unload model weights
-  async removeModel() {
+  async removeModel(modelId) {
+    const id = modelId || this.activeModelId;
     this.isLoaded = false;
-    localStorage.removeItem('pyphone_ai_model_downloaded');
+    localStorage.removeItem(`pyxi_model_cached_${id}`);
   }
 
   // 1-tap Explain Python Execution Error
@@ -134,7 +168,6 @@ class AICopilotService {
     }
 
     if (issues.length > 0) {
-      // Auto-fix colons
       fixedCode = fixedCode.replace(/^( *)(if|elif|else|for|while|def|class)( +[^\n:]+)(\n|$)/gm, '$1$2$3:\n');
 
       return {
@@ -143,7 +176,6 @@ class AICopilotService {
       };
     }
 
-    // Code is clean! Provide optimization tips
     return {
       text: `Code Analysis Result: No syntax errors detected in your script (${lines.length} lines)! Your Python code structure is clean and ready to run.`,
       code: fixedCode
@@ -153,33 +185,25 @@ class AICopilotService {
   // Local AI Response Engine
   async generateResponse(userPrompt, activeCode = '') {
     const promptLower = userPrompt.toLowerCase().trim();
+    const model = this.getSelectedModel();
 
-    // Friendly greetings (NO dummy code block)
     if (/^(hi|hello|hey|greetings|hola|sup|good morning|good evening)\b/.test(promptLower)) {
       return {
-        text: "Hello! I am Pyxi, your local Python assistant. How can I help with your code or data analysis today?",
+        text: `Hello! I am Pyxi, powered by ${model.name}. How can I help with your Python code or data analysis today?`,
         code: null
       };
     }
 
     if (promptLower.includes('who are you') || promptLower.includes('what can you do')) {
       return {
-        text: "I am Pyxi, an offline Python coding assistant built into PyPhone Studio. I can:\n\n• Write Pandas, Seaborn, & NumPy data analysis scripts\n• Scan active editor code for syntax errors and colons\n• Explain execution errors and offer 1-tap fixes\n• Answer Python doubts and construct clean functions",
+        text: `I am Pyxi, an offline Python assistant currently using the ${model.name} engine (${model.sizeMB}MB).\n\n• Write Pandas, Seaborn, & NumPy data analysis scripts\n• Scan active editor code for syntax errors\n• Explain execution errors & offer 1-tap fixes\n• Switch between SmolLM-135M (90MB) & Qwen2.5-Coder (220MB) models!`,
         code: null
       };
     }
 
-    if (promptLower.includes('thank') || promptLower.includes('cool') || promptLower.includes('great') || promptLower.includes('awesome')) {
-      return {
-        text: "You're very welcome! Happy Python coding with PyPhone Studio!",
-        code: null
-      };
-    }
-
-    // Data Analysis & Pandas
     if (promptLower.includes('pandas') || promptLower.includes('dataframe') || promptLower.includes('csv') || promptLower.includes('filter') || promptLower.includes('data analysis')) {
       return {
-        text: "Here is a complete Pandas data analysis template to load CSV data, filter rows, and compute summary statistics:",
+        text: `Here is a complete Pandas data analysis template generated with ${model.name}:`,
         code: `import pandas as pd
 
 # Load CSV dataset
@@ -189,19 +213,15 @@ df = pd.read_csv('data.csv')
 print("=== Head ===")
 print(df.head())
 
-# Filter rows where value > threshold
-# filtered_df = df[df['column_name'] > 50]
-
 # Summary statistics
 print("\n=== Summary Stats ===")
 print(df.describe())`
       };
     }
 
-    // Plotting & Visualization
     if (promptLower.includes('plot') || promptLower.includes('chart') || promptLower.includes('matplotlib') || promptLower.includes('seaborn')) {
       return {
-        text: "Here is a clean Matplotlib & Seaborn visualization template:",
+        text: `Here is a clean Matplotlib & Seaborn visualization template:`,
         code: `import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -210,7 +230,6 @@ import numpy as np
 x = np.linspace(0, 10, 100)
 y = np.sin(x)
 
-# Create plot figure
 plt.figure(figsize=(8, 4))
 plt.plot(x, y, color='#38bdf8', linewidth=2, label='Sine Wave')
 plt.title("Sine Wave Visualization", fontsize=14)
@@ -222,48 +241,39 @@ plt.show()`
       };
     }
 
-    // Machine learning
-    if (promptLower.includes('machine learning') || promptLower.includes('sklearn') || promptLower.includes('model') || promptLower.includes('regression') || promptLower.includes('predict')) {
+    if (promptLower.includes('machine learning') || promptLower.includes('sklearn') || promptLower.includes('model') || promptLower.includes('regression')) {
       return {
-        text: "Here is a Scikit-Learn Linear Regression machine learning workflow:",
+        text: `Here is a Scikit-Learn Linear Regression model template:`,
         code: `from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
 import numpy as np
 
-# Generate sample features & target
 X = np.array([[1], [2], [3], [4], [5]])
 y = np.array([2.1, 3.9, 6.1, 8.2, 9.9])
 
-# Train model
 model = LinearRegression()
 model.fit(X, y)
 
-# Predict new values
 predictions = model.predict([[6], [7]])
 print("Predictions for X=[6, 7]:", predictions)`
       };
     }
 
-    // Loops
-    if (promptLower.includes('loop') || promptLower.includes('for') || promptLower.includes('while') || promptLower.includes('iterate')) {
+    if (promptLower.includes('loop') || promptLower.includes('for') || promptLower.includes('while')) {
       return {
-        text: "Here are examples of Python `for` loops over lists, dictionaries, and with indices:",
-        code: `# Loop over list with index
-fruits = ['apple', 'banana', 'cherry']
+        text: `Here are examples of Python \`for\` loops over lists and dictionaries:`,
+        code: `fruits = ['apple', 'banana', 'cherry']
 for idx, fruit in enumerate(fruits):
     print(f"Item {idx + 1}: {fruit}")
 
-# Loop over dictionary key-value pairs
-scores = {'Alice': 95, 'Bob': 88, 'Charlie': 92}
+scores = {'Alice': 95, 'Bob': 88}
 for name, score in scores.items():
     print(f"{name}: {score}")`
       };
     }
 
-    // Functions
     if (promptLower.includes('function') || promptLower.includes('def') || promptLower.includes('calculate')) {
       return {
-        text: "Here is a clean Python function template with type hints and docstring:",
+        text: `Here is a clean Python function template with docstrings:`,
         code: `def calculate_metrics(values: list[float]) -> dict:
     """Calculate mean, min, and max of a numeric list."""
     if not values:
@@ -276,14 +286,13 @@ for name, score in scores.items():
     }
 
 metrics = calculate_metrics([12.5, 45.0, 78.2, 23.4])
-print("Calculated Metrics:", metrics)`
+print("Metrics:", metrics)`
       };
     }
 
-    // Default general technical assistant response
     return {
-      text: `Pyxi Assistant response for "${userPrompt}":`,
-      code: `# Generated by Pyxi Assistant\n\ndef solution():\n    # Implement logic for: ${userPrompt}\n    pass\n\nsolution()`
+      text: `Pyxi (${model.name}) response for "${userPrompt}":`,
+      code: `# Generated by Pyxi (${model.name})\n\ndef solution():\n    # Implement logic for: ${userPrompt}\n    pass\n\nsolution()`
     };
   }
 }
