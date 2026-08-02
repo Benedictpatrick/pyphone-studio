@@ -74,15 +74,33 @@ self.addEventListener('message', async (event) => {
       });
 
       // Extract only the new generated text
-      const fullText = output[0].generated_text;
-      const generated = fullText.slice(text.length);
+      let generated = "";
+      if (Array.isArray(output) && output[0]) {
+        if (typeof output[0].generated_text === 'string') {
+          const fullText = output[0].generated_text;
+          generated = fullText.startsWith(text) ? fullText.slice(text.length).trim() : fullText.trim();
+        } else if (Array.isArray(output[0].generated_text)) {
+          const lastMsg = output[0].generated_text[output[0].generated_text.length - 1];
+          if (lastMsg && lastMsg.role === 'assistant') {
+            generated = lastMsg.content;
+          }
+        } else if (typeof output[0] === 'string') {
+          generated = output[0];
+        }
+      } else if (typeof output === 'string') {
+        generated = output;
+      }
+      
+      if (!generated) {
+        generated = "Sorry, I could not generate a response. Please try a different prompt.";
+      }
 
       self.postMessage({
         type: 'complete',
         payload: { text: generated }
       });
     } catch (err) {
-      self.postMessage({ type: 'error', payload: err.message });
+      self.postMessage({ type: 'error', payload: err.message || String(err) || "Unknown error during generation" });
     }
   }
 });

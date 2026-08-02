@@ -464,8 +464,18 @@ class AICopilotService {
           };
         }
       } catch (err) {
-        console.warn("Local Web Worker AI failed, falling back", err);
+        console.warn("Local Web Worker AI failed", err);
+        return {
+          text: `❌ **Local AI Error:** I encountered an error while generating. This can happen if your device ran out of memory. Try refreshing the page. Details: ${err}`,
+          code: null
+        };
       }
+      
+      // If we got here for a local model and workerResponse was null, return error
+      return {
+        text: `❌ **Local AI Error:** Generation returned no response.`,
+        code: null
+      };
     }
 
     // 2. Try Real Neural AI Endpoint First! (Handles ANY Arbitrary Question / Explanation)
