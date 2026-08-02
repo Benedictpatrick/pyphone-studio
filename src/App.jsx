@@ -11,6 +11,7 @@ import CheatSheetModal from './components/CheatSheetModal';
 import SavedProjectsModal from './components/SavedProjectsModal';
 import SettingsModal from './components/SettingsModal';
 import PackageManagerModal from './components/PackageManagerModal';
+import AICopilotModal from './components/AICopilotModal';
 import LoadingScreen from './components/LoadingScreen';
 
 import { hapticMedium, hapticSuccess, hapticError, hapticSelection } from './utils/haptics';
@@ -86,6 +87,7 @@ export default function App() {
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPackagesOpen, setIsPackagesOpen] = useState(false);
+  const [isAICopilotOpen, setIsAICopilotOpen] = useState(false);
 
   // Editor settings (persisted to localStorage)
   const [editorSettings, setEditorSettings] = useState(() => {
@@ -535,6 +537,7 @@ export default function App() {
             onOpenCheatSheet={() => setIsCheatSheetOpen(true)}
             onOpenSettings={() => setIsSettingsOpen(true)}
             onOpenPackages={() => setIsPackagesOpen(true)}
+            onOpenAICopilot={() => setIsAICopilotOpen(true)}
             onAddCell={handleAddCell}
             onExportPy={handleExportPy}
             onExportIpynb={handleExportIpynb}
@@ -651,6 +654,14 @@ export default function App() {
       <PlotModal
         plotBase64={selectedPlotB64}
         onClose={() => setSelectedPlotB64(null)}
+      />
+
+      <AICopilotModal
+        isOpen={isAICopilotOpen}
+        onClose={() => setIsAICopilotOpen(false)}
+        activeCode={mode === 'script' ? scriptCode : (cells.find(c => c.id === activeCellId)?.code || '')}
+        lastError={scriptOutput?.error || cells.find(c => c.output?.error)?.output?.error}
+        onInsertCode={handleInsertText}
       />
 
 

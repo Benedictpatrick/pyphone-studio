@@ -13,7 +13,8 @@ import {
   Sun,
   Moon,
   FolderCode,
-  Settings
+  Settings,
+  Bot
 } from 'lucide-react';
 import PyPhoneStudioLogo from './PyPhoneStudioLogo';
 import { hapticLight } from '../utils/haptics';
@@ -35,6 +36,7 @@ export default function Header({
   onOpenCheatSheet,
   onOpenSettings,
   onOpenPackages,
+  onOpenAICopilot,
   onAddCell,
   onExportPy,
   onExportIpynb,
@@ -58,7 +60,15 @@ export default function Header({
     <header className="framer-header">
       <div className="header-top">
         <PyPhoneStudioLogo />
+
         <div className="header-top-actions">
+          <button 
+            className="theme-toggle-btn ai-header-btn"
+            onClick={() => { hapticLight(); onOpenAICopilot?.(); }}
+            title="Local AI Assistant"
+          >
+            <Bot className="w-3.5 h-3.5 text-emerald-400" />
+          </button>
           <button 
             className="theme-toggle-btn"
             onClick={() => { hapticLight(); onToggleTheme(); }}
