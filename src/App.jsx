@@ -18,12 +18,12 @@ import { hapticMedium, hapticSuccess, hapticError, hapticSelection } from './uti
 
 import { initPyodide, executePythonCode, getActiveVariables, cancelPythonExecution } from './services/pyodideService';
 import { exportToHtmlReport } from './services/htmlExportService';
-import { 
-  saveNotebookState, 
-  loadNotebookState, 
-  saveScriptState, 
-  loadScriptState, 
-  saveLastMode, 
+import {
+  saveNotebookState,
+  loadNotebookState,
+  saveScriptState,
+  loadScriptState,
+  saveLastMode,
   loadLastMode,
   getSavedProjects,
   saveProject,
@@ -198,14 +198,14 @@ export default function App() {
     try {
       const vars = await getActiveVariables();
       setActiveVariables(vars);
-    } catch {}
+    } catch { }
   };
 
   // Keyboard text insertion helper (CodeMirror API)
   const handleInsertText = (textToInsert) => {
     const targetCell = mode === 'notebook'
       ? cells.find((cell) => cell.id === activeCellId && cell.type === 'code')
-        || cells.find((cell) => cell.type === 'code')
+      || cells.find((cell) => cell.type === 'code')
       : null;
     const viewKey = targetCell ? targetCell.id : 'script';
     const view = cmViews.current[viewKey];
@@ -467,13 +467,13 @@ export default function App() {
       const projectCells = Array.isArray(project.cells) && project.cells.length > 0
         ? project.cells
         : [{
-            id: 'cell-1',
-            type: 'code',
-            code: '# Write your Python code here...\n',
-            executionCount: null,
-            status: 'idle',
-            output: null
-          }];
+          id: 'cell-1',
+          type: 'code',
+          code: '# Write your Python code here...\n',
+          executionCount: null,
+          status: 'idle',
+          output: null
+        }];
       setCells(projectCells);
       setActiveCellId(projectCells[0].id);
     }
@@ -544,43 +544,43 @@ export default function App() {
             onExportHtmlReport={handleExportHtmlReport}
           />
 
-      {/* Main Workspace: Notebook vs Script View */}
-      <main className="main-workspace">
-        {mode === 'notebook' ? (
-          <NotebookView
-            cells={cells}
-            activeCellId={activeCellId}
-            setActiveCellId={setActiveCellId}
-            onRunCell={handleRunCell}
-            onAddCell={handleAddCell}
-            onDeleteCell={handleDeleteCell}
-            onMoveCell={handleMoveCell}
-            onDuplicateCell={handleDuplicateCell}
-            onUpdateCode={(id, code) =>
-              setCells((prev) => prev.map((c) => (c.id === id ? { ...c, code } : c)))
-            }
-            onOpenPlotModal={(b64) => setSelectedPlotB64(b64)}
-            onCancelExecution={handleCancelExecution}
-            onCodeMirrorReady={handleCodeMirrorReady}
-            settings={editorSettings}
-          />
-        ) : (
-          <ScriptView
-            scriptCode={scriptCode}
-            setScriptCode={setScriptCode}
-            scriptOutput={scriptOutput}
-            isRunning={isScriptRunning}
-            onRunScript={handleRunScript}
-            onCancelExecution={handleCancelExecution}
-            onOpenPlotModal={(b64) => setSelectedPlotB64(b64)}
-            onCodeMirrorReady={handleCodeMirrorReady}
-            settings={editorSettings}
-          />
-        )}
-      </main>
-      </>
+          {/* Main Workspace: Notebook vs Script View */}
+          <main className="main-workspace">
+            {mode === 'notebook' ? (
+              <NotebookView
+                cells={cells}
+                activeCellId={activeCellId}
+                setActiveCellId={setActiveCellId}
+                onRunCell={handleRunCell}
+                onAddCell={handleAddCell}
+                onDeleteCell={handleDeleteCell}
+                onMoveCell={handleMoveCell}
+                onDuplicateCell={handleDuplicateCell}
+                onUpdateCode={(id, code) =>
+                  setCells((prev) => prev.map((c) => (c.id === id ? { ...c, code } : c)))
+                }
+                onOpenPlotModal={(b64) => setSelectedPlotB64(b64)}
+                onCancelExecution={handleCancelExecution}
+                onCodeMirrorReady={handleCodeMirrorReady}
+                settings={editorSettings}
+              />
+            ) : (
+              <ScriptView
+                scriptCode={scriptCode}
+                setScriptCode={setScriptCode}
+                scriptOutput={scriptOutput}
+                isRunning={isScriptRunning}
+                onRunScript={handleRunScript}
+                onCancelExecution={handleCancelExecution}
+                onOpenPlotModal={(b64) => setSelectedPlotB64(b64)}
+                onCodeMirrorReady={handleCodeMirrorReady}
+                settings={editorSettings}
+              />
+            )}
+          </main>
+        </>
       )}
-      
+
       <TemplatePickerModal
         isOpen={isTemplateModalOpen}
         onClose={() => setIsTemplateModalOpen(false)}
