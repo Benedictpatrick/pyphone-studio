@@ -13,7 +13,15 @@ export const LOCAL_MODELS = [
     badgeColor: 'sky'
   },
   {
-    id: 'smollm-135m-python',
+    id: 'onnx-community/Qwen2.5-Coder-0.5B-Instruct',
+    name: 'Qwen2.5-Coder 0.5B (WebGPU)',
+    tag: 'Offline Local',
+    sizeMB: 350,
+    desc: 'Extremely fast 0.5B coder model designed for phones and laptops.',
+    badgeColor: 'purple'
+  },
+  {
+    id: 'Xenova/Qwen1.5-0.5B-Chat',
     name: 'SmolLM-135M Python (WebGPU)',
     tag: 'Offline Local',
     sizeMB: 90,
@@ -87,11 +95,11 @@ class AICopilotService {
   }
 
   async checkModelCached(modelId) {
-    if (modelId !== 'smollm-135m-python') return true;
+    if (modelId === 'qwen25-coder-70b') return true;
     try {
       const cache = await caches.open('transformers-cache');
       const keys = await cache.keys();
-      return keys.some(req => req.url.includes('Xenova/Qwen1.5-0.5B-Chat'));
+      return keys.some(req => req.url.includes(modelId));
     } catch (e) {
       return false;
     }
@@ -103,14 +111,14 @@ class AICopilotService {
 
     this.setSelectedModel(targetModel.id);
     
-    if (targetModel.id === 'smollm-135m-python') {
+    if (targetModel.id !== 'qwen25-coder-70b') {
       this.isLoading = true;
       this.progress = 0;
       this.onProgressCallback = onProgress;
       
       return new Promise((resolve) => {
         this.onDownloadComplete = resolve;
-        this.worker.postMessage({ type: 'init' });
+        this.worker.postMessage({ type: 'init', payload: { model: targetModel.id } });
       });
     } else {
       onProgress?.({ progress: 100, message: `${targetModel.name} Ready!` });
@@ -125,16 +133,24 @@ class AICopilotService {
       this.onGenerateError = reject;
       this.worker.postMessage({
         type: 'generate',
-        payload: { prompt }
+        payload: { prompt, model: this.activeModelId }
       });
     });
   }
 
   async removeModel(modelId) {
-    if (modelId === 'smollm-135m-python') {
+    if (modelId !== 'qwen25-coder-70b') {
       try {
-        await caches.delete('transformers-cache');
-        this.isLoaded = false;
+        const cache = await caches.open('transformers-cache');
+        const keys = await cache.keys();
+        for (const req of keys) {
+          if (req.url.includes(modelId)) {
+            await cache.delete(req);
+          }
+        }
+        if (this.activeModelId === modelId) {
+          this.isLoaded = false;
+        }
       } catch (e) {
         console.error("Failed to delete model cache", e);
       }

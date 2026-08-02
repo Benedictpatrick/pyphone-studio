@@ -6,18 +6,19 @@ env.allowLocalModels = false;
 // We use the singleton pattern to ensure the pipeline is only loaded once.
 class PipelineSingleton {
   static task = 'text-generation';
-  static model = 'Xenova/Qwen1.5-0.5B-Chat';
+  static model = null;
   static instance = null;
 
-  static async getInstance(progress_callback = null) {
-    if (this.instance === null) {
-      this.instance = pipeline(this.task, this.model, {
+  static async getInstance(modelId, progress_callback = null) {
+    if (this.model !== modelId || this.instance === null) {
+      this.model = modelId;
+      this.instance = pipeline(this.task, modelId, {
         progress_callback,
         device: 'webgpu' // Prefer WebGPU, fall back to wasm/cpu handled by library
       }).catch(err => {
         // Fallback to WASM if WebGPU is not supported
         console.warn("WebGPU initialization failed, falling back to WASM", err);
-        return pipeline(this.task, this.model, {
+        return pipeline(this.task, modelId, {
           progress_callback,
           device: 'wasm'
         });
@@ -34,7 +35,7 @@ self.addEventListener('message', async (event) => {
   if (type === 'init') {
     // Initiate the download and loading of the model
     try {
-      const generator = await PipelineSingleton.getInstance(x => {
+      const generator = await PipelineSingleton.getInstance(payload.model, x => {
         // Send progress updates back to the UI
         self.postMessage({
           type: 'progress',
@@ -48,9 +49,9 @@ self.addEventListener('message', async (event) => {
   }
 
   if (type === 'generate') {
-    const { prompt, max_new_tokens = 256, temperature = 0.7 } = payload;
+    const { prompt, model, max_new_tokens = 256, temperature = 0.7 } = payload;
     try {
-      const generator = await PipelineSingleton.getInstance();
+      const generator = await PipelineSingleton.getInstance(model);
       
       const messages = [
         { role: 'system', content: 'You are Pyxi, an expert Python coding assistant. Write clean, complete Python code. Do not include markdown explanations unless asked, just the code block.' },
