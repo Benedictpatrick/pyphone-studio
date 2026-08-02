@@ -2,22 +2,46 @@
 // Powered by Real Neural LLM Inference Engine (WebGPU / WASM Local Engine)
 
 import { checkPythonSyntax } from '../utils/pythonLinter';
+import { CreateMLCEngine, hasModelInCache } from '@mlc-ai/web-llm';
+import { Wllama, CacheManager } from '@wllama/wllama/esm/index.js';
 
 export const LOCAL_MODELS = [
   {
-    id: 'onnx-community/Qwen2.5-Coder-0.5B-Instruct',
-    name: 'Qwen2.5-Coder 0.5B (WebGPU)',
+    id: 'llama3.2-1b',
+    name: 'Llama 3.2 1B (Tiny)',
     tag: 'Offline Local',
-    sizeMB: 350,
-    desc: 'Extremely fast 0.5B coder model designed for phones and laptops.',
-    badgeColor: 'purple'
+    sizeMB: 700,
+    desc: 'Extremely fast model with CPU fallback for older devices.',
+    badgeColor: 'purple',
+    repo: 'bartowski/Llama-3.2-1B-Instruct-GGUF',
+    file: 'Llama-3.2-1B-Instruct-Q4_K_M.gguf',
+    mlcId: 'Llama-3.2-1B-Instruct-q4f16_1-MLC'
   },
   {
-    id: 'Xenova/Qwen1.5-0.5B-Chat',
-    name: 'SmolLM-135M Python (WebGPU)',
+    id: 'gemma2-2b',
+    name: 'Gemma 2 2B (Balanced)',
     tag: 'Offline Local',
-    sizeMB: 90,
-    desc: 'Offline 0.1s response, local browser memory footprint.',
+    sizeMB: 1600,
+    desc: 'Very smart model with CPU fallback, requires more RAM.',
+    badgeColor: 'blue',
+    repo: 'bartowski/gemma-2-2b-it-GGUF',
+    file: 'gemma-2-2b-it-Q4_K_M.gguf',
+    mlcId: 'gemma-2-2b-it-q4f16_1-MLC'
+  },
+  {
+    id: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
+    name: 'Qwen2.5 0.5B (WebGPU)',
+    tag: 'Offline Local',
+    sizeMB: 900,
+    desc: 'Extremely fast 0.5B model compiled for native WebGPU on phones.',
+    badgeColor: 'emerald'
+  },
+  {
+    id: 'SmolLM2-360M-Instruct-q4f16_1-MLC',
+    name: 'SmolLM2 360M (WebGPU)',
+    tag: 'Offline Local',
+    sizeMB: 400,
+    desc: 'Offline 0.1s response, tiny browser memory footprint.',
     badgeColor: 'emerald'
   }
 ];
@@ -29,30 +53,9 @@ class AICopilotService {
     this.progress = 100;
     this.statusText = 'Pyxi Neural Engine Ready';
     this.activeModelId = localStorage.getItem('pyxi_selected_model') || LOCAL_MODELS[0].id;
-    
-    this.worker = new Worker(new URL('../workers/aiWorker.js', import.meta.url), {
-      type: 'module'
-    });
-    this.worker.addEventListener('message', this.handleWorkerMessage.bind(this));
-    this.worker.addEventListener('error', (err) => {
-      console.error("Web Worker fatally crashed (OOM or syntax error):", err);
-      if (this.onGenerateError) {
-        this.onGenerateError("Worker crashed unexpectedly. Your device may have run out of memory.");
-        this.onGenerateError = null;
-        this.onGenerateComplete = null;
-      }
-      if (this.onDownloadComplete) {
-        this.onDownloadComplete(false);
-        this.onDownloadComplete = null;
-      }
-      this.isLoading = false;
-      this.isLoaded = false;
-      
-      // Auto-recover worker
-      this.worker.terminate();
-      this.worker = new Worker(new URL('../workers/aiWorker.js', import.meta.url), { type: 'module' });
-      this.worker.addEventListener('message', this.handleWorkerMessage.bind(this));
-    });
+    this.engine = null;
+    this.wllama = null;
+    this.engineKind = null;
     
     this.onProgressCallback = null;
     this.onGenerateComplete = null;
@@ -61,49 +64,13 @@ class AICopilotService {
     this.onGenerateUpdate = null;
   }
 
-  handleWorkerMessage(event) {
-    const { type, payload } = event.data;
-    if (type === 'progress' && this.onProgressCallback) {
-      this.onProgressCallback({ 
-        progress: payload.progress || 0, 
-        message: `Downloading ${payload.file || 'model weights'}...` 
-      });
-    } else if (type === 'ready') {
-      this.isLoaded = true;
-      this.isLoading = false;
-      if (this.onProgressCallback) {
-        this.onProgressCallback({ progress: 100, message: 'Ready!' });
-        this.onProgressCallback = null;
-      }
-      if (this.onDownloadComplete) {
-        this.onDownloadComplete(true);
-        this.onDownloadComplete = null;
-      }
-    } else if (type === 'update') {
-      if (this.onGenerateUpdate) {
-        this.onGenerateUpdate();
-      }
-    } else if (type === 'complete') {
-      if (this.onGenerateComplete) {
-        this.onGenerateComplete(payload.text);
-        this.onGenerateComplete = null;
-        this.onGenerateError = null;
-      }
-    } else if (type === 'error') {
-      if (this.onGenerateError) {
-        this.onGenerateError(payload);
-        this.onGenerateComplete = null;
-        this.onGenerateError = null;
-      }
-      if (this.onDownloadComplete) {
-        this.onDownloadComplete(false); // Resolve to false on error to prevent hang
-        this.onDownloadComplete = null;
-      }
-      this.isLoading = false;
-      if (this.onProgressCallback) {
-        this.onProgressCallback({ progress: 0, message: `Error: ${payload}` });
-        this.onProgressCallback = null;
-      }
+  async hasWebGpu() {
+    if (!navigator.gpu) return false;
+    try {
+      const adapter = await navigator.gpu.requestAdapter();
+      return !!adapter;
+    } catch {
+      return false;
     }
   }
 
@@ -117,13 +84,25 @@ class AICopilotService {
   }
 
   async checkModelCached(modelId) {
-    try {
-      const cache = await caches.open('transformers-cache');
-      const keys = await cache.keys();
-      return keys.some(req => req.url.includes(modelId));
-    } catch (e) {
-      return false;
+    const model = LOCAL_MODELS.find(m => m.id === modelId) || LOCAL_MODELS[0];
+    
+    if (model.repo && model.file) {
+      try {
+        const cacheManager = new CacheManager();
+        const key = await cacheManager.getNameFromURL(`https://huggingface.co/${model.repo}/resolve/main/${model.file}`);
+        const size = await cacheManager.getSize(key);
+        if (size > 0) return true;
+      } catch (e) {
+        // Fallthrough to webgpu check
+      }
     }
+    
+    const mlcId = model.mlcId || (model.id.includes('MLC') ? model.id : null);
+    if (mlcId) {
+      try { return await hasModelInCache(mlcId); } catch(e) {}
+    }
+
+    return false;
   }
 
   async downloadModel(modelId, onProgress) {
@@ -136,63 +115,115 @@ class AICopilotService {
     this.progress = 0;
     this.onProgressCallback = onProgress;
     
-    return new Promise((resolve) => {
-      this.onDownloadComplete = resolve;
-      this.worker.postMessage({ type: 'init', payload: { model: targetModel.id } });
-    });
+    try {
+      const hasGpu = await this.hasWebGpu();
+      const mlcId = targetModel.mlcId || (targetModel.id.includes('MLC') ? targetModel.id : null);
+      
+      if (hasGpu && mlcId) {
+        this.engineKind = 'webgpu';
+        this.engine = await CreateMLCEngine(
+          mlcId,
+          {
+            initProgressCallback: (progress) => {
+              this.progress = Math.round(progress.progress * 100);
+              if (this.onProgressCallback) {
+                this.onProgressCallback({ progress: this.progress, message: progress.text });
+              }
+            }
+          }
+        );
+      } else if (targetModel.repo && targetModel.file) {
+        this.engineKind = 'wasm';
+        if (this.wllama) {
+          await this.wllama.exit().catch(() => {});
+        }
+        this.wllama = new Wllama({ default: '/wllama/wllama.wasm' }, { allowOffline: true });
+        
+        await this.wllama.loadModelFromHF(
+          { repo: targetModel.repo, file: targetModel.file },
+          {
+            n_ctx: 1024,
+            progressCallback: ({ loaded, total }) => {
+              this.progress = Math.round((loaded / total) * 100);
+              if (this.onProgressCallback) {
+                this.onProgressCallback({ progress: this.progress, message: 'Downloading CPU Fallback...' });
+              }
+            }
+          }
+        );
+      } else {
+        throw new Error('WebGPU is unsupported and no CPU fallback exists for this model.');
+      }
+
+      this.isLoaded = true;
+      this.isLoading = false;
+      if (this.onProgressCallback) {
+        this.onProgressCallback({ progress: 100, message: 'Ready!' });
+        this.onProgressCallback = null;
+      }
+      if (this.onDownloadComplete) this.onDownloadComplete(true);
+      return true;
+    } catch (e) {
+      console.error(e);
+      this.isLoading = false;
+      const errMsg = e.toString().includes('WebGPU') ? 'Error: WebGPU not supported on this browser/device.' : 'Error loading model';
+      if (this.onProgressCallback) {
+        this.onProgressCallback({ progress: 0, message: errMsg });
+      }
+      if (this.onDownloadComplete) this.onDownloadComplete(false);
+      return false;
+    }
   }
 
-  generateWithWorker(prompt) {
-    return new Promise((resolve, reject) => {
-      let timeoutId;
+  async generateWithWorker(prompt) {
+    if (!this.engine && !this.wllama) return null;
+    let workerResponse = "";
+    
+    try {
+      const fullPrompt = `<|im_start|>system\nYou are a helpful Python coding assistant. Write clean, complete, working Python code. Format your response with a brief 1-sentence introduction followed by a clean python code block. Do NOT ask follow-up questions.<|im_end|>\n<|im_start|>user\n${prompt}<|im_end|>\n<|im_start|>assistant\n`;
       
-      const resetTimeout = () => {
-        if (timeoutId) clearTimeout(timeoutId);
-        // 5-minute timeout to allow slow mobile devices to compile shaders and generate
-        timeoutId = setTimeout(() => {
-          if (this.onGenerateError) {
-            this.onGenerateError("Generation timed out. The model took too long to respond on this device.");
-            this.onGenerateError = null;
-            this.onGenerateComplete = null;
+      if (this.engineKind === 'webgpu' && this.engine) {
+        const chunks = await this.engine.chat.completions.create({
+          messages: [
+            { role: "system", content: "You are a helpful Python coding assistant. Write clean, complete, working Python code. Format your response with a brief 1-sentence introduction followed by a clean python code block. Do NOT ask follow-up questions." },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.1,
+          stream: true,
+        });
+
+        for await (const chunk of chunks) {
+          workerResponse += chunk.choices[0]?.delta?.content || "";
+          if (this.onGenerateUpdate) {
+            this.onGenerateUpdate(); 
           }
-        }, 300000); 
-      };
+        }
+      } else if (this.engineKind === 'wasm' && this.wllama) {
+        for await (const chunk of this.wllama.createCompletion(fullPrompt, {
+          nPredict: 1000,
+          sampling: { temp: 0.1 },
+        })) {
+          workerResponse += chunk;
+          if (this.onGenerateUpdate) {
+            this.onGenerateUpdate();
+          }
+        }
+      }
       
-      resetTimeout();
-
-      this.onGenerateComplete = (res) => { 
-        clearTimeout(timeoutId); 
-        resolve(res); 
-      };
-      this.onGenerateError = (err) => { 
-        clearTimeout(timeoutId); 
-        reject(err); 
-      };
-      this.onGenerateUpdate = () => {
-        resetTimeout(); // Heartbeat received from worker, reset timeout
-      };
-
-      this.worker.postMessage({
-        type: 'generate',
-        payload: { prompt, model: this.activeModelId }
-      });
-    });
+      return workerResponse;
+    } catch (e) {
+      console.error(e);
+      if (this.onGenerateError) this.onGenerateError(e);
+      return null;
+    }
   }
 
   async removeModel(modelId) {
-    try {
-      const cache = await caches.open('transformers-cache');
-      const keys = await cache.keys();
-      for (const req of keys) {
-        if (req.url.includes(modelId)) {
-          await cache.delete(req);
-        }
-      }
-      if (this.activeModelId === modelId) {
-        this.isLoaded = false;
-      }
-    } catch (e) {
-      console.error("Failed to delete model cache", e);
+    // Note: WebLLM caches in IndexedDB natively, we can leave this as a no-op 
+    // or implement deletion if required. For now, just reset state.
+    if (this.activeModelId === modelId) {
+      this.isLoaded = false;
+      this.engine = null;
     }
   }
 
@@ -357,6 +388,18 @@ class AICopilotService {
     const isExplanationIntent = /\b(explain|how does|how do|what does|understand|walkthrough|tell me how|describe|working of)\b/.test(promptLower);
 
     const isCached = await this.checkModelCached(model.id);
+    
+    // Auto-load if cached but engine isn't in memory yet
+    if (isCached && !this.engine && !this.wllama && !this.isLoading) {
+      const success = await this.downloadModel(model.id, () => {});
+      if (!success) {
+        return {
+          text: `❌ **Local AI Error:** Failed to initialize AI engine from cache.`,
+          code: null
+        };
+      }
+    }
+
     if (!isCached && !this.isLoaded) {
       return {
         text: `⚠️ **Local Model Not Downloaded**\n\nPlease click the **Download Model** button at the top of the chat to download the Neural AI engine to your device first. It's a one-time download!`,
