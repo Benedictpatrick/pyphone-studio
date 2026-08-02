@@ -24,6 +24,7 @@ import { EditorState } from '@codemirror/state';
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { search, searchKeymap } from '@codemirror/search';
 import { pythonAutocompletions } from '../utils/pythonCompletions';
+import { pythonLinterExtension } from '../utils/pythonLinter';
 import DataFrameTable from './DataFrameTable';
 import ErrorExplainerBox from './ErrorExplainerBox';
 
@@ -102,6 +103,7 @@ const baseCmExtensions = [
   syntaxHighlighting(pyHighlightStyle),
   cmTheme,
   autocompletion({ activateOnTyping: true, override: [pythonAutocompletions] }),
+  pythonLinterExtension,
   closeBrackets(),
   search({ top: false }),
 ];

@@ -14,9 +14,12 @@ import {
   Trash2,
   Plus,
   FileCode,
-  X
+  X,
+  Upload,
+  Download,
+  TerminalSquare
 } from 'lucide-react';
-import { hapticLight } from '../utils/haptics';
+import { hapticLight, hapticSuccess } from '../utils/haptics';
 import CodeMirror from '@uiw/react-codemirror';
 import { undo } from '@codemirror/commands';
 import { python } from '@codemirror/lang-python';
@@ -27,8 +30,9 @@ import { EditorState } from '@codemirror/state';
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { search, searchKeymap } from '@codemirror/search';
 import DataFrameTable from './DataFrameTable';
-import { syncWorkspaceFiles } from '../services/pyodideService';
+import { syncWorkspaceFiles, executePythonCode } from '../services/pyodideService';
 import { pythonAutocompletions } from '../utils/pythonCompletions';
+import { pythonLinterExtension } from '../utils/pythonLinter';
 
 const pyHighlightStyle = HighlightStyle.define([
   { tag: tags.keyword, color: 'var(--py-keyword)', fontWeight: '600' },
@@ -105,6 +109,7 @@ const baseCmExtensions = [
   syntaxHighlighting(pyHighlightStyle),
   cmTheme,
   autocompletion({ activateOnTyping: true, override: [pythonAutocompletions] }),
+  pythonLinterExtension,
   closeBrackets(),
   search({ top: false }),
 ];
@@ -136,6 +141,14 @@ export default function ScriptView({
   const [isAddingFile, setIsAddingFile] = useState(false);
   const [newFileNameInput, setNewFileNameInput] = useState('');
   const newFileInputRef = useRef(null);
+
+  // File Upload Ref
+  const fileInputRef = useRef(null);
+
+  // REPL State
+  const [replInput, setReplInput] = useState('');
+  const [replLogs, setReplLogs] = useState([]);
+  const [isEvaluatingRepl, setIsEvaluatingRepl] = useState(false);
 
   // Focus input when inline file input appears
   useEffect(() => {
@@ -215,6 +228,67 @@ export default function ScriptView({
     onRunScript();
   }, [files, onRunScript]);
 
+  // File Upload Handler
+  const handleUploadFileClick = () => {
+    hapticLight();
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    const uploaded = e.target.files?.[0];
+    if (!uploaded) return;
+    const name = uploaded.name;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result || '';
+      setFiles(prev => ({ ...prev, [name]: text }));
+      setActiveFileName(name);
+      syncWorkspaceFiles({ [name]: text });
+      hapticSuccess();
+    };
+    reader.readAsText(uploaded);
+    e.target.value = '';
+  };
+
+  // File Download Handler
+  const handleDownloadActiveFile = () => {
+    hapticLight();
+    const blob = new Blob([currentFileContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = activeFileName;
+    link.click();
+    URL.revokeObjectURL(url);
+    hapticSuccess();
+  };
+
+  // Interactive REPL Line Evaluator
+  const handleRunReplCommand = async () => {
+    const cmd = replInput.trim();
+    if (!cmd || isEvaluatingRepl) return;
+
+    hapticLight();
+    setIsEvaluatingRepl(true);
+    setReplInput('');
+
+    try {
+      await syncWorkspaceFiles(files);
+      const res = await executePythonCode(cmd, files);
+      setReplLogs(prev => [
+        ...prev,
+        { cmd, stdout: res.stdout, result: res.result, error: res.error }
+      ]);
+    } catch (err) {
+      setReplLogs(prev => [
+        ...prev,
+        { cmd, error: err.message }
+      ]);
+    } finally {
+      setIsEvaluatingRepl(false);
+    }
+  };
+
   // Build dynamic extensions — including Shift+Enter to run script
   const cmExtensions = useMemo(() => {
     const dynamicTheme = EditorView.theme({
@@ -272,6 +346,15 @@ export default function ScriptView({
 
   return (
     <div className="script-view-container">
+      {/* Hidden File Input for Uploading .py scripts */}
+      <input 
+        ref={fileInputRef}
+        type="file"
+        accept=".py,.txt,.ipynb"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
+
       {/* VS Code Multi-File Tab Bar */}
       <div className="vscode-file-tabs-bar">
         <div className="file-tabs-scroll-area">
@@ -351,6 +434,12 @@ export default function ScriptView({
         </div>
 
         <div className="editor-actions">
+          <button className="framer-btn-secondary icon-only-btn" onClick={handleUploadFileClick} title="Import .py File">
+            <Upload className="w-4 h-4 text-emerald-400" />
+          </button>
+          <button className="framer-btn-secondary icon-only-btn" onClick={handleDownloadActiveFile} title={`Download ${activeFileName}`}>
+            <Download className="w-4 h-4 text-sky-400" />
+          </button>
           <button className="framer-btn-secondary icon-only-btn" onClick={() => { hapticLight(); handleUndo(); }} title="Undo">
             <Undo2 className="w-4 h-4 text-slate-400" />
           </button>
@@ -416,6 +505,14 @@ export default function ScriptView({
             <Terminal className="w-4 h-4 mr-1.5" />
             <span>Terminal / Logs</span>
             {scriptOutput?.error && <span className="tab-badge error">!</span>}
+          </button>
+
+          <button 
+            className={`panel-tab ${activeTab === 'repl' ? 'active' : ''}`}
+            onClick={() => setActiveTab('repl')}
+          >
+            <TerminalSquare className="w-4 h-4 mr-1.5 text-emerald-400" />
+            <span>REPL (&gt;&gt;&gt;)</span>
           </button>
 
           <button 
@@ -492,6 +589,54 @@ export default function ScriptView({
                   )}
                 </>
               )}
+            </div>
+          )}
+
+          {/* Interactive Python REPL Tab */}
+          {activeTab === 'repl' && (
+            <div className="repl-panel-container">
+              <div className="repl-history-scroll">
+                {replLogs.length === 0 && (
+                  <p className="console-placeholder">
+                    Interactive Python REPL session ready. Type any line below (e.g. <code className="inline-code">2 + 2</code> or <code className="inline-code">import math; math.sqrt(64)</code>) to evaluate in real-time.
+                  </p>
+                )}
+
+                {replLogs.map((log, lIdx) => (
+                  <div key={lIdx} className="repl-log-item">
+                    <div className="repl-log-cmd">
+                      <span className="repl-prompt-symbol">&gt;&gt;&gt;</span>
+                      <code>{log.cmd}</code>
+                    </div>
+                    {log.stdout && <pre className="repl-log-stdout">{log.stdout}</pre>}
+                    {log.result && <pre className="repl-log-result">{log.result}</pre>}
+                    {log.error && <pre className="repl-log-error">{log.error}</pre>}
+                  </div>
+                ))}
+              </div>
+
+              {/* REPL Input Line */}
+              <div className="repl-input-bar">
+                <span className="repl-prompt-symbol">&gt;&gt;&gt;</span>
+                <input
+                  type="text"
+                  className="repl-input-field"
+                  placeholder="Type Python command..."
+                  value={replInput}
+                  onChange={(e) => setReplInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRunReplCommand();
+                  }}
+                />
+                <button 
+                  className="repl-send-btn" 
+                  onClick={handleRunReplCommand}
+                  disabled={isEvaluatingRepl}
+                  title="Execute line"
+                >
+                  {isEvaluatingRepl ? <Loader2 className="w-3.5 h-3.5 spin text-emerald-400" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                </button>
+              </div>
             </div>
           )}
 
