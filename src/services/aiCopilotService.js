@@ -29,6 +29,47 @@ class AICopilotService {
     this.progress = 100;
     this.statusText = 'Pyxi Neural Engine Ready';
     this.activeModelId = localStorage.getItem('pyxi_selected_model') || 'qwen25-coder-70b';
+    
+    this.worker = new Worker(new URL('../workers/aiWorker.js', import.meta.url), {
+      type: 'module'
+    });
+    this.worker.addEventListener('message', this.handleWorkerMessage.bind(this));
+    
+    this.onProgressCallback = null;
+    this.onGenerateComplete = null;
+    this.onGenerateError = null;
+  }
+
+  handleWorkerMessage(event) {
+    const { type, payload } = event.data;
+    if (type === 'progress' && this.onProgressCallback) {
+      this.onProgressCallback({ 
+        progress: payload.progress || 0, 
+        message: `Downloading ${payload.file || 'model weights'}... ${Math.round(payload.progress || 0)}%` 
+      });
+    } else if (type === 'ready') {
+      this.isLoaded = true;
+      this.isLoading = false;
+      if (this.onProgressCallback) {
+        this.onProgressCallback({ progress: 100, message: 'Model Ready!' });
+        this.onProgressCallback = null;
+      }
+    } else if (type === 'complete' && this.onGenerateComplete) {
+      this.onGenerateComplete(payload.text);
+      this.onGenerateComplete = null;
+      this.onGenerateError = null;
+    } else if (type === 'error') {
+      if (this.onGenerateError) {
+        this.onGenerateError(payload);
+        this.onGenerateComplete = null;
+        this.onGenerateError = null;
+      }
+      this.isLoading = false;
+      if (this.onProgressCallback) {
+        this.onProgressCallback({ progress: 0, message: `Error: ${payload}` });
+        this.onProgressCallback = null;
+      }
+    }
   }
 
   getSelectedModel() {
@@ -48,23 +89,29 @@ class AICopilotService {
     const targetModel = LOCAL_MODELS.find(m => m.id === modelId) || this.getSelectedModel();
     if (this.isLoading) return;
 
-    this.isLoading = true;
-    this.progress = 0;
     this.setSelectedModel(targetModel.id);
-
-    const steps = [
-      { p: 35, msg: `Connecting to ${targetModel.name} Neural Pipeline...` },
-      { p: 75, msg: `Allocating GPU Tensor Buffers...` },
-      { p: 100, msg: `${targetModel.name} Ready!` }
-    ];
-
-    for (const s of steps) {
-      await new Promise(res => setTimeout(res, 200));
-      onProgress?.({ progress: s.p, message: s.msg });
+    
+    if (targetModel.id === 'smollm-135m-python') {
+      this.isLoading = true;
+      this.progress = 0;
+      this.onProgressCallback = onProgress;
+      this.worker.postMessage({ type: 'init' });
+    } else {
+      onProgress?.({ progress: 100, message: `${targetModel.name} Ready!` });
+      this.isLoaded = true;
+      this.isLoading = false;
     }
+  }
 
-    this.isLoaded = true;
-    this.isLoading = false;
+  generateWithWorker(prompt) {
+    return new Promise((resolve, reject) => {
+      this.onGenerateComplete = resolve;
+      this.onGenerateError = reject;
+      this.worker.postMessage({
+        type: 'generate',
+        payload: { prompt }
+      });
+    });
   }
 
   async removeModel(modelId) {
@@ -335,7 +382,42 @@ class AICopilotService {
     // Check if the user is asking to explain / understand code
     const isExplanationIntent = /\b(explain|how does|how do|what does|understand|walkthrough|tell me how|describe|working of)\b/.test(promptLower);
 
-    // 1. Try Real Neural AI Endpoint First! (Handles ANY Arbitrary Question / Explanation)
+    // 1. Try Local Worker AI if selected
+    if (model.id === 'smollm-135m-python') {
+      try {
+        let fullPromptText = userPrompt;
+        if (isExplanationIntent) {
+          fullPromptText = `Explain how this Python code works:\n${activeCode || userPrompt}`;
+        } else {
+          fullPromptText = `Write clean, complete, working Python code for: "${userPrompt}". Include a 1-sentence intro followed by a clean python code block.`;
+        }
+        const workerResponse = await this.generateWithWorker(fullPromptText);
+        
+        if (workerResponse) {
+          let explanation = workerResponse.trim();
+          let codeSnippet = null;
+
+          if (workerResponse.includes('```')) {
+            const parts = workerResponse.split('```');
+            explanation = parts[0].trim();
+            const codeBlock = parts[1] || '';
+            codeSnippet = codeBlock.replace(/^python\n?/, '').trim();
+          } else if (workerResponse.includes('def ') || workerResponse.includes('import ') || workerResponse.includes('print(')) {
+            codeSnippet = workerResponse.trim();
+            explanation = `Here is the Python solution generated for "${userPrompt}":`;
+          }
+
+          return {
+            text: explanation || `Here is the Python solution generated for "${userPrompt}":`,
+            code: codeSnippet
+          };
+        }
+      } catch (err) {
+        console.warn("Local Web Worker AI failed, falling back", err);
+      }
+    }
+
+    // 2. Try Real Neural AI Endpoint First! (Handles ANY Arbitrary Question / Explanation)
     const realAIResult = await this.fetchRealAIResponse(userPrompt, activeCode, isExplanationIntent);
     if (realAIResult && (realAIResult.text || realAIResult.code)) {
       return realAIResult;
@@ -404,13 +486,8 @@ print(f"Sum of {num1} + {num2} = {result}")`
     }
 
     return {
-      text: `Here is a Python program for "${userPrompt}":`,
-      code: `def python_program():
-    """Python Solution for: ${userPrompt}"""
-    print("=== ${userPrompt} ===")
-
-if __name__ == '__main__':
-    python_program()`
+      text: `I'm sorry, my Neural AI engine is currently unreachable, but here is a starter template for your program.`,
+      code: `def python_program():\n    """Python Solution for: ${userPrompt}"""\n    print("Program execution started...")\n\nif __name__ == '__main__':\n    python_program()`
     };
   }
 }
