@@ -229,6 +229,42 @@ export default function App() {
     });
   };
 
+  // Replace editor code with Pyxi fixed code
+  const handleReplaceCode = (newCode) => {
+    const targetCell = mode === 'notebook'
+      ? cells.find((cell) => cell.id === activeCellId && cell.type === 'code')
+        || cells.find((cell) => cell.type === 'code')
+      : null;
+    const viewKey = targetCell ? targetCell.id : 'script';
+    const view = cmViews.current[viewKey];
+
+    if (view) {
+      view.focus();
+      const { from, to } = view.state.selection.main;
+      const isSelectionActive = from !== to;
+      if (isSelectionActive) {
+        view.dispatch({
+          changes: { from, to, insert: newCode },
+          selection: { anchor: from + newCode.length }
+        });
+      } else {
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: newCode },
+          selection: { anchor: newCode.length }
+        });
+      }
+    }
+
+    if (mode === 'script') {
+      setScriptCode(newCode);
+    } else if (targetCell) {
+      setCells((previousCells) => previousCells.map((cell) =>
+        cell.id === targetCell.id ? { ...cell, code: newCode } : cell
+      ));
+      setActiveCellId(targetCell.id);
+    }
+  };
+
 
   // Run Notebook Cell
   const handleRunCell = async (cellId) => {
@@ -661,7 +697,7 @@ export default function App() {
         onClose={() => setIsAICopilotOpen(false)}
         activeCode={mode === 'script' ? scriptCode : (cells.find(c => c.id === activeCellId)?.code || '')}
         lastError={scriptOutput?.error || cells.find(c => c.output?.error)?.output?.error}
-        onInsertCode={handleInsertText}
+        onInsertCode={handleReplaceCode}
       />
 
 
