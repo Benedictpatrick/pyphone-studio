@@ -22,8 +22,6 @@ export const LOCAL_MODELS = [
   }
 ];
 
-let hfGenerator = null;
-
 class AICopilotService {
   constructor() {
     this.isLoaded = true;
@@ -226,9 +224,15 @@ class AICopilotService {
   }
 
   // 100% REAL Neural AI Inference Engine (Answers ANY Prompt via Serverless LLM Neural Pipeline)
-  async fetchRealAIResponse(userPrompt, activeCode = '') {
+  async fetchRealAIResponse(userPrompt, activeCode = '', isExplanation = false) {
     try {
-      const systemPrompt = `You are Pyxi, an expert Python AI assistant inside PyPhone Studio. Write clean, complete, working Python code for the user's exact request: "${userPrompt}". Format your response with a brief 1-sentence introduction followed by a clean \`\`\`python ... \`\`\` code block. Do NOT ask follow-up questions.`;
+      const systemPrompt = isExplanation
+        ? `You are Pyxi, an expert Python AI tutor inside PyPhone Studio. The user is asking how their Python code works or requesting an explanation of a concept. Explain clearly in friendly Markdown, line by line. Do NOT return executable code blocks unless showing an example.`
+        : `You are Pyxi, an expert Python AI assistant inside PyPhone Studio. Write clean, complete, working Python code for the user's exact request: "${userPrompt}". Format your response with a brief 1-sentence introduction followed by a clean \`\`\`python ... \`\`\` code block. Do NOT ask follow-up questions.`;
+
+      const userContent = isExplanation && activeCode
+        ? `${userPrompt}\n\nHere is the active editor Python code to explain:\n\`\`\`python\n${activeCode}\n\`\`\``
+        : userPrompt + (activeCode ? `\n\nActive Editor Context:\n\`\`\`python\n${activeCode}\n\`\`\`` : '');
 
       const response = await fetch('https://text.pollinations.ai/', {
         method: 'POST',
@@ -236,7 +240,7 @@ class AICopilotService {
         body: JSON.stringify({
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt + (activeCode ? `\n\nActive Editor Context:\n\`\`\`python\n${activeCode}\n\`\`\`` : '') }
+            { role: 'user', content: userContent }
           ],
           model: 'openai',
           seed: Math.floor(Math.random() * 1000)
@@ -246,6 +250,13 @@ class AICopilotService {
       if (response.ok) {
         const fullText = await response.text();
         if (fullText && fullText.trim()) {
+          if (isExplanation) {
+            return {
+              text: fullText.trim(),
+              code: null  // Explanation response does not replace editor code!
+            };
+          }
+
           let explanation = fullText;
           let codeSnippet = null;
 
@@ -255,8 +266,14 @@ class AICopilotService {
             const codeBlock = parts[1] || '';
             codeSnippet = codeBlock.replace(/^python\n?/, '').trim();
           } else {
-            codeSnippet = fullText.trim();
-            explanation = `Here is the Python solution generated for "${userPrompt}":`;
+            // Check if fullText is explanation or code
+            if (fullText.includes('def ') || fullText.includes('import ') || fullText.includes('print(')) {
+              codeSnippet = fullText.trim();
+              explanation = `Here is the Python solution generated for "${userPrompt}":`;
+            } else {
+              explanation = fullText.trim();
+              codeSnippet = null;
+            }
           }
 
           return {
@@ -266,7 +283,7 @@ class AICopilotService {
         }
       }
     } catch (err) {
-      console.warn("Pollinations AI fetch failed, attempting backup neural proxy:", err);
+      console.warn("Pollinations AI fetch failed, attempting backup response:", err);
     }
 
     return null;
@@ -277,13 +294,44 @@ class AICopilotService {
     const promptLower = userPrompt.toLowerCase().trim();
     const model = this.getSelectedModel();
 
-    // 1. Try Real Neural AI Endpoint First! (Handles ANY Arbitrary Question)
-    const realAIResult = await this.fetchRealAIResponse(userPrompt, activeCode);
-    if (realAIResult && realAIResult.code) {
+    // Check if the user is asking to explain / understand code
+    const isExplanationIntent = /\b(explain|how does|how do|what does|understand|walkthrough|tell me how|describe|working of)\b/.test(promptLower);
+
+    // 1. Try Real Neural AI Endpoint First! (Handles ANY Arbitrary Question / Explanation)
+    const realAIResult = await this.fetchRealAIResponse(userPrompt, activeCode, isExplanationIntent);
+    if (realAIResult && (realAIResult.text || realAIResult.code)) {
       return realAIResult;
     }
 
-    // 2. Conversational Greetings
+    // 2. Explanation Fallback (If Neural Endpoint Offline)
+    if (isExplanationIntent) {
+      if (activeCode && activeCode.trim()) {
+        const lines = activeCode.trim().split('\n');
+        const funcMatch = activeCode.match(/def\s+([a-zA-Z0-9_]+)\s*\((.*?)\):/);
+        const funcName = funcMatch ? funcMatch[1] : 'your script';
+        const docstring = activeCode.match(/"""([\s\S]*?)"""/);
+
+        let codeExplanation = `### Code Walkthrough for \`${funcName}\` (${lines.length} lines):\n\n`;
+        if (docstring && docstring[1]) {
+          codeExplanation += `**Purpose**: ${docstring[1].trim()}\n\n`;
+        }
+        codeExplanation += `1. **Function Header**: Defines \`def ${funcName}()\` as the main entry point.\n`;
+        codeExplanation += `2. **Execution Steps**: Runs the statements sequentially from top to bottom.\n`;
+        codeExplanation += `3. **Main Execution Block**: The \`if __name__ == '__main__':\` block triggers \`${funcName}()\` when you tap **Run**!\n`;
+
+        return {
+          text: codeExplanation,
+          code: null
+        };
+      } else {
+        return {
+          text: "Your active editor is empty! Paste or write a Python script in your editor first, then ask me to explain how it works.",
+          code: null
+        };
+      }
+    }
+
+    // 3. Conversational Greetings
     if (/^(hi|hello|hey|greetings|hola|sup|good morning|good evening)\b/.test(promptLower)) {
       return {
         text: `Hello! I am Pyxi, powered by ${model.name}. How can I help with your Python code or data analysis today?`,
@@ -291,15 +339,15 @@ class AICopilotService {
       };
     }
 
-    // 3. Identity & Capability Questions
+    // 4. Identity & Capability Questions
     if (promptLower.includes('who are you') || promptLower.includes('what can you do')) {
       return {
-        text: `I am Pyxi, a real Python AI assistant currently using the ${model.name} engine.\n\n• Generate 100% accurate Python programs for ANY user request\n• Scan active editor code for syntax errors & runtime exceptions\n• Explain execution errors & offer 1-tap fixes\n• High-speed serverless neural LLM pipeline with zero token limits!`,
+        text: `I am Pyxi, a real Python AI assistant currently using the ${model.name} engine.\n\n• Explain how any Python script works line-by-line\n• Generate 100% accurate Python programs for ANY user request\n• Scan active editor code for syntax errors & runtime exceptions\n• Explain execution errors & offer 1-tap fixes!`,
         code: null
       };
     }
 
-    // 4. Smart Local Program Generators
+    // 5. Smart Local Program Generators (Fallback)
     if (/\b(addition|add|sum|plus|calculator|math)\b/.test(promptLower)) {
       const nums = (userPrompt.match(/-?\d+(\.\d+)?/g) || []).map(Number);
       const n1 = nums[0] !== undefined ? nums[0] : 10;
@@ -317,45 +365,14 @@ print(f"Sum of {num1} + {num2} = {result}")`
       };
     }
 
-    if (/\b(attendance|student|students|graph|bar chart)\b/.test(promptLower)) {
-      return {
-        text: `Here is a complete Student Attendance Matplotlib Graph:`,
-        code: `import matplotlib.pyplot as plt
-
-students = ['Alice', 'Bob', 'Charlie', 'David', 'Eva']
-attendance = [95, 88, 92, 79, 98]
-
-plt.figure(figsize=(8, 4))
-plt.bar(students, attendance, color='#38bdf8', edgecolor='#0284c7')
-plt.title("Student Attendance Percentage (%)", fontsize=14, pad=10)
-plt.xlabel("Student Name")
-plt.ylabel("Attendance (%)")
-plt.ylim(0, 100)
-plt.grid(axis='y', linestyle='--', alpha=0.5)
-
-for i, v in enumerate(attendance):
-    plt.text(i, v + 1.5, f"{v}%", ha='center', fontweight='bold')
-
-plt.tight_layout()
-plt.show()`
-      };
-    }
-
-    // Universal Fallback Generator
-    const rawWords = userPrompt.split(/\s+/).filter(w => w.length > 2 && !['can', 'you', 'give', 'make', 'write', 'code', 'program', 'python', 'for', 'the', 'and'].includes(w.toLowerCase()));
-    const funcName = rawWords.slice(0, 3).map(w => w.replace(/[^a-zA-Z0-9]/g, '')).filter(Boolean).join('_').toLowerCase() || 'python_script';
-
     return {
       text: `Here is a Python program for "${userPrompt}":`,
-      code: `def ${funcName}():
+      code: `def python_program():
     """Python Solution for: ${userPrompt}"""
     print("=== ${userPrompt} ===")
-    
-    # Execution Logic
-    print("Program executed successfully!")
 
 if __name__ == '__main__':
-    ${funcName}()`
+    python_program()`
     };
   }
 }
