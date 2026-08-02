@@ -666,7 +666,7 @@ export default function App() {
 
 
 
-      {engineStatus.status === 'ready' && !(isTemplateModalOpen || isSettingsOpen || isProjectsModalOpen || isDatasetModalOpen || isVarExplorerOpen || isCheatSheetOpen || isPackagesOpen || selectedPlotB64) && (
+      {engineStatus.status === 'ready' && !(isTemplateModalOpen || isSettingsOpen || isProjectsModalOpen || isDatasetModalOpen || isVarExplorerOpen || isCheatSheetOpen || isPackagesOpen || isAICopilotOpen || selectedPlotB64) && (
         <MobileKeyboardToolbar
           onInsertText={handleInsertText}
           onRunCurrent={() => mode === 'script' ? handleRunScript() : handleRunCell(activeCellId)}

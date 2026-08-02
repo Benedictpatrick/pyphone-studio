@@ -3262,10 +3262,10 @@ table.pyphone-df-table tr:nth-child(even) {
   background: var(--surface-1);
   border: 1px solid var(--hairline);
   border-radius: var(--rounded-xl);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--hairline);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 0 1px var(--hairline);
   display: flex;
   flex-direction: column;
-  z-index: 999;
+  z-index: 99999;
   overflow: hidden;
   animation: pycopilotPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -3526,11 +3526,15 @@ table.pyphone-df-table tr:nth-child(even) {
 
 .pycopilot-input-bar {
   display: flex;
-  gap: 6px;
-  padding: 8px 10px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
   background: var(--surface-1);
   border-top: 1px solid var(--hairline);
   flex-shrink: 0;
+  position: relative;
+  z-index: 20;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
 }
 
 .pycopilot-input {
@@ -3539,9 +3543,11 @@ table.pyphone-df-table tr:nth-child(even) {
   border: 1px solid var(--hairline);
   border-radius: var(--rounded-md);
   color: var(--ink);
-  font-size: 0.8rem;
-  padding: 6px 10px;
+  font-size: 0.85rem;
+  padding: 8px 12px;
   outline: none;
+  min-height: 38px;
+  box-sizing: border-box;
 }
 
 .pycopilot-input:focus {
@@ -3551,12 +3557,15 @@ table.pyphone-df-table tr:nth-child(even) {
 .pycopilot-send-btn {
   background: #10b981;
   border: none;
-  padding: 6px 10px;
+  padding: 8px 12px;
+  min-height: 38px;
+  min-width: 38px;
   border-radius: var(--rounded-md);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .pycopilot-send-btn:disabled {
