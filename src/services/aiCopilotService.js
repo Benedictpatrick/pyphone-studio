@@ -131,7 +131,14 @@ class AICopilotService {
   }
 
   async removeModel(modelId) {
-    this.isLoaded = true;
+    if (modelId === 'smollm-135m-python') {
+      try {
+        await caches.delete('transformers-cache');
+        this.isLoaded = false;
+      } catch (e) {
+        console.error("Failed to delete model cache", e);
+      }
+    }
   }
 
   // Deep Line-by-Line Python Error Repair Engine (With Syntax AST + Stack Trace Fixes)
