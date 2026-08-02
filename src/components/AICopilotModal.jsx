@@ -34,7 +34,7 @@ export default function AICopilotModal({
   const [chatLogs, setChatLogs] = useState([
     {
       sender: 'ai',
-      text: 'PyCopilot initialized. Ask for Python scripts, data processing functions, or error resolution.',
+      text: 'Hello! I am Pyxi, your Python coding assistant. Ask me for Python scripts, data analysis functions, or error fixes.',
       code: `# Examples:\n# "Write a function to process CSV data"\n# "Create a Seaborn plot"`
     }
   ]);
@@ -134,16 +134,16 @@ export default function AICopilotModal({
       {/* Header */}
       <div className="pycopilot-header">
         <div className="pycopilot-header-title">
-          <div className="pycopilot-icon-badge">
-            <Terminal className="w-4 h-4 text-emerald-400" />
+          <div className="pyxi-icon-badge">
+            <img src="/pyxi-mascot.jpg" alt="Pyxi Logo" className="pyxi-avatar-img-header" />
           </div>
           <div>
-            <h4 className="pycopilot-title">PyCopilot</h4>
-            <span className="pycopilot-subtitle">Local Python Engine · Offline</span>
+            <h4 className="pycopilot-title">Pyxi</h4>
+            <span className="pycopilot-subtitle">Local Python Assistant · Offline</span>
           </div>
         </div>
 
-        <button className="pycopilot-close-btn" onClick={onClose} title="Close PyCopilot">
+        <button className="pycopilot-close-btn" onClick={onClose} title="Close Pyxi">
           <X className="w-4 h-4 text-slate-400" />
         </button>
       </div>
@@ -177,6 +177,12 @@ export default function AICopilotModal({
       <div className="pycopilot-messages-body">
         {chatLogs.map((msg, idx) => (
           <div key={idx} className={`pycopilot-bubble ${msg.sender}`}>
+            {msg.sender === 'ai' && (
+              <div className="pyxi-bubble-sender font-semibold text-xs text-sky-400 flex items-center gap-1.5 mb-1">
+                <img src="/pyxi-mascot.jpg" alt="Pyxi" className="w-4 h-4 rounded-full border border-sky-400/40 object-cover" />
+                <span>Pyxi</span>
+              </div>
+            )}
             <p className="bubble-txt">{msg.text}</p>
 
             {msg.code && (
@@ -216,7 +222,7 @@ export default function AICopilotModal({
           <div className="pycopilot-bubble ai">
             <div className="pycopilot-typing">
               <Loader2 className="w-3.5 h-3.5 spin text-emerald-400 inline mr-2" />
-              <span>Generating Python solution...</span>
+              <span>Pyxi is generating Python code...</span>
             </div>
           </div>
         )}
@@ -249,7 +255,7 @@ export default function AICopilotModal({
         <input
           type="text"
           className="pycopilot-input"
-          placeholder="Ask PyCopilot for code..."
+          placeholder="Ask Pyxi for Python code..."
           value={userPrompt}
           onChange={(e) => setUserPrompt(e.target.value)}
           onKeyDown={(e) => {

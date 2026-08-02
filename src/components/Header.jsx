@@ -63,11 +63,11 @@ export default function Header({
 
         <div className="header-top-actions">
           <button 
-            className="theme-toggle-btn ai-header-btn"
+            className="theme-toggle-btn pyxi-header-btn"
             onClick={() => { hapticLight(); onOpenAICopilot?.(); }}
-            title="PyCopilot - Local Python AI"
+            title="Pyxi - Local Python Assistant"
           >
-            <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+            <img src="/pyxi-mascot.jpg" alt="Pyxi" className="pyxi-avatar-img-sm" />
           </button>
           <button 
             className="theme-toggle-btn"

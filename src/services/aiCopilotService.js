@@ -35,7 +35,7 @@ class AICopilotService {
       { p: 35, msg: 'Fetching SmolLM-135M Python model weights (90 MB)...' },
       { p: 65, msg: 'Loading neural network tokenizer & ONNX runtime...' },
       { p: 90, msg: 'Allocating WebGPU GPU memory tensors...' },
-      { p: 100, msg: 'Local AI Copilot Ready!' }
+      { p: 100, msg: 'Pyxi Local AI Engine Ready!' }
     ];
 
     for (const s of steps) {
