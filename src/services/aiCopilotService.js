@@ -1,17 +1,9 @@
-// PyPhone Studio Local & Cloud AI Copilot Service (Pyxi)
-// Powered by Real Neural LLM Inference Engine (Pollinations Free Serverless + WebGPU / WASM Local Engine)
+// PyPhone Studio Local AI Copilot Service (Pyxi)
+// Powered by Real Neural LLM Inference Engine (WebGPU / WASM Local Engine)
 
 import { checkPythonSyntax } from '../utils/pythonLinter';
 
 export const LOCAL_MODELS = [
-  {
-    id: 'qwen25-coder-70b',
-    name: 'Qwen2.5-Coder (Cloud Neural AI)',
-    tag: 'Ultra Accuracy',
-    sizeMB: 0,
-    desc: 'High-speed 70B Python neural model. Answers ANY question accurately.',
-    badgeColor: 'sky'
-  },
   {
     id: 'onnx-community/Qwen2.5-Coder-0.5B-Instruct',
     name: 'Qwen2.5-Coder 0.5B (WebGPU)',
@@ -36,7 +28,7 @@ class AICopilotService {
     this.isLoading = false;
     this.progress = 100;
     this.statusText = 'Pyxi Neural Engine Ready';
-    this.activeModelId = localStorage.getItem('pyxi_selected_model') || 'qwen25-coder-70b';
+    this.activeModelId = localStorage.getItem('pyxi_selected_model') || LOCAL_MODELS[0].id;
     
     this.worker = new Worker(new URL('../workers/aiWorker.js', import.meta.url), {
       type: 'module'
@@ -66,6 +58,7 @@ class AICopilotService {
     this.onGenerateComplete = null;
     this.onGenerateError = null;
     this.onDownloadComplete = null;
+    this.onGenerateUpdate = null;
   }
 
   handleWorkerMessage(event) {
@@ -79,22 +72,22 @@ class AICopilotService {
       this.isLoaded = true;
       this.isLoading = false;
       if (this.onProgressCallback) {
-        this.onProgressCallback({ progress: 100, message: 'Model Ready!' });
+        this.onProgressCallback({ progress: 100, message: 'Ready!' });
         this.onProgressCallback = null;
       }
       if (this.onDownloadComplete) {
         this.onDownloadComplete(true);
         this.onDownloadComplete = null;
       }
+    } else if (type === 'update') {
+      if (this.onGenerateUpdate) {
+        this.onGenerateUpdate();
+      }
     } else if (type === 'complete') {
       if (this.onGenerateComplete) {
         this.onGenerateComplete(payload.text);
         this.onGenerateComplete = null;
         this.onGenerateError = null;
-      }
-    } else if (type === 'update') {
-      if (this.onGenerateUpdate) {
-        this.onGenerateUpdate();
       }
     } else if (type === 'error') {
       if (this.onGenerateError) {
@@ -124,7 +117,6 @@ class AICopilotService {
   }
 
   async checkModelCached(modelId) {
-    if (modelId === 'qwen25-coder-70b') return true;
     try {
       const cache = await caches.open('transformers-cache');
       const keys = await cache.keys();
@@ -140,20 +132,14 @@ class AICopilotService {
 
     this.setSelectedModel(targetModel.id);
     
-    if (targetModel.id !== 'qwen25-coder-70b') {
-      this.isLoading = true;
-      this.progress = 0;
-      this.onProgressCallback = onProgress;
-      
-      return new Promise((resolve) => {
-        this.onDownloadComplete = resolve;
-        this.worker.postMessage({ type: 'init', payload: { model: targetModel.id } });
-      });
-    } else {
-      onProgress?.({ progress: 100, message: `${targetModel.name} Ready!` });
-      this.isLoaded = true;
-      this.isLoading = false;
-    }
+    this.isLoading = true;
+    this.progress = 0;
+    this.onProgressCallback = onProgress;
+    
+    return new Promise((resolve) => {
+      this.onDownloadComplete = resolve;
+      this.worker.postMessage({ type: 'init', payload: { model: targetModel.id } });
+    });
   }
 
   generateWithWorker(prompt) {
@@ -194,21 +180,19 @@ class AICopilotService {
   }
 
   async removeModel(modelId) {
-    if (modelId !== 'qwen25-coder-70b') {
-      try {
-        const cache = await caches.open('transformers-cache');
-        const keys = await cache.keys();
-        for (const req of keys) {
-          if (req.url.includes(modelId)) {
-            await cache.delete(req);
-          }
+    try {
+      const cache = await caches.open('transformers-cache');
+      const keys = await cache.keys();
+      for (const req of keys) {
+        if (req.url.includes(modelId)) {
+          await cache.delete(req);
         }
-        if (this.activeModelId === modelId) {
-          this.isLoaded = false;
-        }
-      } catch (e) {
-        console.error("Failed to delete model cache", e);
       }
+      if (this.activeModelId === modelId) {
+        this.isLoaded = false;
+      }
+    } catch (e) {
+      console.error("Failed to delete model cache", e);
     }
   }
 
@@ -364,110 +348,6 @@ class AICopilotService {
     };
   }
 
-  // 100% REAL Neural AI Inference Engine (Answers ANY Prompt via Serverless LLM Neural Pipeline)
-  async fetchRealAIResponse(userPrompt, activeCode = '', isExplanation = false) {
-    // 1. Try GET Mode to bypass CORS Preflight on mobile networks
-    try {
-      let fullPromptText = userPrompt;
-      if (isExplanation) {
-        fullPromptText = `Explain line-by-line in clear Markdown how this Python code works:\n${activeCode || userPrompt}`;
-      } else {
-        fullPromptText = `Write clean, complete, working Python code for: "${userPrompt}". Include a 1-sentence intro followed by a clean python code block.`;
-      }
-
-      const encoded = encodeURIComponent(fullPromptText);
-      const getUrl = `https://text.pollinations.ai/${encoded}?model=openai&seed=${Math.floor(Math.random() * 1000)}`;
-
-      const res = await fetch(getUrl, { method: 'GET' });
-      if (res.ok) {
-        const fullText = await res.text();
-        if (fullText && fullText.trim()) {
-          if (isExplanation) {
-            return { text: fullText.trim(), code: null };
-          }
-          let explanation = fullText;
-          let codeSnippet = null;
-          if (fullText.includes('```')) {
-            const parts = fullText.split('```');
-            explanation = parts[0].trim();
-            const codeBlock = parts[1] || '';
-            codeSnippet = codeBlock.replace(/^python\n?/, '').trim();
-          } else if (fullText.includes('def ') || fullText.includes('import ') || fullText.includes('print(')) {
-            codeSnippet = fullText.trim();
-            explanation = `Here is the Python solution generated for "${userPrompt}":`;
-          } else {
-            explanation = fullText.trim();
-            codeSnippet = null;
-          }
-          return { text: explanation, code: codeSnippet };
-        }
-      }
-    } catch (e) {
-      console.warn("GET Pollinations AI fetch failed, trying POST fallback:", e);
-    }
-
-    // 2. POST Fallback Mode
-    try {
-      const systemPrompt = isExplanation
-        ? `You are Pyxi, an expert Python AI tutor inside PyPhone Studio. The user is asking how their Python code works or requesting an explanation of a concept. Explain clearly in friendly Markdown, line by line. Do NOT return executable code blocks unless showing an example.`
-        : `You are Pyxi, an expert Python AI assistant inside PyPhone Studio. Write clean, complete, working Python code for the user's exact request: "${userPrompt}". Format your response with a brief 1-sentence introduction followed by a clean \`\`\`python ... \`\`\` code block. Do NOT ask follow-up questions.`;
-
-      const userContent = isExplanation && activeCode
-        ? `${userPrompt}\n\nHere is the active editor Python code to explain:\n\`\`\`python\n${activeCode}\n\`\`\``
-        : userPrompt + (activeCode ? `\n\nActive Editor Context:\n\`\`\`python\n${activeCode}\n\`\`\`` : '');
-
-      const response = await fetch('https://text.pollinations.ai/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userContent }
-          ],
-          model: 'openai',
-          seed: Math.floor(Math.random() * 1000)
-        })
-      });
-
-      if (response.ok) {
-        const fullText = await response.text();
-        if (fullText && fullText.trim()) {
-          if (isExplanation) {
-            return {
-              text: fullText.trim(),
-              code: null
-            };
-          }
-
-          let explanation = fullText;
-          let codeSnippet = null;
-
-          if (fullText.includes('```')) {
-            const parts = fullText.split('```');
-            explanation = parts[0].trim();
-            const codeBlock = parts[1] || '';
-            codeSnippet = codeBlock.replace(/^python\n?/, '').trim();
-          } else if (fullText.includes('def ') || fullText.includes('import ') || fullText.includes('print(')) {
-            codeSnippet = fullText.trim();
-            explanation = `Here is the Python solution generated for "${userPrompt}":`;
-          } else {
-            explanation = fullText.trim();
-            codeSnippet = null;
-          }
-
-          return {
-            text: explanation || `Here is the Python solution generated for "${userPrompt}":`,
-            code: codeSnippet
-          };
-        }
-      }
-    } catch (err) {
-      console.warn("Pollinations AI fetch failed:", err);
-    }
-
-    return null;
-  }
-
   // Main Entry Point for User Prompts
   async generateResponse(userPrompt, activeCode = '') {
     const promptLower = userPrompt.toLowerCase().trim();
@@ -476,67 +356,53 @@ class AICopilotService {
     // Check if the user is asking to explain / understand code
     const isExplanationIntent = /\b(explain|how does|how do|what does|understand|walkthrough|tell me how|describe|working of)\b/.test(promptLower);
 
-    // 1. Try Local Worker AI if selected
-    if (model.id !== 'qwen25-coder-70b') {
-      const isCached = await this.checkModelCached(model.id);
-      if (!isCached && !this.isLoaded) {
-        return {
-          text: `⚠️ **Local Model Not Downloaded**\n\nPlease click the **Download Model** button at the top of the chat to download the Neural AI engine to your device first. It's a one-time download!`,
-          code: null
-        };
-      }
-
-      try {
-        let fullPromptText = userPrompt;
-        if (isExplanationIntent) {
-          fullPromptText = `Explain how this Python code works:\n${activeCode || userPrompt}`;
-        } else {
-          fullPromptText = `Write clean, complete, working Python code for: "${userPrompt}". Include a 1-sentence intro followed by a clean python code block.`;
-        }
-        const workerResponse = await this.generateWithWorker(fullPromptText);
-        
-        if (workerResponse) {
-          let explanation = workerResponse.trim();
-          let codeSnippet = null;
-
-          if (workerResponse.includes('```')) {
-            const parts = workerResponse.split('```');
-            explanation = parts[0].trim();
-            const codeBlock = parts[1] || '';
-            codeSnippet = codeBlock.replace(/^python\n?/, '').trim();
-          } else if (workerResponse.includes('def ') || workerResponse.includes('import ') || workerResponse.includes('print(')) {
-            codeSnippet = workerResponse.trim();
-            explanation = `Here is the Python solution generated for "${userPrompt}":`;
-          }
-
-          return {
-            text: explanation || `Here is the Python solution generated for "${userPrompt}":`,
-            code: codeSnippet
-          };
-        }
-      } catch (err) {
-        console.warn("Local Web Worker AI failed", err);
-        return {
-          text: `❌ **Local AI Error:** I encountered an error while generating. This can happen if your device ran out of memory. Try refreshing the page. Details: ${err}`,
-          code: null
-        };
-      }
-      
-      // If we got here for a local model and workerResponse was null, return error
+    const isCached = await this.checkModelCached(model.id);
+    if (!isCached && !this.isLoaded) {
       return {
-        text: `❌ **Local AI Error:** Generation returned no response.`,
+        text: `⚠️ **Local Model Not Downloaded**\n\nPlease click the **Download Model** button at the top of the chat to download the Neural AI engine to your device first. It's a one-time download!`,
         code: null
       };
     }
 
-    // 2. Try Real Neural AI Endpoint First! (Handles ANY Arbitrary Question / Explanation)
-    const realAIResult = await this.fetchRealAIResponse(userPrompt, activeCode, isExplanationIntent);
-    if (realAIResult && (realAIResult.text || realAIResult.code)) {
-      return realAIResult;
-    }
+    try {
+      let fullPromptText = userPrompt;
+      if (isExplanationIntent) {
+        fullPromptText = `Explain how this Python code works:\n${activeCode || userPrompt}`;
+      } else {
+        fullPromptText = `Write clean, complete, working Python code for: "${userPrompt}". Include a 1-sentence intro followed by a clean python code block.`;
+      }
+      const workerResponse = await this.generateWithWorker(fullPromptText);
+      
+      if (workerResponse) {
+        let explanation = workerResponse.trim();
+        let codeSnippet = null;
 
+        if (workerResponse.includes('```')) {
+          const parts = workerResponse.split('```');
+          explanation = parts[0].trim();
+          const codeBlock = parts[1] || '';
+          codeSnippet = codeBlock.replace(/^python\n?/, '').trim();
+        } else if (workerResponse.includes('def ') || workerResponse.includes('import ') || workerResponse.includes('print(')) {
+          codeSnippet = workerResponse.trim();
+          explanation = `Here is the Python solution generated for "${userPrompt}":`;
+        }
+
+        return {
+          text: explanation || `Here is the Python solution generated for "${userPrompt}":`,
+          code: codeSnippet
+        };
+      }
+    } catch (err) {
+      console.warn("Local Web Worker AI failed", err);
+      return {
+        text: `❌ **Local AI Error:** I encountered an error while generating. This can happen if your device ran out of memory. Try refreshing the page. Details: ${err}`,
+        code: null
+      };
+    }
+    
+    // If we got here and workerResponse was null, return error
     return {
-      text: `❌ **Neural AI Unreachable**\n\nI'm sorry, but I was unable to connect to the cloud neural engine. Please check your internet connection, or switch to the Local Offline model from the settings menu!`,
+      text: `❌ **Local AI Error:** Generation returned no response.`,
       code: null
     };
   }

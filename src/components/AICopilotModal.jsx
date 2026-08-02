@@ -268,11 +268,9 @@ export default function AICopilotModal({
                           {isSelected ? <Check className="w-3 h-3 text-emerald-400" /> : null}
                           <span>{isSelected ? 'Active Model' : 'Use Model'}</span>
                         </button>
-                        {model.id !== 'qwen25-coder-70b' && (
-                          <button className="model-delete-btn" onClick={() => handleRemoveModel(model.id)} title="Delete Model Cache">
-                            <Trash2 className="w-3 h-3 text-rose-400" />
-                          </button>
-                        )}
+                        <button className="model-delete-btn" onClick={() => handleRemoveModel(model.id)} title="Delete Model Cache">
+                          <Trash2 className="w-3 h-3 text-rose-400" />
+                        </button>
                       </>
                     ) : (
                       <button 
