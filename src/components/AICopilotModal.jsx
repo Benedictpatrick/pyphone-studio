@@ -328,7 +328,7 @@ export default function AICopilotModal({
                         {confirmInsertIdx === idx ? (
                           <Check className="w-3 h-3 text-white" />
                         ) : (
-                          <Plus className="w-3 h-3 text-sky-400" />
+                          <Plus className="w-3 h-3 text-slate-300" />
                         )}
                         <span>{confirmInsertIdx === idx ? 'Confirm Insert?' : 'Insert Code'}</span>
                       </button>
