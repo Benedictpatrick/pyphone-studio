@@ -6,7 +6,7 @@ import {
   Check, 
   Copy, 
   Send, 
-  Code2, 
+  Plus, 
   Wrench,
   Loader2,
   Cpu,
@@ -40,6 +40,8 @@ export default function AICopilotModal({
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState(null);
+  const [confirmInsertIdx, setConfirmInsertIdx] = useState(null);
+  const confirmTimerRef = useRef(null);
 
   const messagesEndRef = useRef(null);
 
@@ -109,10 +111,22 @@ export default function AICopilotModal({
     setTimeout(() => setCopiedIdx(null), 1500);
   };
 
-  const handleInsertSnippet = (codeText) => {
+  const handleInsertClick = (codeText, idx) => {
     hapticLight();
-    onInsertCode?.(codeText);
-    onClose();
+    if (confirmInsertIdx === idx) {
+      // 2nd tap: Confirmed insert
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+      setConfirmInsertIdx(null);
+      onInsertCode?.(codeText);
+      onClose();
+    } else {
+      // 1st tap: Prompt confirmation
+      setConfirmInsertIdx(idx);
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+      confirmTimerRef.current = setTimeout(() => {
+        setConfirmInsertIdx(null);
+      }, 3500);
+    }
   };
 
   return (
@@ -179,12 +193,16 @@ export default function AICopilotModal({
                     </button>
 
                     <button 
-                      className="code-mini-btn primary"
-                      onClick={() => handleInsertSnippet(msg.code)}
-                      title="Insert to Editor"
+                      className={`code-mini-btn primary ${confirmInsertIdx === idx ? 'confirm-state' : ''}`}
+                      onClick={() => handleInsertClick(msg.code, idx)}
+                      title={confirmInsertIdx === idx ? "Tap again to confirm inserting into editor" : "Insert Code to Editor"}
                     >
-                      <Code2 className="w-3 h-3" />
-                      <span>Insert</span>
+                      {confirmInsertIdx === idx ? (
+                        <Check className="w-3 h-3 text-white" />
+                      ) : (
+                        <Plus className="w-3 h-3 text-sky-400" />
+                      )}
+                      <span>{confirmInsertIdx === idx ? 'Confirm Insert?' : 'Insert Code'}</span>
                     </button>
                   </div>
                 </div>

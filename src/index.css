@@ -3470,9 +3470,28 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 .code-mini-btn.primary {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #10b981;
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  color: #38bdf8;
+  transition: all 0.15s ease;
+}
+
+.code-mini-btn.primary:hover {
+  background: rgba(14, 165, 233, 0.22);
+  border-color: #38bdf8;
+}
+
+.code-mini-btn.primary.confirm-state {
+  background: #0284c7;
+  border-color: #38bdf8;
+  color: #ffffff;
+  font-weight: 700;
+  animation: pulseConfirm 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pulseConfirm {
+  from { transform: scale(0.95); }
+  to { transform: scale(1); }
 }
 
 .code-snippet-pre {
