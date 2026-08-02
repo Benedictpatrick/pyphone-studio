@@ -77,6 +77,10 @@ class AICopilotService {
         this.onGenerateComplete = null;
         this.onGenerateError = null;
       }
+      if (this.onDownloadComplete) {
+        this.onDownloadComplete(false); // Resolve to false on error to prevent hang
+        this.onDownloadComplete = null;
+      }
       this.isLoading = false;
       if (this.onProgressCallback) {
         this.onProgressCallback({ progress: 0, message: `Error: ${payload}` });
