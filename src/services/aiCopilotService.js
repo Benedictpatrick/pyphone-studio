@@ -225,6 +225,47 @@ class AICopilotService {
 
   // 100% REAL Neural AI Inference Engine (Answers ANY Prompt via Serverless LLM Neural Pipeline)
   async fetchRealAIResponse(userPrompt, activeCode = '', isExplanation = false) {
+    // 1. Try GET Mode to bypass CORS Preflight on mobile networks
+    try {
+      let fullPromptText = userPrompt;
+      if (isExplanation) {
+        fullPromptText = `Explain line-by-line in clear Markdown how this Python code works:\n${activeCode || userPrompt}`;
+      } else {
+        fullPromptText = `Write clean, complete, working Python code for: "${userPrompt}". Include a 1-sentence intro followed by a clean python code block.`;
+      }
+
+      const encoded = encodeURIComponent(fullPromptText);
+      const getUrl = `https://text.pollinations.ai/${encoded}?model=openai&seed=${Math.floor(Math.random() * 1000)}`;
+
+      const res = await fetch(getUrl, { method: 'GET' });
+      if (res.ok) {
+        const fullText = await res.text();
+        if (fullText && fullText.trim()) {
+          if (isExplanation) {
+            return { text: fullText.trim(), code: null };
+          }
+          let explanation = fullText;
+          let codeSnippet = null;
+          if (fullText.includes('```')) {
+            const parts = fullText.split('```');
+            explanation = parts[0].trim();
+            const codeBlock = parts[1] || '';
+            codeSnippet = codeBlock.replace(/^python\n?/, '').trim();
+          } else if (fullText.includes('def ') || fullText.includes('import ') || fullText.includes('print(')) {
+            codeSnippet = fullText.trim();
+            explanation = `Here is the Python solution generated for "${userPrompt}":`;
+          } else {
+            explanation = fullText.trim();
+            codeSnippet = null;
+          }
+          return { text: explanation, code: codeSnippet };
+        }
+      }
+    } catch (e) {
+      console.warn("GET Pollinations AI fetch failed, trying POST fallback:", e);
+    }
+
+    // 2. POST Fallback Mode
     try {
       const systemPrompt = isExplanation
         ? `You are Pyxi, an expert Python AI tutor inside PyPhone Studio. The user is asking how their Python code works or requesting an explanation of a concept. Explain clearly in friendly Markdown, line by line. Do NOT return executable code blocks unless showing an example.`
@@ -253,7 +294,7 @@ class AICopilotService {
           if (isExplanation) {
             return {
               text: fullText.trim(),
-              code: null  // Explanation response does not replace editor code!
+              code: null
             };
           }
 
@@ -265,15 +306,12 @@ class AICopilotService {
             explanation = parts[0].trim();
             const codeBlock = parts[1] || '';
             codeSnippet = codeBlock.replace(/^python\n?/, '').trim();
+          } else if (fullText.includes('def ') || fullText.includes('import ') || fullText.includes('print(')) {
+            codeSnippet = fullText.trim();
+            explanation = `Here is the Python solution generated for "${userPrompt}":`;
           } else {
-            // Check if fullText is explanation or code
-            if (fullText.includes('def ') || fullText.includes('import ') || fullText.includes('print(')) {
-              codeSnippet = fullText.trim();
-              explanation = `Here is the Python solution generated for "${userPrompt}":`;
-            } else {
-              explanation = fullText.trim();
-              codeSnippet = null;
-            }
+            explanation = fullText.trim();
+            codeSnippet = null;
           }
 
           return {
@@ -283,7 +321,7 @@ class AICopilotService {
         }
       }
     } catch (err) {
-      console.warn("Pollinations AI fetch failed, attempting backup response:", err);
+      console.warn("Pollinations AI fetch failed:", err);
     }
 
     return null;
