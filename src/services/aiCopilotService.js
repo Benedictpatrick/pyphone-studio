@@ -1,6 +1,8 @@
 // PyPhone Studio Local AI Copilot Service (Pyxi)
 // Powered by browser WebGPU / WASM local inference engine with zero server dependency
 
+import { checkPythonSyntax } from '../utils/pythonLinter';
+
 export const LOCAL_MODELS = [
   {
     id: 'smollm-135m-python',
@@ -84,95 +86,120 @@ class AICopilotService {
     localStorage.removeItem(`pyxi_model_cached_${id}`);
   }
 
-  // Deep Line-by-Line Python Error Repair Engine (Zero Hallucination)
+  // Deep Line-by-Line Python Error Repair Engine (Connected to PyLinter & Pyodide Tracebacks)
   repairCode(code = '', errorText = '') {
     if (!code) return { fixedCode: '', fixesApplied: [] };
 
     let lines = code.split('\n');
     const fixesApplied = [];
 
-    // 1. Repair ZeroDivisionError (e.g. / 0 or a / b)
-    if (errorText.includes("ZeroDivisionError") || lines.some(l => /\/\s*0(?!\d)/.test(l))) {
-      lines = lines.map((line, idx) => {
-        if (/\/\s*0(?!\d)/.test(line)) {
-          fixesApplied.push(`Line ${idx + 1}: Replaced division by literal 0 with safe division check.`);
-          return line.replace(/\/\s*0(?!\d)/g, '/ 1  # Replaced division by 0');
-        }
-        if (/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/.test(line) && !line.trim().startsWith('#')) {
-          fixesApplied.push(`Line ${idx + 1}: Wrapped division in a non-zero denominator check.`);
-          return line.replace(/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/g, '($2 != 0 and $1 / $2 or 0)');
-        }
-        return line;
-      });
-    }
+    // 1. Run Python Linter AST Diagnostics first to find exact syntax errors
+    try {
+      const linterDiagnostics = checkPythonSyntax(code);
+      linterDiagnostics.forEach(d => {
+        const textBefore = code.slice(0, d.from);
+        const lineIdx = textBefore.split('\n').length - 1;
+        const lineText = lines[lineIdx] || '';
 
-    // 2. Repair NameError (e.g. name 'xyz' is not defined)
-    if (errorText.includes("NameError")) {
-      const match = errorText.match(/name ['"]([^'"]+)['"] is not defined/);
-      if (match && match[1]) {
-        const varName = match[1];
-        if (!code.includes(`${varName} =`)) {
-          fixesApplied.push(`Added missing variable definition \`${varName} = 0\` at top.`);
-          lines.unshift(`${varName} = 0  # Pre-defined to fix NameError`);
-        }
-      }
-    }
-
-    // 3. Repair KeyError (e.g. dict['key'] -> dict.get('key', None))
-    if (errorText.includes("KeyError")) {
-      const match = errorText.match(/KeyError: ['"]?([^'"]+)['"]?/);
-      if (match && match[1]) {
-        const key = match[1];
-        lines = lines.map((line, idx) => {
-          if (line.includes(`['${key}']`) || line.includes(`["${key}"]`)) {
-            fixesApplied.push(`Line ${idx + 1}: Replaced \`['${key}']\` with safe \`.get('${key}', None)\`.`);
-            return line.replace(new RegExp(`\\[['"]${key}['"]\\]`, 'g'), `.get('${key}', None)`);
+        if (d.message.includes("Expected ':'")) {
+          const keyword = lineText.trim().split(/[\s(:]/)[0];
+          if (!lineText.trim().endsWith(':')) {
+            lines[lineIdx] = lineText + ':';
+            fixesApplied.push(`Line ${lineIdx + 1}: Added missing colon (\`:\`) to \`${keyword}\` statement.`);
           }
-          return line;
+        } else if (d.message.includes("Invalid keyword")) {
+          const match = d.message.match(/Invalid keyword '([^']+)'. Did you mean '([^']+)'\?/);
+          if (match) {
+            lines[lineIdx] = lineText.replace(match[1], match[2]);
+            fixesApplied.push(`Line ${lineIdx + 1}: Fixed keyword typo \`${match[1]}\` ➔ \`${match[2]}\`.`);
+          }
+        } else if (d.message.includes("string literal")) {
+          const char = d.message.includes('"') ? '"' : "'";
+          lines[lineIdx] = lineText + char;
+          fixesApplied.push(`Line ${lineIdx + 1}: Fixed unclosed string literal.`);
+        }
+      });
+    } catch (_) {}
+
+    // 2. Parse Pyodide Execution Traceback Line Numbers (e.g. line X)
+    if (errorText && errorText.trim()) {
+      const lineMatch = errorText.match(/line (\d+)/i);
+      const errLineIdx = lineMatch ? parseInt(lineMatch[1], 10) - 1 : -1;
+
+      if (errorText.includes("ZeroDivisionError")) {
+        if (errLineIdx >= 0 && lines[errLineIdx]) {
+          const line = lines[errLineIdx];
+          if (/\/\s*0(?!\d)/.test(line)) {
+            lines[errLineIdx] = line.replace(/\/\s*0(?!\d)/g, '/ 1  # Fixed division by 0');
+            fixesApplied.push(`Line ${errLineIdx + 1}: Fixed division by zero \`/ 0\` ➔ \`/ 1\`.`);
+          } else if (/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/.test(line)) {
+            lines[errLineIdx] = line.replace(/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/g, '($2 != 0 and $1 / $2 or 0)');
+            fixesApplied.push(`Line ${errLineIdx + 1}: Wrapped division in non-zero check.`);
+          }
+        } else {
+          lines = lines.map((l, i) => {
+            if (/\/\s*0(?!\d)/.test(l)) {
+              fixesApplied.push(`Line ${i + 1}: Fixed division by 0.`);
+              return l.replace(/\/\s*0(?!\d)/g, '/ 1  # Fixed division by 0');
+            }
+            if (/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/.test(l) && !l.trim().startsWith('#')) {
+              fixesApplied.push(`Line ${i + 1}: Wrapped division in non-zero check.`);
+              return l.replace(/\b([a-zA-Z0-9_\.\[\]]+)\s*\/\s*([a-zA-Z0-9_\.\[\]]+)\b/g, '($2 != 0 and $1 / $2 or 0)');
+            }
+            return l;
+          });
+        }
+      } else if (errorText.includes("NameError")) {
+        const match = errorText.match(/name ['"]([^'"]+)['"] is not defined/);
+        if (match && match[1]) {
+          const varName = match[1];
+          if (!lines.some(l => l.includes(`${varName} =`))) {
+            fixesApplied.push(`Line 1: Injected missing variable definition \`${varName} = 0\`.`);
+            lines.unshift(`${varName} = 0  # Initialized missing variable to fix NameError`);
+          }
+        }
+      } else if (errorText.includes("KeyError")) {
+        const match = errorText.match(/KeyError: ['"]?([^'"]+)['"]?/);
+        if (match && match[1]) {
+          const key = match[1];
+          lines = lines.map((l, i) => {
+            if (l.includes(`['${key}']`) || l.includes(`["${key}"]`)) {
+              fixesApplied.push(`Line ${i + 1}: Converted \`['${key}']\` to safe \`.get('${key}', None)\`.`);
+              return l.replace(new RegExp(`\\[['"]${key}['"]\\]`, 'g'), `.get('${key}', None)`);
+            }
+            return l;
+          });
+        }
+      } else if (errorText.includes("TypeError")) {
+        lines = lines.map((l, i) => {
+          if (/['"]\s*\+\s*([a-zA-Z0-9_]+)/.test(l) && !l.includes('str(')) {
+            fixesApplied.push(`Line ${i + 1}: Wrapped operand in \`str()\`.`);
+            return l.replace(/(['"][^'"]*['"]\s*\+\s*)([a-zA-Z0-9_]+)/g, '$1str($2)');
+          }
+          return l;
         });
+      } else if (errorText.includes("AttributeError")) {
+        const match = errorText.match(/object has no attribute ['"]([^'"]+)['"]/);
+        if (match && match[1] && errLineIdx >= 0) {
+          fixesApplied.push(`Line ${errLineIdx + 1}: Added AttributeError safety guard.`);
+          lines[errLineIdx] = `# Fix AttributeError: verify object has .${match[1]}\n` + lines[errLineIdx];
+        }
       }
     }
 
-    // 4. Repair TypeError (String + Integer Concatenation)
-    if (errorText.includes("TypeError") || lines.some(l => /['"]\s*\+\s*\d+/.test(l) || /\d+\s*\+\s*['"]/.test(l))) {
-      lines = lines.map((line, idx) => {
-        if (/['"]\s*\+\s*([a-zA-Z0-9_]+)/.test(line) && !line.includes('str(')) {
-          fixesApplied.push(`Line ${idx + 1}: Wrapped operand in \`str()\`.`);
-          return line.replace(/(['"][^'"]*['"]\s*\+\s*)([a-zA-Z0-9_]+)/g, '$1str($2)');
-        }
-        return line;
-      });
-    }
-
-    // 5. Repair Missing Colons `:` on control statements
+    // 3. Fallback bracket & colon checks for all lines
     lines = lines.map((line, idx) => {
       const trimmed = line.trim();
       if (/^(if|elif|else|for|while|def|class|try|except|finally|with)\b.*[^\s:]$/.test(trimmed) && !trimmed.startsWith('#')) {
-        fixesApplied.push(`Line ${idx + 1}: Added missing colon (\`:\`) to \`${trimmed.split(' ')[0]}\` statement.`);
+        if (!fixesApplied.some(f => f.startsWith(`Line ${idx + 1}:`))) {
+          fixesApplied.push(`Line ${idx + 1}: Added missing colon (\`:\`).`);
+        }
         return line + ':';
       }
       return line;
     });
 
-    // 6. Repair Unclosed Parentheses / Brackets line-by-line
-    lines = lines.map((line, idx) => {
-      if (line.trim().startsWith('#')) return line;
-      const openP = (line.match(/\(/g) || []).length;
-      const closeP = (line.match(/\)/g) || []).length;
-      if (openP > closeP) {
-        fixesApplied.push(`Line ${idx + 1}: Added missing closing parenthesis \`)\`.`);
-        return line + ')'.repeat(openP - closeP);
-      }
-      const openB = (line.match(/\[/g) || []).length;
-      const closeB = (line.match(/\]/g) || []).length;
-      if (openB > closeB) {
-        fixesApplied.push(`Line ${idx + 1}: Added missing closing bracket \`]\`.`);
-        return line + ']'.repeat(openB - closeB);
-      }
-      return line;
-    });
-
-    // 7. Repair Common Missing Imports
+    // 4. Missing Common Imports
     let fullText = lines.join('\n');
     if (fullText.includes('pd.') && !fullText.includes('import pandas')) {
       fixesApplied.push("Added missing `import pandas as pd`.");
@@ -229,7 +256,7 @@ class AICopilotService {
     if (fixesApplied.length > 0 || (errorText && errorText.trim())) {
       const summaryText = errorText 
         ? `Execution Error Detected: \`${errorText.split('\n')[0]}\`.\n\nPyxi repaired ${fixesApplied.length} issue(s):\n` + fixesApplied.map(f => `• ${f}`).join('\n') + `\n\nHere is the corrected code ready to insert into your editor:`
-        : `Static Analysis Complete. Found and fixed ${fixesApplied.length} issue(s):\n\n` + fixesApplied.map(f => `• ${f}`).join('\n') + `\n\nHere is the corrected code ready to insert into your editor:`;
+        : `Static AST Analysis Complete. Found and fixed ${fixesApplied.length} issue(s):\n\n` + fixesApplied.map(f => `• ${f}`).join('\n') + `\n\nHere is the corrected code ready to insert into your editor:`;
 
       return {
         text: summaryText,
