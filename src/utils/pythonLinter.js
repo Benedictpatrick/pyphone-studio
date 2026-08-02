@@ -57,7 +57,33 @@ export function checkPythonSyntax(code) {
       });
     }
 
-    // 3. Bracket matching
+    // 3. Trailing line continuation backslash check
+    if (trimmed.endsWith('\\') && (lineIdx === lines.length - 1 || lines[lineIdx + 1].trim() === '')) {
+      diagnostics.push({
+        from: lineStartPos,
+        to: lineEndPos,
+        severity: 'error',
+        message: `SyntaxError: Unexpected trailing '\\' at end of line (line continuation without next line)`
+      });
+    }
+
+    // 4. Common keyword typo check (e.g. mport -> import)
+    const commonTypos = {
+      'mport': 'import',
+      'imprt': 'import',
+      'retun': 'return',
+      'prnt': 'print'
+    };
+    if (commonTypos[firstWord]) {
+      diagnostics.push({
+        from: lineStartPos,
+        to: lineStartPos + firstWord.length,
+        severity: 'error',
+        message: `SyntaxError: Invalid keyword '${firstWord}'. Did you mean '${commonTypos[firstWord]}'?`
+      });
+    }
+
+    // 5. Bracket matching
     for (let i = 0; i < lineText.length; i++) {
       const char = lineText[i];
       if (['(', '[', '{'].includes(char)) {
