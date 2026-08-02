@@ -227,7 +227,7 @@ export default function AICopilotModal({
         <div className="pyxi-model-picker-panel">
           <div className="picker-panel-header">
             <h5 className="picker-panel-title">Choose Local AI Model</h5>
-            <button className="icon-only-btn" onClick={() => setShowModelPicker(false)}>
+            <button className="pycopilot-close-btn" onClick={() => setShowModelPicker(false)}>
               <X className="w-4 h-4 text-slate-400" />
             </button>
           </div>
@@ -259,9 +259,11 @@ export default function AICopilotModal({
                           {isSelected ? <Check className="w-3 h-3 text-emerald-400" /> : null}
                           <span>{isSelected ? 'Active Model' : 'Use Model'}</span>
                         </button>
-                        <button className="model-delete-btn" onClick={() => handleRemoveModel(model.id)} title="Delete Model Cache">
-                          <Trash2 className="w-3 h-3 text-rose-400" />
-                        </button>
+                        {model.id !== 'qwen25-coder-70b' && (
+                          <button className="model-delete-btn" onClick={() => handleRemoveModel(model.id)} title="Delete Model Cache">
+                            <Trash2 className="w-3 h-3 text-rose-400" />
+                          </button>
+                        )}
                       </>
                     ) : (
                       <button 

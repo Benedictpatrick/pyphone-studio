@@ -3386,14 +3386,16 @@ table.pyphone-df-table tr:nth-child(even) {
 
 .model-card-top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .model-card-name-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .model-card-title {
@@ -3424,6 +3426,8 @@ table.pyphone-df-table tr:nth-child(even) {
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: #94a3b8;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .model-card-desc {
