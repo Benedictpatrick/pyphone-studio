@@ -13,7 +13,8 @@ import {
   BarChart2,
   LineChart,
   Repeat,
-  Zap
+  Zap,
+  Search
 } from 'lucide-react';
 import { hapticLight, hapticSuccess } from '../utils/haptics';
 import { aiCopilotService } from '../services/aiCopilotService';
@@ -69,6 +70,29 @@ export default function AICopilotModal({
     setIsDownloading(false);
     setIsCached(true);
     hapticSuccess();
+  };
+
+  const handleAnalyzeCode = () => {
+    hapticLight();
+    setIsGenerating(true);
+
+    setTimeout(() => {
+      const result = aiCopilotService.analyzeActiveCode(activeCode);
+      setChatLogs(prev => [
+        ...prev,
+        {
+          sender: 'user',
+          text: 'Analyze my active editor code for mistakes'
+        },
+        {
+          sender: 'ai',
+          text: result.text,
+          code: result.code
+        }
+      ]);
+      setIsGenerating(false);
+      hapticSuccess();
+    }, 350);
   };
 
   const handleSendPrompt = async (textToSend) => {
@@ -237,6 +261,10 @@ export default function AICopilotModal({
 
       {/* Clean Icon Chips Row */}
       <div className="pycopilot-chips-bar">
+        <button className="mini-chip highlight-chip" onClick={handleAnalyzeCode} title="Analyze active editor code for mistakes">
+          <Search className="w-3 h-3 text-sky-400 inline mr-1" />
+          <span>Analyze Code</span>
+        </button>
         <button className="mini-chip" onClick={() => handleSendPrompt("Pandas CSV Data Analysis")}>
           <BarChart2 className="w-3 h-3 text-sky-400 inline mr-1" />
           <span>Pandas</span>

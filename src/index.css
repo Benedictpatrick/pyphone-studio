@@ -3583,6 +3583,18 @@ table.pyphone-df-table tr:nth-child(even) {
   align-items: center;
 }
 
+.mini-chip.highlight-chip {
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.mini-chip.highlight-chip:hover {
+  background: rgba(14, 165, 233, 0.22);
+  border-color: #38bdf8;
+}
+
 .mini-chip:hover {
   border-color: #10b981;
   color: #10b981;
