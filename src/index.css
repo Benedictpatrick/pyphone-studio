@@ -3487,6 +3487,29 @@ table.pyphone-df-table tr:nth-child(even) {
   gap: 8px;
 }
 
+.pycopilot-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pycopilot-settings-btn {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #38bdf8;
+  transition: background 0.15s ease;
+}
+
+.pycopilot-settings-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .pycopilot-icon-badge {
   width: 28px;
   height: 28px;
