@@ -24,7 +24,7 @@ export const LOCAL_MODELS = [
 
 class AICopilotService {
   constructor() {
-    this.isLoaded = true;
+    this.isLoaded = false;
     this.isLoading = false;
     this.progress = 100;
     this.statusText = 'Pyxi Neural Engine Ready';
@@ -82,7 +82,14 @@ class AICopilotService {
   }
 
   async checkModelCached(modelId) {
-    return true;
+    if (modelId !== 'smollm-135m-python') return true;
+    try {
+      const cache = await caches.open('transformers-cache');
+      const keys = await cache.keys();
+      return keys.some(req => req.url.includes('Xenova/Qwen1.5-0.5B-Chat'));
+    } catch (e) {
+      return false;
+    }
   }
 
   async downloadModel(modelId, onProgress) {
@@ -384,6 +391,14 @@ class AICopilotService {
 
     // 1. Try Local Worker AI if selected
     if (model.id === 'smollm-135m-python') {
+      const isCached = await this.checkModelCached(model.id);
+      if (!isCached && !this.isLoaded) {
+        return {
+          text: `⚠️ **Local Model Not Downloaded**\n\nPlease click the **Download Model** button at the top of the chat to download the Neural AI engine to your device first. It's a one-time download!`,
+          code: null
+        };
+      }
+
       try {
         let fullPromptText = userPrompt;
         if (isExplanationIntent) {
