@@ -92,6 +92,10 @@ class AICopilotService {
         this.onGenerateComplete = null;
         this.onGenerateError = null;
       }
+    } else if (type === 'update') {
+      if (this.onGenerateUpdate) {
+        this.onGenerateUpdate();
+      }
     } else if (type === 'error') {
       if (this.onGenerateError) {
         this.onGenerateError(payload);
@@ -154,14 +158,21 @@ class AICopilotService {
 
   generateWithWorker(prompt) {
     return new Promise((resolve, reject) => {
-      // 60-second timeout to absolutely guarantee it never hangs forever
-      const timeoutId = setTimeout(() => {
-        if (this.onGenerateError) {
-          this.onGenerateError("Generation timed out. The model took too long to respond on this device.");
-          this.onGenerateError = null;
-          this.onGenerateComplete = null;
-        }
-      }, 60000);
+      let timeoutId;
+      
+      const resetTimeout = () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        // 5-minute timeout to allow slow mobile devices to compile shaders and generate
+        timeoutId = setTimeout(() => {
+          if (this.onGenerateError) {
+            this.onGenerateError("Generation timed out. The model took too long to respond on this device.");
+            this.onGenerateError = null;
+            this.onGenerateComplete = null;
+          }
+        }, 300000); 
+      };
+      
+      resetTimeout();
 
       this.onGenerateComplete = (res) => { 
         clearTimeout(timeoutId); 
@@ -170,6 +181,9 @@ class AICopilotService {
       this.onGenerateError = (err) => { 
         clearTimeout(timeoutId); 
         reject(err); 
+      };
+      this.onGenerateUpdate = () => {
+        resetTimeout(); // Heartbeat received from worker, reset timeout
       };
 
       this.worker.postMessage({

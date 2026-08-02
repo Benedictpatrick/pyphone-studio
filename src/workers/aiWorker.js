@@ -71,6 +71,9 @@ self.addEventListener('message', async (event) => {
         max_new_tokens,
         temperature,
         do_sample: temperature > 0.0,
+        callback_function: (x) => {
+          self.postMessage({ type: 'update' });
+        }
       });
 
       // Extract only the new generated text
