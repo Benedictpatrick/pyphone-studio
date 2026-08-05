@@ -259,7 +259,20 @@ export default function AICopilotModal({
             <img src="/pyxi-mascot.jpg" alt="Pyxi Logo" className="pyxi-avatar-img-header" />
           </div>
           <div>
-            <h4 className="pycopilot-title">Pyxi</h4>
+            <div className="pycopilot-title-row">
+              <h4 className="pycopilot-title">Pyxi</h4>
+              <a
+                href="https://navoai.space/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="pycopilot-powered-by"
+                title="Powered by Navo AI"
+                onClick={hapticLight}
+              >
+                <span>Powered by</span>
+                <img src="/navo-logo.png" alt="Navo AI" className="pycopilot-navo-logo" />
+              </a>
+            </div>
             <span className="pycopilot-subtitle">{activeModel.name} · {activeModel.sizeMB}MB</span>
           </div>
         </div>

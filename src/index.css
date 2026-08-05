@@ -3613,26 +3613,53 @@ table.pyphone-df-table tr:nth-child(even) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #94a3b8;
+  color: var(--ink-muted);
   transition: all 0.15s ease;
 }
 
 .pycopilot-settings-btn:hover {
   background: rgba(255, 255, 255, 0.08);
-  color: #f8fafc;
+  color: var(--ink);
+}
+
+.pycopilot-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .pycopilot-title {
   font-size: 0.84rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--ink);
   margin: 0;
 }
 
 .pycopilot-subtitle {
   font-size: 0.68rem;
-  color: #94a3b8;
+  color: var(--ink-muted);
   display: block;
+}
+
+.pycopilot-powered-by {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: var(--ink-subtle);
+  transition: opacity 0.15s ease;
+}
+
+.pycopilot-powered-by:hover {
+  opacity: 0.75;
+}
+
+.pycopilot-navo-logo {
+  height: 12px;
+  width: auto;
+  object-fit: contain;
 }
 
 .pycopilot-close-btn {
