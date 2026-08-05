@@ -17,7 +17,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { hapticLight, hapticSuccess } from '../utils/haptics';
-import { aiCopilotService, LOCAL_MODELS, getRecommendedModel, getDeviceMemoryGB } from '../services/aiCopilotService';
+import { aiCopilotService, LOCAL_MODELS, getRecommendedModel, getDeviceMemoryGB, isMobileDevice } from '../services/aiCopilotService';
 
 function ModelDownloadProgress({ name, progress, status, compact }) {
   const pct = Math.max(0, Math.min(100, Math.round(progress || 0)));
@@ -54,6 +54,7 @@ export default function AICopilotModal({
   const [showModelPicker, setShowModelPicker] = useState(false);
   const recommendedModelId = useRef(getRecommendedModel().id).current;
   const deviceMemGB = useRef(getDeviceMemoryGB()).current;
+  const onMobile = useRef(isMobileDevice()).current;
 
   const [userPrompt, setUserPrompt] = useState('');
   const [chatLogs, setChatLogs] = useState([
@@ -133,15 +134,24 @@ export default function AICopilotModal({
 
     aiCopilotService.onGenerateUpdate = (partialText) => setStreamingText(partialText);
 
-    const result = await aiCopilotService.analyzeActiveCode(activeCode, lastError);
-    aiCopilotService.onGenerateUpdate = null;
-    setStreamingText('');
-    setChatLogs(prev => [
-      ...prev,
-      { sender: 'ai', text: result.text, code: result.code }
-    ]);
-    setIsGenerating(false);
-    hapticSuccess();
+    try {
+      const result = await aiCopilotService.analyzeActiveCode(activeCode, lastError);
+      setChatLogs(prev => [
+        ...prev,
+        { sender: 'ai', text: result.text, code: result.code }
+      ]);
+      hapticSuccess();
+    } catch (err) {
+      console.error('Analyze Code failed', err);
+      setChatLogs(prev => [
+        ...prev,
+        { sender: 'ai', text: '❌ Something went wrong analyzing your code. Please try again.', code: null }
+      ]);
+    } finally {
+      aiCopilotService.onGenerateUpdate = null;
+      setStreamingText('');
+      setIsGenerating(false);
+    }
   };
 
   const handleStopGeneration = () => {
@@ -163,15 +173,24 @@ export default function AICopilotModal({
     aiCopilotService.onGenerateUpdate = (partialText) => setStreamingText(partialText);
 
     setTimeout(async () => {
-      const response = await aiCopilotService.generateResponse(prompt, activeCode);
-      aiCopilotService.onGenerateUpdate = null;
-      setStreamingText('');
-      setChatLogs(prev => [
-        ...prev,
-        { sender: 'ai', text: response.text, code: response.code }
-      ]);
-      setIsGenerating(false);
-      hapticSuccess();
+      try {
+        const response = await aiCopilotService.generateResponse(prompt, activeCode);
+        setChatLogs(prev => [
+          ...prev,
+          { sender: 'ai', text: response.text, code: response.code }
+        ]);
+        hapticSuccess();
+      } catch (err) {
+        console.error('generateResponse failed', err);
+        setChatLogs(prev => [
+          ...prev,
+          { sender: 'ai', text: '❌ Something went wrong generating a response. Please try again.', code: null }
+        ]);
+      } finally {
+        aiCopilotService.onGenerateUpdate = null;
+        setStreamingText('');
+        setIsGenerating(false);
+      }
     }, 400);
   };
 
@@ -183,19 +202,28 @@ export default function AICopilotModal({
 
     aiCopilotService.onGenerateUpdate = (partialText) => setStreamingText(partialText);
 
-    const errAnalysis = await aiCopilotService.explainError(activeCode, lastError);
-    aiCopilotService.onGenerateUpdate = null;
-    setStreamingText('');
-    setChatLogs(prev => [
-      ...prev,
-      {
-        sender: 'ai',
-        text: `Resolution: ${errAnalysis.explanation}`,
-        code: errAnalysis.fixSnippet
-      }
-    ]);
-    setIsGenerating(false);
-    hapticSuccess();
+    try {
+      const errAnalysis = await aiCopilotService.explainError(activeCode, lastError);
+      setChatLogs(prev => [
+        ...prev,
+        {
+          sender: 'ai',
+          text: `Resolution: ${errAnalysis.explanation}`,
+          code: errAnalysis.fixSnippet
+        }
+      ]);
+      hapticSuccess();
+    } catch (err) {
+      console.error('explainError failed', err);
+      setChatLogs(prev => [
+        ...prev,
+        { sender: 'ai', text: '❌ Something went wrong explaining this error. Please try again.', code: null }
+      ]);
+    } finally {
+      aiCopilotService.onGenerateUpdate = null;
+      setStreamingText('');
+      setIsGenerating(false);
+    }
   };
 
   const handleCopySnippet = (codeText, idx) => {
@@ -279,7 +307,11 @@ export default function AICopilotModal({
               const cached = modelCachedMap[model.id];
               const isSelected = activeModel.id === model.id;
               const isRecommended = model.id === recommendedModelId;
-              const mayBeTooBig = deviceMemGB !== null && model.minMemoryGB > deviceMemGB;
+              // RAM capacity alone isn't a safe signal on phones — a phone can
+              // report plenty of RAM but have a GPU/CPU too weak to run a
+              // bigger model at usable speed, so mobile gets its own warning.
+              const mayBeSlowOnMobile = onMobile && !model.mobileSafe;
+              const mayBeTooBig = !mayBeSlowOnMobile && deviceMemGB !== null && model.minMemoryGB > deviceMemGB;
               const isDownloadingThis = downloadingModelId === model.id;
               const isDeletingThis = deletingModelId === model.id;
 
@@ -294,6 +326,9 @@ export default function AICopilotModal({
                   </div>
 
                   <p className="model-card-desc">{model.desc}</p>
+                  {mayBeSlowOnMobile && (
+                    <p className="model-card-warning">⚠ Runs slowly or may freeze on phones — SmolLM2 360M is safer here.</p>
+                  )}
                   {mayBeTooBig && (
                     <p className="model-card-warning">⚠ May run out of memory on this device — SmolLM2 360M is safer here.</p>
                   )}
@@ -344,6 +379,13 @@ export default function AICopilotModal({
         <div className="pycopilot-error-banner" onClick={handleExplainError}>
           <Wrench className="icon-sm icon-danger" />
           <span>Execution error detected. Tap to generate fix.</span>
+        </div>
+      )}
+
+      {/* Model Capability Hint — tiny models are tuned for speed, not code quality */}
+      {!activeModel.codingCapable && !showModelPicker && (
+        <div className="pycopilot-hint-banner" onClick={() => setShowModelPicker(true)}>
+          <span>💡 {activeModel.name} is built for speed. For data analysis / plotting code, switch to Llama 3.2 1B or Gemma 2 2B.</span>
         </div>
       )}
 

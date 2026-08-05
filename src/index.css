@@ -3696,6 +3696,17 @@ table.pyphone-df-table tr:nth-child(even) {
   flex-shrink: 0;
 }
 
+.pycopilot-hint-banner {
+  background: color-mix(in srgb, var(--accent-blue) 8%, transparent);
+  border-bottom: 1px solid var(--hairline);
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--ink-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .pycopilot-messages-body {
   flex: 1;
   min-height: 0;

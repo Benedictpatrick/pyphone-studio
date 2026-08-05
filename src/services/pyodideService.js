@@ -96,11 +96,23 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
       onProgress({ status: 'loading-packages', message: 'Loading micropip...' });
       await pyodide.loadPackage('micropip');
 
-      // Attempt Seaborn install safely
+      // Seaborn's native Pyodide WASM wheel isn't always available for this
+      // Pyodide version, so loadPackage alone silently fails here and every
+      // "import seaborn" a user later runs (or the AI generates) crashes
+      // with ModuleNotFoundError. Fall back to micropip (seaborn is a pure
+      // Python PyPI package, so this reliably works) instead of giving up.
+      onProgress({ status: 'loading-packages', message: 'Loading Seaborn...' });
       try {
         await pyodide.loadPackage(['seaborn']);
       } catch (seabornErr) {
-        console.warn('Optional package (Seaborn) skipped:', seabornErr);
+        console.warn('Native Seaborn wheel unavailable, falling back to micropip:', seabornErr);
+        try {
+          const micropip = pyodide.pyimport('micropip');
+          await micropip.install('seaborn');
+          micropip.destroy();
+        } catch (micropipErr) {
+          console.warn('Seaborn micropip fallback also failed — seaborn will be unavailable:', micropipErr);
+        }
       }
 
       onProgress({ status: 'loading-datasets', message: 'Mounting pre-loaded CSV datasets...' });

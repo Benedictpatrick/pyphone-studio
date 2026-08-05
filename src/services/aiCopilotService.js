@@ -8,6 +8,26 @@ import { Wllama, CacheManager } from '@wllama/wllama/esm/index.js';
 const GENERATION_TIMEOUT_MS = 60000;
 const MAX_GENERATION_TOKENS = 512;
 
+// Grounds the model in the actual sandbox (real file paths, real libraries,
+// real plt.show() behavior) and shows one concrete correct pattern. Small
+// local models are much more reliable when imitating a real example than
+// generating matplotlib/seaborn code from scratch.
+const CODEGEN_SYSTEM_PROMPT = `You are Pyxi, a Python coding assistant running inside a real Python 3.11 (Pyodide/WASM) sandbox with pandas, numpy, matplotlib, and seaborn already installed. Preloaded CSV files exist at these exact paths: /home/pyodide/students_marks.csv, /home/pyodide/iris.csv, /home/pyodide/titanic.csv, /home/pyodide/tips.csv, /home/pyodide/stocks.csv, and a generic /home/pyodide/data.csv. Calling plt.show() automatically captures and displays the plot inline — never call plt.savefig() instead, and never call plt.show() more than once per plot. Only use pandas, numpy, matplotlib.pyplot (as plt), and seaborn (as sns) — do not import unavailable packages. Write clean, complete, working code. Format your response with a brief 1-sentence introduction followed by a single python code block. Do NOT ask follow-up questions.
+
+Example of a correct response for "make a heatmap":
+Here's a correlation heatmap using the tips dataset:
+\`\`\`python
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+df = pd.read_csv('/home/pyodide/tips.csv')
+corr = df.corr(numeric_only=True)
+sns.heatmap(corr, annot=True, cmap='coolwarm')
+plt.title('Correlation Heatmap')
+plt.show()
+\`\`\``;
+
 // Small models (SmolLM2 360M, Qwen 0.5B) can still degenerate into repeating
 // the same line forever even with a repetition penalty. Cut the response off
 // the moment a line repeats 3+ times in a row, so the UI shows a clean partial
@@ -29,6 +49,12 @@ function stripRepetitionLoop(text) {
   }
 
   return kept.join('\n');
+}
+
+// Ignores trailing whitespace / blank-line differences so trivial formatting
+// noise from the model doesn't count as a "change".
+function normalizeForDiff(code) {
+  return code.split('\n').map(l => l.trimEnd()).join('\n').trim();
 }
 
 // Turns raw engine/browser errors into messages a non-technical user can act on.
@@ -61,6 +87,8 @@ export const LOCAL_MODELS = [
     tag: 'Offline Local',
     sizeMB: 700,
     minMemoryGB: 4,
+    mobileSafe: false,
+    codingCapable: true,
     desc: 'Extremely fast model with CPU fallback for older devices.',
     badgeColor: 'purple',
     repo: 'bartowski/Llama-3.2-1B-Instruct-GGUF',
@@ -73,6 +101,8 @@ export const LOCAL_MODELS = [
     tag: 'Offline Local',
     sizeMB: 1600,
     minMemoryGB: 6,
+    mobileSafe: false,
+    codingCapable: true,
     desc: 'Very smart model with CPU fallback, requires more RAM.',
     badgeColor: 'blue',
     repo: 'bartowski/gemma-2-2b-it-GGUF',
@@ -85,6 +115,8 @@ export const LOCAL_MODELS = [
     tag: 'Offline Local',
     sizeMB: 900,
     minMemoryGB: 3,
+    mobileSafe: true,
+    codingCapable: false,
     desc: 'Extremely fast 0.5B model compiled for native WebGPU on phones, with CPU fallback.',
     badgeColor: 'emerald',
     repo: 'Qwen/Qwen2.5-0.5B-Instruct-GGUF',
@@ -97,6 +129,8 @@ export const LOCAL_MODELS = [
     tag: 'Offline Local',
     sizeMB: 400,
     minMemoryGB: 2,
+    mobileSafe: true,
+    codingCapable: false,
     desc: 'Offline 0.1s response, tiny browser memory footprint, with CPU fallback.',
     badgeColor: 'emerald',
     repo: 'bartowski/SmolLM2-360M-Instruct-GGUF',
@@ -113,15 +147,34 @@ export function getDeviceMemoryGB() {
     : null;
 }
 
-// Picks the most capable model this device can realistically run without
-// risking an out-of-memory crash. Unknown devices (most iPhones — Safari
-// doesn't expose deviceMemory) get the safest, smallest model by default
-// rather than the biggest one, since a budget Android phone reports the
-// same "unknown" as a high-end iPhone and we'd rather under-recommend.
+// RAM capacity is a poor proxy for phones: a modern Android phone routinely
+// reports 6-8GB (same as a laptop) but its GPU/CPU is far weaker, so
+// inference speed — not whether the weights fit in memory — is the real
+// bottleneck. Confirmed on a real Android/Chrome device: Gemma 2 2B "fit"
+// by the RAM check but was unusably slow/froze while generating.
+export function isMobileDevice() {
+  if (typeof navigator === 'undefined') return false;
+  if (typeof navigator.userAgentData?.mobile === 'boolean') return navigator.userAgentData.mobile;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+}
+
+const MOBILE_SAFE_MODEL_ID = 'SmolLM2-360M-Instruct-q4f16_1-MLC';
+
+// Picks the most capable model this device can realistically run well.
+// On mobile, RAM-based sizing is ignored in favor of the smallest/fastest
+// model — phones need a real benchmark to safely recommend anything bigger,
+// which isn't available here, so we default to what's known to run smoothly
+// rather than what merely fits. Desktop keeps the RAM-based recommendation.
+// Unknown desktop devices (deviceMemory unsupported) also get the safest,
+// smallest model rather than the biggest one.
 export function getRecommendedModel() {
+  if (isMobileDevice()) {
+    return LOCAL_MODELS.find(m => m.id === MOBILE_SAFE_MODEL_ID) || LOCAL_MODELS[0];
+  }
+
   const memGB = getDeviceMemoryGB();
   if (memGB === null) {
-    return LOCAL_MODELS.find(m => m.id === 'SmolLM2-360M-Instruct-q4f16_1-MLC') || LOCAL_MODELS[0];
+    return LOCAL_MODELS.find(m => m.id === MOBILE_SAFE_MODEL_ID) || LOCAL_MODELS[0];
   }
   const capable = LOCAL_MODELS.filter(m => m.minMemoryGB <= memGB);
   if (capable.length === 0) return LOCAL_MODELS.reduce((a, b) => (a.minMemoryGB < b.minMemoryGB ? a : b));
@@ -321,7 +374,7 @@ class AICopilotService {
     this.isGenerating = true;
 
     const messages = [
-      { role: "system", content: systemPrompt || "You are a helpful Python coding assistant. Write clean, complete, working Python code. Format your response with a brief 1-sentence introduction followed by a clean python code block. Do NOT ask follow-up questions." },
+      { role: "system", content: systemPrompt || CODEGEN_SYSTEM_PROMPT },
       { role: "user", content: prompt }
     ];
 
@@ -420,6 +473,7 @@ class AICopilotService {
   // Deep Line-by-Line Python Error Repair Engine (With Syntax AST + Stack Trace Fixes)
   repairCode(code = '', errorText = '') {
     if (!code) return { fixedCode: '', fixesApplied: [] };
+    errorText = errorText || ''; // default params don't apply to explicit null (e.g. lastError prop)
 
     const errLines = errorText.split('\n').filter(l => l.trim().length > 0);
     const actualErrorLine = errLines.slice().reverse().find(l => l.includes('Error') || l.includes('Exception')) || errLines[errLines.length - 1] || errorText;
@@ -586,11 +640,11 @@ class AICopilotService {
   // (and the error it produced, if any) to the downloaded local model and
   // asks it to actually find and fix the bug, instead of pattern-matching.
   async reviewCodeWithAI(code, errorText) {
-    const systemPrompt = "You are Pyxi, an expert Python code reviewer and debugger. Carefully read the user's code (and the error message, if given). Explain the bug in 1-2 short sentences, then give the COMPLETE corrected code in a single python code block. If you find no bugs, say so briefly and return the code unchanged in the code block.";
+    const systemPrompt = "You are Pyxi, an expert Python code reviewer and debugger. Carefully read the user's code (and the error message, if given). Small models tend to invent a 'bug' even when the code is fine — do not do this. Only report a bug you are genuinely confident about; if the code looks correct, say so plainly and return it completely unchanged. Explain your finding in 1-2 short sentences, then give the COMPLETE code (fixed, or unchanged if there's nothing to fix) in a single python code block.";
 
     const userPrompt = errorText
       ? `This Python code failed with an error. Find the bug and fix it.\n\nCode:\n\`\`\`python\n${code}\n\`\`\`\n\nError:\n${errorText}`
-      : `Review this Python code for bugs (syntax errors, logic errors, undefined variables, off-by-one errors, etc.) and fix any you find.\n\nCode:\n\`\`\`python\n${code}\n\`\`\``;
+      : `This code ran with no error. Double-check it for real bugs (syntax errors, logic errors, undefined variables, off-by-one errors, etc.) only — do not invent a problem if it already looks correct.\n\nCode:\n\`\`\`python\n${code}\n\`\`\``;
 
     const rawResponse = await this.generateWithWorker(userPrompt, systemPrompt);
     const workerResponse = stripRepetitionLoop(rawResponse);
@@ -608,7 +662,17 @@ class AICopilotService {
       codeSnippet = codeBlock.replace(/^python\n?/, '').trim();
     }
 
-    return { text: explanation || 'Here is the reviewed code:', code: codeSnippet || code };
+    // Don't trust the model's self-report of "fixed" — verify against the
+    // actual diff. Small models routinely claim a fix even when the code
+    // they return is byte-for-byte the same as what was submitted.
+    const codeUnchanged = codeSnippet ? normalizeForDiff(codeSnippet) === normalizeForDiff(code) : true;
+    if (codeUnchanged) {
+      explanation = errorText
+        ? `Pyxi couldn't produce a confirmed fix for this error with the current model. Try a bigger model (Llama 3.2 1B or Gemma 2 2B) for better results.\n\nOriginal error: ${errorText.split('\n').filter(Boolean).pop() || errorText}`
+        : 'No issues found — this code already looks correct.';
+    }
+
+    return { text: explanation, code: codeSnippet || code };
   }
 
   // Primary entry point for the "Analyze Code" button: uses the downloaded
