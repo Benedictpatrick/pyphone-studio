@@ -7,7 +7,7 @@ const getHapticConfig = () => {
       const strength = typeof parsed.hapticsStrength === 'number' ? parsed.hapticsStrength : 100;
       return { enabled, multiplier: strength / 100 };
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
   return { enabled: true, multiplier: 1.0 };
@@ -30,7 +30,7 @@ const vibrate = (pattern) => {
     } else {
       navigator.vibrate(Math.max(1, Math.round(pattern * multiplier)));
     }
-  } catch (e) {
+  } catch {
     // Ignore
   }
 };

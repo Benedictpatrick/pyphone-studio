@@ -160,9 +160,8 @@ export default function ScriptView({
 
   // Keep main.py synced with parent scriptCode
   useEffect(() => {
-    if (files['main.py'] !== scriptCode && scriptCode !== undefined) {
-      setFiles(prev => ({ ...prev, 'main.py': scriptCode }));
-    }
+    if (scriptCode === undefined) return;
+    setFiles(prev => (prev['main.py'] === scriptCode ? prev : { ...prev, 'main.py': scriptCode }));
   }, [scriptCode]);
 
   const currentFileContent = files[activeFileName] || '';

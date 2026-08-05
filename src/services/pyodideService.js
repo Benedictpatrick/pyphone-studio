@@ -2,7 +2,6 @@
 import { SAMPLE_DATASETS } from './datasetService';
 
 let pyodideInstance = null;
-let isLoading = false;
 let loadPromise = null;
 // ── Interrupt / Cancel Support ──────────────────────────────────────────────
 let interruptBuffer = null;      // Uint8Array backed by SharedArrayBuffer
@@ -48,14 +47,12 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
   if (forceRetry) {
     pyodideInstance = null;
     loadPromise = null;
-    isLoading = false;
   }
   if (pyodideInstance) return pyodideInstance;
   if (loadPromise) return loadPromise;
 
   loadPromise = (async () => {
     try {
-      isLoading = true;
       onProgress({ status: 'loading-wasm', message: 'Connecting to Python WASM Engine...' });
 
       // Poll up to 15 times (4.5 seconds) for window.loadPyodide script from CDN
@@ -111,7 +108,7 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
       // Create home directory safely in Pyodide virtual FS
       try {
         pyodide.FS.mkdir('/home/pyodide');
-      } catch (_) {}
+      } catch {}
 
       // Write sample CSV files into Pyodide virtual FS safely
       for (const key in SAMPLE_DATASETS) {
@@ -252,16 +249,14 @@ async def _pyphone_run_code(code_str):
           interruptBuffer = new Uint8Array(new SharedArrayBuffer(1));
           pyodide.setInterruptBuffer(interruptBuffer);
         }
-      } catch (_) {
+      } catch {
         interruptBuffer = null;
       }
 
       pyodideInstance = pyodide;
-      isLoading = false;
       onProgress({ status: 'ready', message: 'Python Engine Ready!' });
       return pyodide;
     } catch (err) {
-      isLoading = false;
       loadPromise = null;
       console.error('Pyodide Init Error:', err);
       throw err;
@@ -306,7 +301,7 @@ export async function executePythonCode(codeString, extraFiles = {}) {
         try {
           pyodide.FS.writeFile(`/home/pyodide/${fn}`, content || '');
           pyodide.FS.writeFile(`/${fn}`, content || '');
-        } catch (_) {}
+        } catch {}
       }
     }
 
@@ -362,7 +357,7 @@ isinstance(__last_res, pd.DataFrame)
       let pyTraceback = null;
       try {
         pyTraceback = await pyodide.runPythonAsync('_pyphone_last_error');
-      } catch (_) {}
+      } catch {}
 
       if (pyTraceback && pyTraceback.trim() !== '') {
         errorMsg = pyTraceback;
@@ -389,11 +384,11 @@ isinstance(__last_res, pd.DataFrame)
 
     try {
       stdout = await pyodide.runPythonAsync(`_stdout_buf.getvalue()`) || '';
-    } catch (_) { stdout = ''; }
+    } catch { stdout = ''; }
 
     try {
       stderr = await pyodide.runPythonAsync(`_stderr_buf.getvalue()`) || '';
-    } catch (_) { stderr = ''; }
+    } catch { stderr = ''; }
 
     try {
       const pyPlots = await pyodide.runPythonAsync(`_captured_plots`);
@@ -405,14 +400,14 @@ isinstance(__last_res, pd.DataFrame)
         plotsArray = rawArray.map(item => {
           try {
             return typeof item === 'string' ? JSON.parse(item) : item;
-          } catch (e) {
+          } catch {
             return { type: "png", data: item };
           }
         });
       } finally {
         pyPlots?.destroy?.();
       }
-    } catch (_) { plotsArray = []; }
+    } catch { plotsArray = []; }
 
     // Restore stdout/stderr to saved original streams (not sys.__stdout__ which is None in Pyodide)
     await pyodide.runPythonAsync(`
@@ -496,7 +491,7 @@ export async function installPyodidePackage(pkgName, onLog = () => {}) {
     // Try Pyodide native WASM wheel first (super fast for seaborn, scipy, scikit-learn)
     await pyodide.loadPackage(cleanName);
     onLog(`Loaded ${cleanName} via Pyodide WASM engine.`);
-  } catch (_) {
+  } catch {
     // Fall back to micropip for pure Python PyPI packages
     try {
       const micropip = pyodide.pyimport('micropip');
@@ -522,7 +517,7 @@ try:
 except Exception:
     pass
 `);
-  } catch (_) {}
+  } catch {}
 }
 
 /**

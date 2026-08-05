@@ -175,7 +175,7 @@ export default function PackageManagerModal({ isOpen, onClose }) {
       await refreshInstalledPackages();
       setSuccessMsg(`Uninstalled '${pkgName}' from Python session.`);
       hapticSuccess();
-    } catch (err) {
+    } catch {
       setError(`Failed to uninstall ${pkgName}`);
     }
   };

@@ -3336,12 +3336,42 @@ table.pyphone-df-table tr:nth-child(even) {
   display: inline-block !important;
 }
 
-/* ── Pyxi Model Picker Panel (Linear / Cursor Dark Theme) ──────────── */
+/* Icon sizing/color utilities used throughout the Pyxi panel. Icons pick up
+   `color` via SVG currentColor, so size and color are independently composable. */
+.icon-xs { width: 12px; height: 12px; flex-shrink: 0; }
+.icon-sm { width: 14px; height: 14px; flex-shrink: 0; }
+.icon-md { width: 16px; height: 16px; flex-shrink: 0; }
+
+.icon-accent { color: var(--accent-blue); }
+.icon-success { color: #10b981; }
+.icon-danger { color: #f87171; }
+.icon-warning { color: #fbbf24; }
+.icon-muted { color: var(--ink-subtle); }
+
+.pyxi-bubble-sender {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent-blue);
+}
+
+.pycopilot-typing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+}
+
+/* ── Pyxi Model Picker Panel ──────────────────────────────────────── */
 .pyxi-model-picker-panel {
   flex: 1;
   overflow-y: auto;
   padding: 14px;
-  background: #0f1117;
+  background: var(--surface-1);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -3352,13 +3382,13 @@ table.pyphone-df-table tr:nth-child(even) {
   align-items: center;
   justify-content: space-between;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .picker-panel-title {
   font-size: 0.84rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--ink);
   margin: 0;
 }
 
@@ -3369,19 +3399,19 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 .model-card-item {
-  background: #161922;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
   border-radius: var(--rounded-md);
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .model-card-item.selected {
-  border-color: rgba(96, 165, 250, 0.5);
-  background: rgba(30, 41, 59, 0.5);
+  border-color: var(--accent-blue);
+  background: color-mix(in srgb, var(--accent-blue) 10%, var(--surface-2));
 }
 
 .model-card-top {
@@ -3401,38 +3431,41 @@ table.pyphone-df-table tr:nth-child(even) {
 .model-card-title {
   font-size: 0.84rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--ink);
   margin: 0;
 }
 
 .model-tag-pill {
-  font-size: 0.65rem;
+  font-size: 0.64rem;
   font-weight: 700;
   padding: 2px 8px;
-  border-radius: 100px;
+  border-radius: var(--rounded-pill);
 }
 
-.model-tag-pill.sky {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
+.model-tag-pill.recommended {
+  background: rgba(250, 204, 21, 0.15);
+  color: #facc15;
 }
 
-.model-tag-pill.emerald {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
+.model-card-warning {
+  font-size: 0.72rem;
+  color: #fbbf24;
+  margin: 4px 0 0;
+  line-height: 1.4;
 }
 
 .model-size-badge {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: var(--ink-subtle);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .model-card-desc {
   font-size: 0.76rem;
-  color: #94a3b8;
+  color: var(--ink-muted);
   margin: 0;
   line-height: 1.4;
 }
@@ -3446,10 +3479,10 @@ table.pyphone-df-table tr:nth-child(even) {
 
 .model-action-btn {
   flex: 1;
-  background: #1e2230;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--rounded-md);
-  color: #f8fafc;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-sm);
+  color: var(--ink);
   font-size: 0.76rem;
   font-weight: 600;
   padding: 6px 10px;
@@ -3462,26 +3495,30 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 .model-action-btn:hover {
-  background: #282e40;
-  border-color: rgba(255, 255, 255, 0.25);
+  border-color: var(--accent-blue);
+}
+
+.model-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .model-action-btn.active {
-  background: rgba(16, 185, 129, 0.15);
+  background: rgba(16, 185, 129, 0.12);
   border: 1px solid rgba(16, 185, 129, 0.4);
   color: #10b981;
 }
 
 .model-action-btn.download {
-  background: rgba(14, 165, 233, 0.15);
-  border: 1px solid rgba(14, 165, 233, 0.4);
-  color: #38bdf8;
+  background: color-mix(in srgb, var(--accent-blue) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-blue) 40%, transparent);
+  color: var(--accent-blue);
 }
 
 .model-delete-btn {
-  background: #1e2230;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--rounded-md);
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-sm);
   padding: 6px 10px;
   display: flex;
   align-items: center;
@@ -3491,9 +3528,67 @@ table.pyphone-df-table tr:nth-child(even) {
   transition: all 0.15s ease;
 }
 
-.model-delete-btn:hover {
-  background: rgba(239, 68, 68, 0.15);
+.model-delete-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.12);
   border-color: rgba(239, 68, 68, 0.4);
+}
+
+.model-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Real download progress bar — used both in the top model-bar (active
+   model) and inline per-card in the picker (any model being downloaded). */
+.model-download-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.model-download-progress.compact {
+  margin-top: 6px;
+}
+
+.model-download-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent-blue);
+}
+
+.model-download-progress-status {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.model-download-progress-pct {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.model-download-progress-track {
+  width: 100%;
+  height: 5px;
+  border-radius: var(--rounded-pill);
+  background: var(--hairline);
+  overflow: hidden;
+}
+
+.model-download-progress-fill {
+  height: 100%;
+  border-radius: var(--rounded-pill);
+  background: var(--accent-blue);
+  transition: width 0.3s ease-out;
 }
 
 /* Pyxi Header & Linear IDE Minimal Dark Theme */
@@ -3559,21 +3654,21 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 .pycopilot-model-bar {
-  background: #141720;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--hairline);
   padding: 8px 12px;
   flex-shrink: 0;
 }
 
 .pycopilot-download-btn {
   width: 100%;
-  background: #1e2230;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #f8fafc;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  color: var(--ink);
   font-size: 0.78rem;
   font-weight: 600;
   padding: 6px 12px;
-  border-radius: var(--rounded-md);
+  border-radius: var(--rounded-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3583,17 +3678,8 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 .pycopilot-download-btn:hover {
-  background: #282e40;
-  border-color: rgba(255, 255, 255, 0.25);
-}
-
-.pycopilot-download-progress {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.76rem;
-  color: #94a3b8;
-  justify-content: center;
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
 }
 
 .pycopilot-error-banner {
@@ -3638,8 +3724,8 @@ table.pyphone-df-table tr:nth-child(even) {
 
 .pycopilot-bubble.user {
   align-self: flex-end;
-  background: rgba(14, 165, 233, 0.15);
-  border: 1px solid rgba(14, 165, 233, 0.3);
+  background: color-mix(in srgb, var(--accent-blue) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-blue) 30%, transparent);
 }
 
 .bubble-txt {
@@ -3647,6 +3733,42 @@ table.pyphone-df-table tr:nth-child(even) {
   color: var(--ink);
   margin: 0;
   line-height: 1.45;
+}
+
+.streaming-txt {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+}
+
+.stream-cursor {
+  display: inline-block;
+  animation: pyxi-cursor-blink 1s step-end infinite;
+  color: var(--accent, #0ea5e9);
+}
+
+.pycopilot-stop-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fca5a5;
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  border-radius: var(--rounded-sm);
+  cursor: pointer;
+}
+
+.pycopilot-stop-btn:hover {
+  background: rgba(244, 63, 94, 0.2);
+}
+
+@keyframes pyxi-cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }
 
 .pycopilot-code-box {
@@ -3679,10 +3801,10 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 .code-mini-btn {
-  background: #1e2230;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--rounded-md);
-  color: #94a3b8;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-sm);
+  color: var(--ink-muted);
   font-size: 0.72rem;
   font-weight: 600;
   padding: 4px 8px;
@@ -3694,27 +3816,25 @@ table.pyphone-df-table tr:nth-child(even) {
 }
 
 .code-mini-btn:hover {
-  background: #282e40;
-  border-color: rgba(255, 255, 255, 0.25);
-  color: #f8fafc;
+  border-color: var(--accent-blue);
+  color: var(--ink);
 }
 
 .code-mini-btn.primary {
-  background: #1e2230;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #f8fafc;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  color: var(--ink);
   transition: all 0.15s ease;
 }
 
 .code-mini-btn.primary:hover {
-  background: #282e40;
-  border-color: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
+  border-color: var(--accent-blue);
+  color: var(--ink);
 }
 
 .code-mini-btn.primary.confirm-state {
-  background: #0284c7;
-  border-color: #38bdf8;
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
   color: #ffffff;
   font-weight: 700;
   animation: pulseConfirm 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -3862,6 +3982,7 @@ table.pyphone-df-table tr:nth-child(even) {
 
 .pycopilot-send-btn {
   background: #10b981;
+  color: #ffffff;
   border: none;
   padding: 8px 12px;
   min-height: 38px;
@@ -3872,6 +3993,15 @@ table.pyphone-df-table tr:nth-child(even) {
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.pycopilot-send-btn:hover:not(:disabled) {
+  background: #0ea472;
+}
+
+.pycopilot-send-btn:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .pycopilot-send-btn:disabled {

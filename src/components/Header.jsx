@@ -13,8 +13,7 @@ import {
   Sun,
   Moon,
   FolderCode,
-  Settings,
-  Terminal
+  Settings
 } from 'lucide-react';
 import PyPhoneStudioLogo from './PyPhoneStudioLogo';
 import { hapticLight } from '../utils/haptics';

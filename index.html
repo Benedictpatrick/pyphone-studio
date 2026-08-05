@@ -28,18 +28,18 @@
       @font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/FiraCode-latin.woff2') format('woff2'); }
       @font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/FiraCode-latin.woff2') format('woff2'); }
     </style>
-    <!-- Pyodide WASM Engine CDN -->
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
-    <script>
-      // Register service worker for offline caching
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-          .then((reg) => {
-            navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
-          })
-          .catch(() => {});
-      }
-    </script>
+    <!-- Pyodide WASM Engine CDN. Deferred so it never blocks first paint on
+         slow mobile connections — pyodideService.js already has its own
+         fallback that dynamically injects this script if it isn't ready
+         yet, so a blocking synchronous <script> here only cost startup time. -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js" defer></script>
+    <!-- Service worker registration is handled exclusively by vite-plugin-pwa's
+         auto-injected registerSW.js (registerType: 'autoUpdate'). A second,
+         hand-written registration here used to force a full page reload via
+         its own controllerchange listener — including on a user's very first
+         visit, because the workbox config claims clients immediately. That
+         meant new/updated users could get their in-progress Pyodide boot
+         (15-20s on mobile) silently restarted from zero mid-load. -->
   </head>
   <body>
     <div id="root"></div>

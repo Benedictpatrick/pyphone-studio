@@ -696,7 +696,7 @@ export default function App() {
         isOpen={isAICopilotOpen}
         onClose={() => setIsAICopilotOpen(false)}
         activeCode={mode === 'script' ? scriptCode : (cells.find(c => c.id === activeCellId)?.code || '')}
-        lastError={scriptOutput?.error || cells.find(c => c.output?.error)?.output?.error}
+        lastError={mode === 'script' ? scriptOutput?.error : cells.find(c => c.id === activeCellId)?.output?.error}
         onInsertCode={handleReplaceCode}
       />
 
@@ -706,7 +706,6 @@ export default function App() {
         <MobileKeyboardToolbar
           onInsertText={handleInsertText}
           onRunCurrent={() => mode === 'script' ? handleRunScript() : handleRunCell(activeCellId)}
-          onOpenAICopilot={() => setIsAICopilotOpen(true)}
           isRunning={mode === 'script'
             ? isScriptRunning
             : cells.some((cell) => cell.id === activeCellId && cell.status === 'running')}

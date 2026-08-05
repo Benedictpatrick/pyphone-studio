@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { Play, Bot } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { hapticLight, hapticMedium } from '../utils/haptics';
 
-export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, onOpenAICopilot, isRunning }) {
+export default function MobileKeyboardToolbar({ onInsertText, onRunCurrent, isRunning }) {
   const toolbarRef = useRef(null);
 
   useEffect(() => {

@@ -24,7 +24,7 @@ export function loadNotebookState() {
     if (!raw) return null;
     const cells = JSON.parse(raw);
     return Array.isArray(cells) ? cells : null;
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -40,7 +40,7 @@ export function saveScriptState(code) {
 export function loadScriptState() {
   try {
     return localStorage.getItem(STORAGE_KEYS.SCRIPT_CODE) || null;
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -48,14 +48,14 @@ export function loadScriptState() {
 export function saveLastMode(mode) {
   try {
     localStorage.setItem(STORAGE_KEYS.LAST_MODE, mode);
-  } catch (err) {}
+  } catch {}
 }
 
 export function loadLastMode() {
   try {
     const mode = localStorage.getItem(STORAGE_KEYS.LAST_MODE);
     return mode === 'script' || mode === 'notebook' ? mode : 'notebook';
-  } catch (err) {
+  } catch {
     return 'notebook';
   }
 }
@@ -70,7 +70,7 @@ export function getSavedProjects() {
     }
     const projects = JSON.parse(raw);
     return Array.isArray(projects) ? projects : DEFAULT_PROJECTS;
-  } catch (err) {
+  } catch {
     return DEFAULT_PROJECTS;
   }
 }
@@ -118,7 +118,7 @@ export function renameProject(projectId, newTitle) {
     });
     localStorage.setItem(STORAGE_KEYS.SAVED_PROJECTS, JSON.stringify(updated));
     return updated;
-  } catch (err) {
+  } catch {
     return getSavedProjects();
   }
 }
@@ -129,7 +129,7 @@ export function deleteProject(projectId) {
     const updated = projects.filter(p => p.id !== projectId);
     localStorage.setItem(STORAGE_KEYS.SAVED_PROJECTS, JSON.stringify(updated));
     return updated;
-  } catch (err) {
+  } catch {
     return getSavedProjects();
   }
 }

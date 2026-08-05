@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Terminal, 
-  X, 
-  Download, 
-  Check, 
-  Copy, 
-  Send, 
-  Plus, 
+import {
+  X,
+  Download,
+  Check,
+  Copy,
+  Send,
+  Plus,
   Wrench,
   Loader2,
-  Cpu,
   BarChart2,
   LineChart,
   Repeat,
@@ -19,7 +17,23 @@ import {
   Trash2
 } from 'lucide-react';
 import { hapticLight, hapticSuccess } from '../utils/haptics';
-import { aiCopilotService, LOCAL_MODELS } from '../services/aiCopilotService';
+import { aiCopilotService, LOCAL_MODELS, getRecommendedModel, getDeviceMemoryGB } from '../services/aiCopilotService';
+
+function ModelDownloadProgress({ name, progress, status, compact }) {
+  const pct = Math.max(0, Math.min(100, Math.round(progress || 0)));
+  return (
+    <div className={`model-download-progress ${compact ? 'compact' : ''}`}>
+      <div className="model-download-progress-row">
+        <Loader2 className="icon-xs icon-accent spin" />
+        <span className="model-download-progress-status">{status || `Downloading ${name}...`}</span>
+        <span className="model-download-progress-pct">{pct}%</span>
+      </div>
+      <div className="model-download-progress-track">
+        <div className="model-download-progress-fill" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
 
 export default function AICopilotModal({
   isOpen,
@@ -30,10 +44,16 @@ export default function AICopilotModal({
 }) {
   const [activeModel, setActiveModel] = useState(() => aiCopilotService.getSelectedModel());
   const [modelCachedMap, setModelCachedMap] = useState({});
-  const [isDownloading, setIsDownloading] = useState(false);
+  // Tracks which single model is downloading (the service only runs one
+  // download at a time) so its OWN card can show real inline progress,
+  // instead of a single global bar that forces the picker to close.
+  const [downloadingModelId, setDownloadingModelId] = useState(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadStatus, setDownloadStatus] = useState('');
+  const [deletingModelId, setDeletingModelId] = useState(null);
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const recommendedModelId = useRef(getRecommendedModel().id).current;
+  const deviceMemGB = useRef(getDeviceMemoryGB()).current;
 
   const [userPrompt, setUserPrompt] = useState('');
   const [chatLogs, setChatLogs] = useState([
@@ -44,6 +64,7 @@ export default function AICopilotModal({
     }
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
   const [copiedIdx, setCopiedIdx] = useState(null);
   const [confirmInsertIdx, setConfirmInsertIdx] = useState(null);
   const confirmTimerRef = useRef(null);
@@ -66,21 +87,23 @@ export default function AICopilotModal({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatLogs, isGenerating]);
+  }, [chatLogs, isGenerating, streamingText]);
 
   if (!isOpen) return null;
 
   const handleDownloadModel = async (modelId) => {
+    if (downloadingModelId) return;
     hapticLight();
-    setShowModelPicker(false);
-    setIsDownloading(true);
-    await aiCopilotService.downloadModel(modelId, ({ progress, message }) => {
+    setDownloadingModelId(modelId);
+    setDownloadProgress(0);
+    setDownloadStatus('');
+    const success = await aiCopilotService.downloadModel(modelId, ({ progress, message }) => {
       setDownloadProgress(progress);
       setDownloadStatus(message);
     });
-    setIsDownloading(false);
+    setDownloadingModelId(null);
     await refreshModelStatuses();
-    hapticSuccess();
+    if (success) hapticSuccess();
   };
 
   const handleSelectModel = (modelId) => {
@@ -92,31 +115,38 @@ export default function AICopilotModal({
 
   const handleRemoveModel = async (modelId) => {
     hapticLight();
+    setDeletingModelId(modelId);
     await aiCopilotService.removeModel(modelId);
     await refreshModelStatuses();
+    setDeletingModelId(null);
   };
 
-  const handleAnalyzeCode = () => {
+  const handleAnalyzeCode = async () => {
+    if (isGenerating) return;
     hapticLight();
+    setChatLogs(prev => [
+      ...prev,
+      { sender: 'user', text: 'Analyze my active editor code for mistakes' }
+    ]);
     setIsGenerating(true);
+    setStreamingText('');
 
-    setTimeout(() => {
-      const result = aiCopilotService.analyzeActiveCode(activeCode, lastError);
-      setChatLogs(prev => [
-        ...prev,
-        {
-          sender: 'user',
-          text: 'Analyze my active editor code for mistakes'
-        },
-        {
-          sender: 'ai',
-          text: result.text,
-          code: result.code
-        }
-      ]);
-      setIsGenerating(false);
-      hapticSuccess();
-    }, 350);
+    aiCopilotService.onGenerateUpdate = (partialText) => setStreamingText(partialText);
+
+    const result = await aiCopilotService.analyzeActiveCode(activeCode, lastError);
+    aiCopilotService.onGenerateUpdate = null;
+    setStreamingText('');
+    setChatLogs(prev => [
+      ...prev,
+      { sender: 'ai', text: result.text, code: result.code }
+    ]);
+    setIsGenerating(false);
+    hapticSuccess();
+  };
+
+  const handleStopGeneration = () => {
+    hapticLight();
+    aiCopilotService.cancelGeneration();
   };
 
   const handleSendPrompt = async (textToSend) => {
@@ -128,9 +158,14 @@ export default function AICopilotModal({
     setChatLogs(prev => [...prev, userMsg]);
     setUserPrompt('');
     setIsGenerating(true);
+    setStreamingText('');
+
+    aiCopilotService.onGenerateUpdate = (partialText) => setStreamingText(partialText);
 
     setTimeout(async () => {
       const response = await aiCopilotService.generateResponse(prompt, activeCode);
+      aiCopilotService.onGenerateUpdate = null;
+      setStreamingText('');
       setChatLogs(prev => [
         ...prev,
         { sender: 'ai', text: response.text, code: response.code }
@@ -140,9 +175,17 @@ export default function AICopilotModal({
     }, 400);
   };
 
-  const handleExplainError = () => {
+  const handleExplainError = async () => {
+    if (isGenerating) return;
     hapticLight();
-    const errAnalysis = aiCopilotService.explainError(activeCode, lastError);
+    setIsGenerating(true);
+    setStreamingText('');
+
+    aiCopilotService.onGenerateUpdate = (partialText) => setStreamingText(partialText);
+
+    const errAnalysis = await aiCopilotService.explainError(activeCode, lastError);
+    aiCopilotService.onGenerateUpdate = null;
+    setStreamingText('');
     setChatLogs(prev => [
       ...prev,
       {
@@ -151,6 +194,8 @@ export default function AICopilotModal({
         code: errAnalysis.fixSnippet
       }
     ]);
+    setIsGenerating(false);
+    hapticSuccess();
   };
 
   const handleCopySnippet = (codeText, idx) => {
@@ -192,15 +237,15 @@ export default function AICopilotModal({
         </div>
 
         <div className="pycopilot-header-actions">
-          <button 
+          <button
             className="pycopilot-settings-btn"
             onClick={() => setShowModelPicker(!showModelPicker)}
             title="Switch AI Models"
           >
-            <Settings2 className="w-4 h-4 text-sky-400" />
+            <Settings2 className="icon-sm icon-accent" />
           </button>
           <button className="pycopilot-close-btn" onClick={onClose} title="Close Pyxi">
-            <X className="w-4 h-4 text-slate-400" />
+            <X className="icon-sm icon-muted" />
           </button>
         </div>
       </div>
@@ -208,23 +253,11 @@ export default function AICopilotModal({
       {/* Download / Model Status Bar */}
       {!isCurrentModelCached && !showModelPicker && (
         <div className="pycopilot-model-bar">
-          {isDownloading ? (
-            <div className="pycopilot-download-progress flex flex-col w-full gap-2 p-3 bg-slate-900 rounded-lg border border-slate-700 shadow-md">
-              <div className="flex items-center gap-2 text-sky-400 text-xs font-semibold">
-                <Loader2 className="w-3.5 h-3.5 spin" />
-                <span className="truncate">{downloadStatus || `Downloading ${activeModel.name}...`}</span>
-                <span className="ml-auto flex-shrink-0">{Math.round(downloadProgress || 0)}%</span>
-              </div>
-              <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                <div 
-                  className="bg-sky-400 h-1.5 transition-all duration-300 ease-out" 
-                  style={{ width: `${Math.round(downloadProgress || 0)}%` }}
-                ></div>
-              </div>
-            </div>
+          {downloadingModelId === activeModel.id ? (
+            <ModelDownloadProgress name={activeModel.name} progress={downloadProgress} status={downloadStatus} />
           ) : (
             <button className="pycopilot-download-btn" onClick={() => handleDownloadModel(activeModel.id)}>
-              <Download className="w-3.5 h-3.5" />
+              <Download className="icon-sm" />
               <span>Download {activeModel.name} ({activeModel.sizeMB}MB)</span>
             </button>
           )}
@@ -237,7 +270,7 @@ export default function AICopilotModal({
           <div className="picker-panel-header">
             <h5 className="picker-panel-title">Choose Local AI Model</h5>
             <button className="pycopilot-close-btn" onClick={() => setShowModelPicker(false)}>
-              <X className="w-4 h-4 text-slate-400" />
+              <X className="icon-sm icon-muted" />
             </button>
           </div>
 
@@ -245,44 +278,60 @@ export default function AICopilotModal({
             {LOCAL_MODELS.map((model) => {
               const cached = modelCachedMap[model.id];
               const isSelected = activeModel.id === model.id;
+              const isRecommended = model.id === recommendedModelId;
+              const mayBeTooBig = deviceMemGB !== null && model.minMemoryGB > deviceMemGB;
+              const isDownloadingThis = downloadingModelId === model.id;
+              const isDeletingThis = deletingModelId === model.id;
 
               return (
                 <div key={model.id} className={`model-card-item ${isSelected ? 'selected' : ''}`}>
                   <div className="model-card-top">
                     <div className="model-card-name-row">
                       <h5 className="model-card-title">{model.name}</h5>
-                      <span className={`model-tag-pill ${model.badgeColor}`}>{model.tag}</span>
+                      {isRecommended && <span className="model-tag-pill recommended">Recommended for you</span>}
                     </div>
                     <span className="model-size-badge">{model.sizeMB} MB</span>
                   </div>
 
                   <p className="model-card-desc">{model.desc}</p>
+                  {mayBeTooBig && (
+                    <p className="model-card-warning">⚠ May run out of memory on this device — SmolLM2 360M is safer here.</p>
+                  )}
 
-                  <div className="model-card-actions">
-                    {cached ? (
-                      <>
-                        <button 
-                          className={`model-action-btn ${isSelected ? 'active' : 'primary'}`}
-                          onClick={() => handleSelectModel(model.id)}
+                  {isDownloadingThis ? (
+                    <ModelDownloadProgress name={model.name} progress={downloadProgress} status={downloadStatus} compact />
+                  ) : (
+                    <div className="model-card-actions">
+                      {cached ? (
+                        <>
+                          <button
+                            className={`model-action-btn ${isSelected ? 'active' : 'primary'}`}
+                            onClick={() => handleSelectModel(model.id)}
+                          >
+                            {isSelected ? <Check className="icon-xs icon-success" /> : null}
+                            <span>{isSelected ? 'Active Model' : 'Use Model'}</span>
+                          </button>
+                          <button
+                            className="model-delete-btn"
+                            onClick={() => handleRemoveModel(model.id)}
+                            disabled={isDeletingThis}
+                            title="Delete Model Cache"
+                          >
+                            {isDeletingThis ? <Loader2 className="icon-xs icon-danger spin" /> : <Trash2 className="icon-xs icon-danger" />}
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="model-action-btn download"
+                          onClick={() => handleDownloadModel(model.id)}
+                          disabled={!!downloadingModelId}
                         >
-                          {isSelected ? <Check className="w-3 h-3 text-emerald-400" /> : null}
-                          <span>{isSelected ? 'Active Model' : 'Use Model'}</span>
+                          <Download className="icon-xs" />
+                          <span>Download</span>
                         </button>
-                        <button className="model-delete-btn" onClick={() => handleRemoveModel(model.id)} title="Delete Model Cache">
-                          <Trash2 className="w-3 h-3 text-rose-400" />
-                        </button>
-                      </>
-                    ) : (
-                      <button 
-                        className="model-action-btn download"
-                        onClick={() => handleDownloadModel(model.id)}
-                        disabled={isDownloading}
-                      >
-                        <Download className="w-3 h-3" />
-                        <span>Download ({model.sizeMB}MB)</span>
-                      </button>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -293,7 +342,7 @@ export default function AICopilotModal({
       {/* Error Explainer Alert */}
       {lastError && !showModelPicker && (
         <div className="pycopilot-error-banner" onClick={handleExplainError}>
-          <Wrench className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
+          <Wrench className="icon-sm icon-danger" />
           <span>Execution error detected. Tap to generate fix.</span>
         </div>
       )}
@@ -304,12 +353,11 @@ export default function AICopilotModal({
           {chatLogs.map((msg, idx) => (
             <div key={idx} className={`pycopilot-bubble ${msg.sender}`}>
               {msg.sender === 'ai' && (
-                <div className="pyxi-bubble-sender font-semibold text-xs text-sky-400 flex items-center gap-1.5 mb-1">
-                  <img 
-                    src="/pyxi-mascot.jpg" 
-                    alt="Pyxi" 
-                    className="pyxi-msg-avatar" 
-                    style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }}
+                <div className="pyxi-bubble-sender">
+                  <img
+                    src="/pyxi-mascot.jpg"
+                    alt="Pyxi"
+                    className="pyxi-msg-avatar"
                   />
                   <span>Pyxi</span>
                 </div>
@@ -321,23 +369,23 @@ export default function AICopilotModal({
                   <div className="code-box-toolbar">
                     <span className="code-lang-label">python</span>
                     <div className="code-box-actions">
-                      <button 
+                      <button
                         className="code-mini-btn"
                         onClick={() => handleCopySnippet(msg.code, idx)}
                       >
-                        {copiedIdx === idx ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        {copiedIdx === idx ? <Check className="icon-xs icon-success" /> : <Copy className="icon-xs" />}
                         <span>{copiedIdx === idx ? 'Copied' : 'Copy'}</span>
                       </button>
 
-                      <button 
+                      <button
                         className={`code-mini-btn primary ${confirmInsertIdx === idx ? 'confirm-state' : ''}`}
                         onClick={() => handleInsertClick(msg.code, idx)}
                         title={confirmInsertIdx === idx ? "Tap again to confirm inserting into editor" : "Insert Code to Editor"}
                       >
                         {confirmInsertIdx === idx ? (
-                          <Check className="w-3 h-3 text-white" />
+                          <Check className="icon-xs" />
                         ) : (
-                          <Plus className="w-3 h-3 text-slate-300" />
+                          <Plus className="icon-xs" />
                         )}
                         <span>{confirmInsertIdx === idx ? 'Confirm Insert?' : 'Insert Code'}</span>
                       </button>
@@ -351,10 +399,18 @@ export default function AICopilotModal({
 
           {isGenerating && (
             <div className="pycopilot-bubble ai">
-              <div className="pycopilot-typing">
-                <Loader2 className="w-3.5 h-3.5 spin text-emerald-400 inline mr-2" />
-                <span>Pyxi is generating Python code...</span>
-              </div>
+              {streamingText ? (
+                <pre className="bubble-txt streaming-txt">{streamingText}<span className="stream-cursor">▍</span></pre>
+              ) : (
+                <div className="pycopilot-typing">
+                  <Loader2 className="icon-sm icon-accent spin" />
+                  <span>Pyxi is generating Python code...</span>
+                </div>
+              )}
+              <button className="pycopilot-stop-btn" onClick={handleStopGeneration}>
+                <X className="icon-xs" />
+                <span>Stop</span>
+              </button>
             </div>
           )}
 
@@ -366,23 +422,23 @@ export default function AICopilotModal({
       {!showModelPicker && (
         <div className="pycopilot-chips-bar">
           <button className="mini-chip highlight-chip" onClick={handleAnalyzeCode} title="Analyze active editor code for mistakes">
-            <Search className="w-3 h-3 text-sky-400 inline mr-1" />
+            <Search className="icon-xs" />
             <span>Analyze Code</span>
           </button>
           <button className="mini-chip" onClick={() => handleSendPrompt("Pandas CSV Data Analysis")}>
-            <BarChart2 className="w-3 h-3 text-sky-400 inline mr-1" />
+            <BarChart2 className="icon-xs" />
             <span>Pandas</span>
           </button>
           <button className="mini-chip" onClick={() => handleSendPrompt("Seaborn Scatter Chart")}>
-            <LineChart className="w-3 h-3 text-emerald-400 inline mr-1" />
+            <LineChart className="icon-xs" />
             <span>Seaborn</span>
           </button>
           <button className="mini-chip" onClick={() => handleSendPrompt("Python Loop Examples")}>
-            <Repeat className="w-3 h-3 text-amber-400 inline mr-1" />
+            <Repeat className="icon-xs" />
             <span>Loop</span>
           </button>
           <button className="mini-chip" onClick={() => handleSendPrompt("Write Python Metrics Function")}>
-            <Zap className="w-3 h-3 text-purple-400 inline mr-1" />
+            <Zap className="icon-xs" />
             <span>Function</span>
           </button>
         </div>
@@ -406,7 +462,7 @@ export default function AICopilotModal({
             onClick={() => handleSendPrompt()}
             disabled={isGenerating || !userPrompt.trim()}
           >
-            <Send className="w-3.5 h-3.5 text-white" />
+            <Send className="icon-sm" />
           </button>
         </div>
       )}
