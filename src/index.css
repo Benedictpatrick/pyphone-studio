@@ -3251,6 +3251,12 @@ table.pyphone-df-table tr:nth-child(even) {
   cursor: not-allowed;
 }
 
+/* Hidden by default (desktop keeps the small floating card look with no
+   backdrop) — only shown behind the full-screen mobile takeover below. */
+.pycopilot-backdrop {
+  display: none;
+}
+
 /* ── PyCopilot Professional Dark Floating Drawer ───────────────────── */
 .pycopilot-drawer {
   position: fixed;
@@ -4047,17 +4053,34 @@ table.pyphone-df-table tr:nth-child(even) {
   cursor: not-allowed;
 }
 
-/* Mobile full bottom drawer */
+/* Mobile: near-full-screen takeover with a blurred/dimmed backdrop, so the
+   editor behind doesn't peek through and clutter the chat. */
 @media (max-width: 640px) {
+  .pycopilot-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 99998;
+    animation: pycopilotBackdropFade 0.2s ease;
+  }
+
   .pycopilot-drawer {
     bottom: 0;
     right: 0;
     left: 0;
     width: 100vw;
-    height: 75vh;
-    max-height: 80vh;
+    height: 94dvh;
+    max-height: 94dvh;
     border-radius: 20px 20px 0 0;
   }
+}
+
+@keyframes pycopilotBackdropFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .file-count-badge {

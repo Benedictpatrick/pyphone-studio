@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pyphone-studio.vercel.app/sitemap.xml

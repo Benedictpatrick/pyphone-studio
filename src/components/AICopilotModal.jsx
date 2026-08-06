@@ -251,7 +251,12 @@ export default function AICopilotModal({
   const isCurrentModelCached = modelCachedMap[activeModel.id];
 
   return (
-    <div className="pycopilot-drawer">
+    <>
+      {/* Mobile-only dimmed/blurred backdrop so the editor behind doesn't
+          bleed through and make the chat feel cluttered. Tapping it closes
+          the panel, matching standard mobile sheet/modal behavior. */}
+      <div className="pycopilot-backdrop" onClick={onClose} />
+      <div className="pycopilot-drawer">
       {/* Header */}
       <div className="pycopilot-header">
         <div className="pycopilot-header-title">
@@ -459,7 +464,7 @@ export default function AICopilotModal({
               ) : (
                 <div className="pycopilot-typing">
                   <Loader2 className="icon-sm icon-accent spin" />
-                  <span>Pyxi is generating Python code...</span>
+                  <span>Pyxi is thinking...</span>
                 </div>
               )}
               <button className="pycopilot-stop-btn" onClick={handleStopGeneration}>
@@ -521,6 +526,7 @@ export default function AICopilotModal({
           </button>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

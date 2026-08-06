@@ -12,7 +12,9 @@ const MAX_GENERATION_TOKENS = 512;
 // real plt.show() behavior) and shows one concrete correct pattern. Small
 // local models are much more reliable when imitating a real example than
 // generating matplotlib/seaborn code from scratch.
-const CODEGEN_SYSTEM_PROMPT = `You are Pyxi, a Python coding assistant running inside a real Python 3.11 (Pyodide/WASM) sandbox with pandas, numpy, matplotlib, and seaborn already installed. Preloaded CSV files exist at these exact paths: /home/pyodide/students_marks.csv, /home/pyodide/iris.csv, /home/pyodide/titanic.csv, /home/pyodide/tips.csv, /home/pyodide/stocks.csv, and a generic /home/pyodide/data.csv. Calling plt.show() automatically captures and displays the plot inline — never call plt.savefig() instead, and never call plt.show() more than once per plot. Only use pandas, numpy, matplotlib.pyplot (as plt), and seaborn (as sns) — do not import unavailable packages. Write clean, complete, working code. Format your response with a brief 1-sentence introduction followed by a single python code block. Do NOT ask follow-up questions.
+const CODEGEN_SYSTEM_PROMPT = `You are Pyxi, a friendly Python coding assistant running inside a real Python 3.11 (Pyodide/WASM) sandbox with pandas, numpy, matplotlib, and seaborn already installed. Preloaded CSV files exist at these exact paths: /home/pyodide/students_marks.csv, /home/pyodide/iris.csv, /home/pyodide/titanic.csv, /home/pyodide/tips.csv, /home/pyodide/stocks.csv, and a generic /home/pyodide/data.csv. Calling plt.show() automatically captures and displays the plot inline — never call plt.savefig() instead, and never call plt.show() more than once per plot. Only use pandas, numpy, matplotlib.pyplot (as plt), and seaborn (as sns) — do not import unavailable packages.
+
+If the user's message is a greeting, a general question, or plain conversation (e.g. "hi", "how are you", "what can you do") — reply naturally and briefly in plain text. Do NOT write Python code unless the user is actually asking for code. Only when they ask for code: write clean, complete, working code, with a brief 1-sentence introduction followed by a single python code block. Do NOT ask follow-up questions.
 
 Example of a correct response for "make a heatmap":
 Here's a correlation heatmap using the tips dataset:
@@ -728,8 +730,12 @@ class AICopilotService {
   async generateResponse(userPrompt, activeCode = '') {
     const promptLower = userPrompt.toLowerCase().trim();
 
-    // Check if the user is asking to explain / understand code
-    const isExplanationIntent = /\b(explain|how does|how do|what does|understand|walkthrough|tell me how|describe|working of)\b/.test(promptLower);
+    // Only treat it as "explain the code" when there's actually code open to
+    // explain — otherwise this is just a normal question and gets passed
+    // through as-is (forcing every message, including "hi", into a
+    // "write code for X" template made the model hallucinate code for
+    // plain conversation).
+    const isExplanationIntent = /\b(explain|how does|how do|what does|understand|walkthrough|tell me how|describe|working of)\b/.test(promptLower) && activeCode.trim().length > 0;
 
     const ready = await this.ensureModelReady();
     if (!ready) {
@@ -740,12 +746,9 @@ class AICopilotService {
     }
 
     try {
-      let fullPromptText = userPrompt;
-      if (isExplanationIntent) {
-        fullPromptText = `Explain how this Python code works:\n${activeCode || userPrompt}`;
-      } else {
-        fullPromptText = `Write clean, complete, working Python code for: "${userPrompt}". Include a 1-sentence intro followed by a clean python code block.`;
-      }
+      const fullPromptText = isExplanationIntent
+        ? `Explain how this Python code works:\n${activeCode}`
+        : userPrompt;
       const rawResponse = await this.generateWithWorker(fullPromptText);
       const workerResponse = stripRepetitionLoop(rawResponse);
 
