@@ -16,7 +16,7 @@ import LoadingScreen from './components/LoadingScreen';
 
 import { hapticMedium, hapticSuccess, hapticError, hapticSelection } from './utils/haptics';
 
-import { initPyodide, executePythonCode, getActiveVariables, cancelPythonExecution } from './services/pyodideService';
+import { initPyodide, executePythonCode, getActiveVariables, cancelPythonExecution, writeCustomDataset } from './services/pyodideService';
 import { exportToHtmlReport } from './services/htmlExportService';
 import {
   saveNotebookState,
@@ -30,6 +30,12 @@ import {
   renameProject,
   deleteProject
 } from './services/storageService';
+import {
+  getAllUploadedDatasets,
+  saveUploadedDataset,
+  deleteUploadedDataset,
+  MAX_UPLOAD_SIZE_BYTES
+} from './services/uploadedDatasetsService';
 
 export default function App() {
   // Theme state ('dark' | 'light')
@@ -79,6 +85,24 @@ export default function App() {
   // Variable Explorer state
   const [activeVariables, setActiveVariables] = useState([]);
   const [isVarExplorerOpen, setIsVarExplorerOpen] = useState(false);
+
+  // User-uploaded datasets (persisted in IndexedDB, mounted into Pyodide FS once the engine is ready)
+  const [uploadedDatasets, setUploadedDatasets] = useState([]);
+
+  useEffect(() => {
+    getAllUploadedDatasets().then(setUploadedDatasets);
+  }, []);
+
+  // Re-mount persisted uploads into the Pyodide virtual filesystem whenever the engine
+  // becomes ready or the upload list changes (e.g. a fresh upload while already running).
+  useEffect(() => {
+    if (engineStatus.status !== 'ready' || uploadedDatasets.length === 0) return;
+    uploadedDatasets.forEach((ds) => {
+      writeCustomDataset(ds.filename, ds.csv).catch((err) => {
+        console.warn(`Failed to mount uploaded dataset ${ds.filename}:`, err);
+      });
+    });
+  }, [engineStatus.status, uploadedDatasets]);
 
   // Modals state
   const [selectedPlotB64, setSelectedPlotB64] = useState(null);
@@ -308,6 +332,83 @@ export default function App() {
       );
       hapticError();
     }
+  };
+
+  // Append a code snippet as a brand-new cell and execute it immediately (notebook mode),
+  // or just append it to the script buffer for the user to run themselves (script mode).
+  // Used by the Data modal's one-click "Correlation Heatmap" action.
+  const handleRunCodeInNewCell = async (code) => {
+    if (mode === 'script') {
+      setScriptCode((prev) => `${prev}\n${code}`);
+      return;
+    }
+
+    const newId = `cell-${Date.now()}`;
+    setCells((prev) => [...prev, { id: newId, type: 'code', code, executionCount: null, status: 'running', output: null }]);
+    setActiveCellId(newId);
+    hapticMedium();
+
+    try {
+      const result = await executePythonCode(code);
+      setCells((prev) =>
+        prev.map((c) => (c.id === newId ? {
+          ...c,
+          status: result.error ? 'error' : 'idle',
+          executionCount: 1,
+          output: {
+            stdout: result.stdout,
+            error: result.error,
+            plots: result.plots || [],
+            dfHtml: result.dfHtml || null
+          }
+        } : c))
+      );
+      handleRefreshVariables();
+      result.error ? hapticError() : hapticSuccess();
+    } catch (err) {
+      setCells((prev) =>
+        prev.map((c) => (c.id === newId ? { ...c, status: 'error', output: { error: err.message } } : c))
+      );
+      hapticError();
+    }
+  };
+
+  // Build and run a df.corr() + seaborn heatmap snippet for a given dataset ({ filename })
+  const handleInsertCorrelationHeatmap = (dataset) => {
+    const code = `# Correlation Heatmap: ${dataset.filename}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+df = pd.read_csv('${dataset.filename}')
+numeric_df = df.select_dtypes(include='number')
+
+plt.figure(figsize=(8, 6))
+sns.heatmap(numeric_df.corr(), annot=True, cmap='coolwarm', fmt='.2f')
+plt.title('Correlation Heatmap - ${dataset.filename}')
+plt.tight_layout()
+plt.show()
+`;
+    setIsDatasetModalOpen(false);
+    handleRunCodeInNewCell(code);
+  };
+
+  // Read an uploaded File, persist it to IndexedDB, and mount it into the Pyodide FS
+  const handleUploadDataset = async (file) => {
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      throw new Error(`File too large — please upload a CSV under ${Math.floor(MAX_UPLOAD_SIZE_BYTES / (1024 * 1024))}MB.`);
+    }
+    const csvText = await file.text();
+    const filename = file.name.endsWith('.csv') ? file.name : `${file.name}.csv`;
+    const record = await saveUploadedDataset({ name: file.name, filename, csv: csvText, size: file.size });
+    await writeCustomDataset(filename, csvText);
+    setUploadedDatasets((prev) => [record, ...prev]);
+    return record;
+  };
+
+  const handleDeleteUploadedDataset = async (id) => {
+    await deleteUploadedDataset(id);
+    setUploadedDatasets((prev) => prev.filter((d) => d.id !== id));
   };
 
   // Run All Cells
@@ -672,6 +773,10 @@ export default function App() {
         isOpen={isDatasetModalOpen}
         onClose={() => setIsDatasetModalOpen(false)}
         onInsertCodeSnippet={handleInsertText}
+        uploadedDatasets={uploadedDatasets}
+        onUploadDataset={handleUploadDataset}
+        onDeleteUploadedDataset={handleDeleteUploadedDataset}
+        onInsertCorrelationHeatmap={handleInsertCorrelationHeatmap}
       />
 
       <VariableExplorer

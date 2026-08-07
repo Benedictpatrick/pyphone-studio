@@ -2880,6 +2880,98 @@ table.pyphone-df-table tr:nth-child(even) {
   box-shadow: 0 0 0 1px var(--emerald);
 }
 
+/* Dataset Upload Zone (drag & drop / tap to browse) */
+.dataset-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: 22px 16px;
+  border: 1.5px dashed var(--hairline-strong, var(--hairline));
+  border-radius: var(--rounded-lg);
+  background: var(--surface-1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.dataset-upload-zone:hover,
+.dataset-upload-zone.drag-active {
+  border-color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.dataset-upload-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dataset-upload-text {
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+
+.dataset-upload-text strong {
+  color: var(--accent-blue);
+}
+
+.dataset-upload-hint {
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+}
+
+.upload-spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.dataset-section-title {
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 4px;
+}
+
+.dataset-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.dataset-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  min-height: 26px;
+  padding: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dataset-action-btn:hover {
+  border-color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.inline-icon {
+  display: inline-block;
+  vertical-align: -3px;
+  margin: 0 2px;
+}
+
 /* Sleek Cheat Sheet Redesign */
 .cheat-item-card.sleek {
   background: var(--surface-1);
