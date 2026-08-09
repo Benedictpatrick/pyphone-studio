@@ -3,6 +3,16 @@ import { SAMPLE_DATASETS } from './datasetService';
 
 let pyodideInstance = null;
 let loadPromise = null;
+// ── Live stdout mirror ──────────────────────────────────────────────────────
+// Pyodide releases the GIL while its stdin callback is blocked waiting on us
+// (window.prompt), so touching any PyProxy/Python object from inside that
+// callback throws "NoGilError: Attempted to use PyProxy when Python GIL not
+// held". That rules out writing the echoed input() value back into the
+// Python-side OutputBuffer from JS. Instead, every stdout write (from Python
+// print()/write(), and from JS when the user answers an input() prompt) is
+// pushed onto this plain JS array in real execution order, so the final
+// transcript can be reconstructed purely on the JS side.
+let liveStdoutChunks = [];
 // ── Interrupt / Cancel Support ──────────────────────────────────────────────
 let interruptBuffer = null;      // Uint8Array backed by SharedArrayBuffer
 let _executionRunning = false;   // soft flag for UI
@@ -80,28 +90,29 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
 
       const pyodide = await window.loadPyodide({
         indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/',
-        // input() already writes its own prompt text to sys.stdout (our
-        // _stdout_buf) before this fires, so the Terminal tab shows the
-        // prompt correctly. What's missing is an echo of what the user
-        // typed — a real terminal echoes keystrokes as you type, we don't,
-        // so without this the typed value silently vanishes and the next
-        // prompt/print() output runs directly into the previous one with
-        // no line break. Write the typed value + newline straight into the
-        // currently active stdout buffer so the transcript reads correctly.
+        // input() already writes its own prompt text to sys.stdout before
+        // this fires, so the prompt itself shows up correctly. What's
+        // missing is an echo of what the user typed — a real terminal
+        // echoes keystrokes as you type, we don't, so without this the
+        // typed value silently vanishes and the next prompt/print() output
+        // runs directly into the previous one with no line break.
+        //
+        // This must stay pure JS: Pyodide releases the GIL while this
+        // callback is blocked (window.prompt), so calling into any
+        // PyProxy/Python object here throws NoGilError. Push straight onto
+        // the plain JS mirror array instead.
         stdin: () => {
           const value = window.prompt('Python Input Required:') ?? '';
-          try {
-            const buf = pyodide.globals.get('_stdout_buf');
-            if (buf) {
-              buf.write(value + '\n');
-              buf.destroy?.();
-            }
-          } catch (e) {
-            console.warn('Failed to echo input() value into terminal output:', e);
-          }
+          liveStdoutChunks.push(value + '\n');
           return value;
         }
       });
+
+      // Bridge so Python's OutputBuffer.write() can mirror every chunk into
+      // liveStdoutChunks. This direction (Python calling out to JS) is safe
+      // regardless of the stdin GIL restriction above — it only ever runs
+      // during normal Python execution, never from inside the stdin callback.
+      pyodide.globals.set('_js_stdout_push', (s) => { liveStdoutChunks.push(s); });
 
       // Load built-in C-extension packages sequentially for mobile stability
       onProgress({ status: 'loading-packages', message: 'Loading NumPy...' });
@@ -214,18 +225,28 @@ def _custom_show(*args, **kwargs):
 # Override plt.show
 plt.show = _custom_show
 
-# Standard output redirection helper
+# Standard output redirection helper. mirror_to_js, when set, is called on
+# every write so JS can rebuild the exact chronological transcript — this is
+# how input() echoes (pushed from JS, since Python can't be touched from the
+# stdin callback — see pyodideService.js) end up correctly interleaved with
+# print()/write() output instead of only appearing in Python's own buffer.
 class OutputBuffer:
-    def __init__(self):
+    def __init__(self, mirror_to_js=None):
         self.out = []
+        self.mirror_to_js = mirror_to_js
     def write(self, s):
         self.out.append(str(s))
+        if self.mirror_to_js:
+            try:
+                self.mirror_to_js(str(s))
+            except Exception:
+                pass
     def flush(self):
         pass
     def getvalue(self):
         return "".join(self.out)
 
-_stdout_buf = OutputBuffer()
+_stdout_buf = OutputBuffer(mirror_to_js=_js_stdout_push)
 _stderr_buf = OutputBuffer()
 
 # Variable Inspector Helper
@@ -338,9 +359,10 @@ export async function executePythonCode(codeString, extraFiles = {}) {
     }
 
     // Reset captured output buffers and redirect stdout/stderr
+    liveStdoutChunks = [];
     await pyodide.runPythonAsync(`
 _captured_plots = []
-_stdout_buf = OutputBuffer()
+_stdout_buf = OutputBuffer(mirror_to_js=_js_stdout_push)
 _stderr_buf = OutputBuffer()
 sys.stdout = _stdout_buf
 sys.stderr = _stderr_buf
@@ -414,9 +436,10 @@ isinstance(__last_res, pd.DataFrame)
     let stderr = '';
     let plotsArray = [];
 
-    try {
-      stdout = await pyodide.runPythonAsync(`_stdout_buf.getvalue()`) || '';
-    } catch { stdout = ''; }
+    // liveStdoutChunks (not _stdout_buf.getvalue()) is the source of truth:
+    // it's the only place print() output and echoed input() values share a
+    // single, correctly ordered timeline.
+    stdout = liveStdoutChunks.join('');
 
     try {
       stderr = await pyodide.runPythonAsync(`_stderr_buf.getvalue()`) || '';
