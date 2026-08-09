@@ -364,7 +364,7 @@ export default function App() {
         } : c))
       );
       handleRefreshVariables();
-      result.error ? hapticError() : hapticSuccess();
+      if (result.error) hapticError(); else hapticSuccess();
     } catch (err) {
       setCells((prev) =>
         prev.map((c) => (c.id === newId ? { ...c, status: 'error', output: { error: err.message } } : c))
