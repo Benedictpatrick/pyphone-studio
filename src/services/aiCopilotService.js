@@ -12,9 +12,19 @@ const MAX_GENERATION_TOKENS = 512;
 // real plt.show() behavior) and shows one concrete correct pattern. Small
 // local models are much more reliable when imitating a real example than
 // generating matplotlib/seaborn code from scratch.
-const CODEGEN_SYSTEM_PROMPT = `You are Pyxi, a friendly Python coding assistant running inside a real Python 3.11 (Pyodide/WASM) sandbox with pandas, numpy, matplotlib, and seaborn already installed. Preloaded CSV files exist at these exact paths: /home/pyodide/students_marks.csv, /home/pyodide/iris.csv, /home/pyodide/titanic.csv, /home/pyodide/tips.csv, /home/pyodide/stocks.csv, and a generic /home/pyodide/data.csv. Calling plt.show() automatically captures and displays the plot inline — never call plt.savefig() instead, and never call plt.show() more than once per plot. Only use pandas, numpy, matplotlib.pyplot (as plt), and seaborn (as sns) — do not import unavailable packages.
+const CODEGEN_SYSTEM_PROMPT = `You are Pyxi, a friendly Python coding assistant running inside a real Python 3.11 (Pyodide/WASM) sandbox with pandas, numpy, matplotlib, and seaborn already installed. Calling plt.show() automatically captures and displays the plot inline: never call plt.savefig() instead, and never call plt.show() more than once per plot. Only use pandas, numpy, matplotlib.pyplot (as plt), and seaborn (as sns): do not import unavailable packages, and never call a function or argument you are not certain actually exists in that library.
 
-If the user's message is a greeting, a general question, or plain conversation (e.g. "hi", "how are you", "what can you do") — reply naturally and briefly in plain text. Do NOT write Python code unless the user is actually asking for code. Only when they ask for code: write clean, complete, working code, with a brief 1-sentence introduction followed by a single python code block. Do NOT ask follow-up questions.
+These exact preloaded CSV files exist, with exactly these columns, use these column names verbatim and never invent, rename, or guess a different one:
+- /home/pyodide/students_marks.csv: student_name, math, science, english, average_marks
+- /home/pyodide/iris.csv: sepal_length, sepal_width, petal_length, petal_width, species
+- /home/pyodide/titanic.csv: passenger_id, survived, pclass, sex, age, sibsp, parch, fare, embarked
+- /home/pyodide/tips.csv: total_bill, tip, sex, smoker, day, time, size
+- /home/pyodide/stocks.csv: date, AAPL, GOOGL, MSFT, AMZN, volume
+- /home/pyodide/data.csv: a generic fallback, same columns as titanic.csv
+
+For any other CSV the user mentions that is not in this list, do not invent column names; load it and inspect with df.columns first instead of guessing. Prefer the simplest correct approach over a clever one: shorter, standard code is far less likely to contain a mistake than an elaborate one.
+
+If the user's message is a greeting, a general question, or plain conversation (e.g. "hi", "how are you", "what can you do"), reply naturally and briefly in plain text. Do NOT write Python code unless the user is actually asking for code. Only when they ask for code: write clean, complete, working code, with a brief 1-sentence introduction followed by a single python code block. Do NOT ask follow-up questions.
 
 Example of a correct response for "make a heatmap":
 Here's a correlation heatmap using the tips dataset:
@@ -803,6 +813,18 @@ class AICopilotService {
         } else if (workerResponse.includes('def ') || workerResponse.includes('import ') || workerResponse.includes('print(')) {
           codeSnippet = workerResponse.trim();
           explanation = `Here is the Python solution generated for "${userPrompt}":`;
+        }
+
+        // Small local models routinely drop a colon, misspell a keyword, or
+        // collide two statements on one line. Run the same AST-linter-driven
+        // repair used for the "fix my error" flow on freshly generated code
+        // too, so those mechanical mistakes never reach the user as a code
+        // block that fails on the very first run.
+        if (codeSnippet) {
+          const { fixedCode, fixesApplied } = this.repairCode(codeSnippet, '');
+          if (fixesApplied.length > 0) {
+            codeSnippet = fixedCode;
+          }
         }
 
         return {
