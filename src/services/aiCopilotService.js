@@ -816,6 +816,14 @@ class AICopilotService {
     // plain conversation).
     const isExplanationIntent = /\b(explain|how does|how do|what does|understand|walkthrough|tell me how|describe|working of)\b/.test(promptLower) && activeCode.trim().length > 0;
 
+    // Placeholder scripts (a fresh file, or one containing only the
+    // "# Write your Python code here..." boilerplate) don't count as real
+    // code to build on — including them as context just wastes a small
+    // model's limited context window for no benefit.
+    const hasRealCode = activeCode
+      .split('\n')
+      .some(line => line.trim() && !line.trim().startsWith('#'));
+
     const ready = await this.ensureModelReady();
     if (!ready) {
       return {
@@ -825,9 +833,23 @@ class AICopilotService {
     }
 
     try {
-      const fullPromptText = isExplanationIntent
-        ? `Explain how this Python code works:\n${activeCode}`
-        : userPrompt;
+      // Small local models have a limited context window, so cap how much
+      // of the user's existing code gets injected rather than risking
+      // degraded/garbled output on a long script.
+      const codeForContext = activeCode.length > 4000 ? activeCode.slice(0, 4000) + '\n# ...(truncated)' : activeCode;
+
+      let fullPromptText;
+      if (isExplanationIntent) {
+        fullPromptText = `Explain how this Python code works:\n${activeCode}`;
+      } else if (hasRealCode) {
+        // Give Pyxi the editor's current code as context for every request,
+        // not just "explain" ones, so it can actually modify/extend/fix
+        // what's already there instead of always writing from scratch with
+        // zero awareness of it.
+        fullPromptText = `The user's current code in the editor is:\n\`\`\`python\n${codeForContext}\n\`\`\`\n\nUser request: ${userPrompt}\n\nIf the request is about modifying, extending, fixing, or building on this existing code, use it as the starting point and return the complete updated code in one block. If the request is unrelated to this code (a greeting, a completely different task, general conversation), ignore the code above and just respond to the request normally.`;
+      } else {
+        fullPromptText = userPrompt;
+      }
       const rawResponse = await this.generateWithWorker(fullPromptText);
       const workerResponse = stripRepetitionLoop(rawResponse);
 
