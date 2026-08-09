@@ -133,7 +133,7 @@ export const LOCAL_MODELS = [
     minMemoryGB: 3,
     mobileSafe: true,
     codingCapable: true,
-    desc: 'Purpose-built for code generation — noticeably better Python output than the general 0.5B model, with CPU fallback.',
+    desc: 'Purpose-built for code generation: noticeably better Python output than the general 0.5B model, with CPU fallback.',
     badgeColor: 'emerald',
     repo: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
     file: 'qwen2.5-coder-0.5b-instruct-q4_k_m.gguf',
@@ -710,7 +710,7 @@ class AICopilotService {
     if (codeUnchanged) {
       explanation = errorText
         ? `Pyxi couldn't produce a confirmed fix for this error with the current model. Try a bigger model (Llama 3.2 1B or Gemma 2 2B) for better results.\n\nOriginal error: ${errorText.split('\n').filter(Boolean).pop() || errorText}`
-        : 'No issues found — this code already looks correct.';
+        : 'No issues found, this code already looks correct.';
     }
 
     return { text: explanation, code: codeSnippet || code };
@@ -731,7 +731,7 @@ class AICopilotService {
     if (!ready) {
       const heuristic = this.analyzeActiveCodeHeuristic(code, errorText);
       return {
-        text: `⚠️ *No AI model downloaded yet — showing a quick offline check. Download a model (top of chat) for Pyxi to actually read and fix your code.*\n\n${heuristic.text}`,
+        text: `⚠️ *No AI model downloaded yet, showing a quick offline check. Download a model (top of chat) for Pyxi to actually read and fix your code.*\n\n${heuristic.text}`,
         code: heuristic.code
       };
     }

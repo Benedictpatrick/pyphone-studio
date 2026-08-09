@@ -131,7 +131,7 @@ export default function CodeCell({
   const [cmView, setCmView] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
 
-  // Build dynamic extensions — including Shift+Enter to run cell
+  // Build dynamic extensions, including Shift+Enter to run cell
   const cmExtensions = useMemo(() => {
     const dynamicTheme = EditorView.theme({
       '&': { backgroundColor: 'transparent', height: 'auto', fontSize: `${fontSize}px` },
@@ -196,7 +196,7 @@ export default function CodeCell({
 
         <div className="cell-actions">
           {isRunning ? (
-            /* Cancel button — shown while cell is running */
+            /* Cancel button: shown while cell is running */
             <button
               className="cell-act-btn cancel-cell-btn"
               onClick={(e) => {

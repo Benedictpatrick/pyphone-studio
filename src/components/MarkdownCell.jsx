@@ -168,7 +168,7 @@ export default function MarkdownCell({
 }) {
   const [isEditing, setIsEditing] = useState(false);
 
-  // Memoize rendered markdown — only re-parse when cell.code changes
+  // Memoize rendered markdown, only re-parse when cell.code changes
   const rendered = useMemo(() => renderMarkdown(cell.code), [cell.code]);
 
   return (
@@ -270,7 +270,7 @@ export default function MarkdownCell({
               <div className="md-content">{rendered}</div>
             ) : (
               <p className="md-placeholder">
-                Tap to write Markdown — supports <code>**bold**</code>, <code>*italic*</code>, <code>`code`</code>, headings, lists, links &amp; more
+                Tap to write Markdown: supports <code>**bold**</code>, <code>*italic*</code>, <code>`code`</code>, headings, lists, links &amp; more
               </p>
             )}
           </div>

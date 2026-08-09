@@ -70,7 +70,7 @@ print(df.head())
     for (const file of files) {
       try {
         const record = await onUploadDataset(file);
-        setUploadStatus(`Uploaded ${record.filename} — ready to use.`);
+        setUploadStatus(`Uploaded ${record.filename}, ready to use.`);
       } catch (err) {
         setUploadStatus(`Error: ${err.message}`);
       }
@@ -134,7 +134,7 @@ print(df.head())
         </div>
 
         <div className="modal-body">
-          {/* Real File Upload — drag & drop or tap to browse */}
+          {/* Real File Upload: drag & drop or tap to browse */}
           <div
             className={`dataset-upload-zone ${isDragActive ? 'drag-active' : ''}`}
             onClick={() => fileInputRef.current?.click()}
@@ -158,7 +158,7 @@ print(df.head())
             <div className="dataset-upload-text">
               <strong>Tap to upload</strong> or drag & drop a CSV file
             </div>
-            <span className="dataset-upload-hint">Saved on this device — survives reload</span>
+            <span className="dataset-upload-hint">Saved on this device: survives reload</span>
           </div>
 
           {uploadStatus && <p className="status-msg">{uploadStatus}</p>}

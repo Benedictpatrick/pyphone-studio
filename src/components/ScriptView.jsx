@@ -302,7 +302,7 @@ export default function ScriptView({
     }
   };
 
-  // Build dynamic extensions — including Shift+Enter to run script
+  // Build dynamic extensions, including Shift+Enter to run script
   const cmExtensions = useMemo(() => {
     const dynamicTheme = EditorView.theme({
       '&': { backgroundColor: 'transparent', height: 'auto', fontSize: `${fontSize}px` },

@@ -1,5 +1,5 @@
 // IndexedDB-backed persistence for user-uploaded CSV datasets.
-// Keeps uploads available across reloads without needing a backend —
+// Keeps uploads available across reloads without needing a backend,
 // consistent with this app's fully offline, client-side design.
 
 const DB_NAME = 'pyphone_datasets_db';

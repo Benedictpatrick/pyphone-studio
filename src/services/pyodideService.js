@@ -92,7 +92,7 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
         indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/',
         // input() already writes its own prompt text to sys.stdout before
         // this fires, so the prompt itself shows up correctly. What's
-        // missing is an echo of what the user typed — a real terminal
+        // missing is an echo of what the user typed: a real terminal
         // echoes keystrokes as you type, we don't, so without this the
         // typed value silently vanishes and the next prompt/print() output
         // runs directly into the previous one with no line break.
@@ -110,7 +110,7 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
 
       // Bridge so Python's OutputBuffer.write() can mirror every chunk into
       // liveStdoutChunks. This direction (Python calling out to JS) is safe
-      // regardless of the stdin GIL restriction above — it only ever runs
+      // regardless of the stdin GIL restriction above: it only ever runs
       // during normal Python execution, never from inside the stdin callback.
       pyodide.globals.set('_js_stdout_push', (s) => { liveStdoutChunks.push(s); });
 
@@ -142,7 +142,7 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
           await micropip.install('seaborn');
           micropip.destroy();
         } catch (micropipErr) {
-          console.warn('Seaborn micropip fallback also failed — seaborn will be unavailable:', micropipErr);
+          console.warn('Seaborn micropip fallback also failed, seaborn will be unavailable:', micropipErr);
         }
       }
 
@@ -226,9 +226,9 @@ def _custom_show(*args, **kwargs):
 plt.show = _custom_show
 
 # Standard output redirection helper. mirror_to_js, when set, is called on
-# every write so JS can rebuild the exact chronological transcript — this is
+# every write so JS can rebuild the exact chronological transcript. This is
 # how input() echoes (pushed from JS, since Python can't be touched from the
-# stdin callback — see pyodideService.js) end up correctly interleaved with
+# stdin callback, see pyodideService.js) end up correctly interleaved with
 # print()/write() output instead of only appearing in Python's own buffer.
 class OutputBuffer:
     def __init__(self, mirror_to_js=None):
@@ -431,7 +431,7 @@ isinstance(__last_res, pd.DataFrame)
     }
 
 
-    // Retrieve captured stdout, stderr, and plots — with safe fallbacks
+    // Retrieve captured stdout, stderr, and plots, with safe fallbacks
     let stdout = '';
     let stderr = '';
     let plotsArray = [];
@@ -494,7 +494,7 @@ sys.stderr = _orig_stderr
   // Wrap with a cancellable promise when SAB is not available
   const runWithCancelFallback = () => {
     const runPromise = run().finally(() => { _executionRunning = false; });
-    if (interruptBuffer) return runPromise; // SAB path — cancel is native
+    if (interruptBuffer) return runPromise; // SAB path: cancel is native
     return new Promise((resolve, reject) => {
       _cancelReject = reject;
       runPromise.then(resolve, reject);

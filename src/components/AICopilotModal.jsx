@@ -18,6 +18,22 @@ import {
 } from 'lucide-react';
 import { hapticLight, hapticSuccess } from '../utils/haptics';
 import { aiCopilotService, LOCAL_MODELS, getRecommendedModel, getDeviceMemoryGB, isMobileDevice } from '../services/aiCopilotService';
+import CodeMirror from '@uiw/react-codemirror';
+import { python } from '@codemirror/lang-python';
+import { syntaxHighlighting } from '@codemirror/language';
+import { EditorView } from '@codemirror/view';
+import { pyHighlightStyle } from '../utils/pythonHighlightStyle';
+
+// Read-only, chrome-free CodeMirror setup for previewing a code snippet
+// inside a chat bubble — real Python syntax highlighting (matching the main
+// editor's theme) instead of the old flat single-color <pre> block.
+const snippetTheme = EditorView.theme({
+  '&': { backgroundColor: 'transparent' },
+  '.cm-scroller': { fontFamily: 'var(--font-mono)', fontSize: '0.76rem' },
+  '.cm-content': { padding: '8px 10px' },
+  '.cm-gutters': { display: 'none' },
+});
+const snippetExtensions = [python(), syntaxHighlighting(pyHighlightStyle), snippetTheme];
 
 function ModelDownloadProgress({ name, progress, status, compact }) {
   const pct = Math.max(0, Math.min(100, Math.round(progress || 0)));
@@ -325,7 +341,7 @@ export default function AICopilotModal({
               const cached = modelCachedMap[model.id];
               const isSelected = activeModel.id === model.id;
               const isRecommended = model.id === recommendedModelId;
-              // RAM capacity alone isn't a safe signal on phones — a phone can
+              // RAM capacity alone isn't a safe signal on phones: a phone can
               // report plenty of RAM but have a GPU/CPU too weak to run a
               // bigger model at usable speed, so mobile gets its own warning.
               const mayBeSlowOnMobile = onMobile && !model.mobileSafe;
@@ -345,10 +361,10 @@ export default function AICopilotModal({
 
                   <p className="model-card-desc">{model.desc}</p>
                   {mayBeSlowOnMobile && (
-                    <p className="model-card-warning">⚠ Runs slowly or may freeze on phones — SmolLM2 360M is safer here.</p>
+                    <p className="model-card-warning">⚠ Runs slowly or may freeze on phones: SmolLM2 360M is safer here.</p>
                   )}
                   {mayBeTooBig && (
-                    <p className="model-card-warning">⚠ May run out of memory on this device — SmolLM2 360M is safer here.</p>
+                    <p className="model-card-warning">⚠ May run out of memory on this device: SmolLM2 360M is safer here.</p>
                   )}
 
                   {isDownloadingThis ? (
@@ -400,7 +416,7 @@ export default function AICopilotModal({
         </div>
       )}
 
-      {/* Model Capability Hint — tiny models are tuned for speed, not code quality */}
+      {/* Model Capability Hint: tiny models are tuned for speed, not code quality */}
       {!activeModel.codingCapable && !showModelPicker && (
         <div className="pycopilot-hint-banner" onClick={() => setShowModelPicker(true)}>
           <span>💡 {activeModel.name} is built for speed. For data analysis / plotting code, switch to Llama 3.2 1B or Gemma 2 2B.</span>
@@ -451,7 +467,14 @@ export default function AICopilotModal({
                       </button>
                     </div>
                   </div>
-                  <pre className="code-snippet-pre"><code>{msg.code}</code></pre>
+                  <CodeMirror
+                    value={msg.code}
+                    extensions={snippetExtensions}
+                    theme="none"
+                    editable={false}
+                    basicSetup={false}
+                    className="code-snippet-cm"
+                  />
                 </div>
               )}
             </div>

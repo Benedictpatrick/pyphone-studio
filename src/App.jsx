@@ -396,7 +396,7 @@ plt.show()
   // Read an uploaded File, persist it to IndexedDB, and mount it into the Pyodide FS
   const handleUploadDataset = async (file) => {
     if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-      throw new Error(`File too large — please upload a CSV under ${Math.floor(MAX_UPLOAD_SIZE_BYTES / (1024 * 1024))}MB.`);
+      throw new Error(`File too large, please upload a CSV under ${Math.floor(MAX_UPLOAD_SIZE_BYTES / (1024 * 1024))}MB.`);
     }
     const csvText = await file.text();
     const filename = file.name.endsWith('.csv') ? file.name : `${file.name}.csv`;

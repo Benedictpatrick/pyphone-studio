@@ -3981,18 +3981,17 @@ table.pyphone-df-table tr:nth-child(even) {
   to { transform: scale(1); }
 }
 
-.code-snippet-pre {
-  margin: 0;
-  padding: 8px 10px;
-  font-family: var(--font-mono);
-  font-size: 0.76rem;
-  color: #38bdf8;
+.code-snippet-cm {
   overflow-x: auto;
   scrollbar-width: none;
 }
 
-.code-snippet-pre::-webkit-scrollbar {
+.code-snippet-cm::-webkit-scrollbar {
   display: none;
+}
+
+.code-snippet-cm .cm-editor {
+  background: transparent;
 }
 
 .pycopilot-chips-bar {
