@@ -126,6 +126,20 @@ export const LOCAL_MODELS = [
     mlcId: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC'
   },
   {
+    id: 'Qwen2.5-Coder-0.5B-Instruct-q4f16_1-MLC',
+    name: 'Qwen2.5 Coder 0.5B (WebGPU)',
+    tag: 'Offline Local',
+    sizeMB: 500,
+    minMemoryGB: 3,
+    mobileSafe: true,
+    codingCapable: true,
+    desc: 'Purpose-built for code generation — noticeably better Python output than the general 0.5B model, with CPU fallback.',
+    badgeColor: 'emerald',
+    repo: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
+    file: 'qwen2.5-coder-0.5b-instruct-q4_k_m.gguf',
+    mlcId: 'Qwen2.5-Coder-0.5B-Instruct-q4f16_1-MLC'
+  },
+  {
     id: 'SmolLM2-360M-Instruct-q4f16_1-MLC',
     name: 'SmolLM2 360M (WebGPU)',
     tag: 'Offline Local',
