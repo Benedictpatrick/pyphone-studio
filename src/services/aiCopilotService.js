@@ -11,7 +11,7 @@ const MAX_GENERATION_TOKENS = 512;
 // Total attempts for the generate-then-verify loop = 1 initial generation +
 // this many automatic self-corrections, each of which actually re-runs the
 // code in the sandbox before deciding whether another fix is needed.
-const MAX_VERIFY_RETRIES = 2;
+const MAX_VERIFY_RETRIES = 1;
 
 // Grounds the model in the actual sandbox (real file paths, real libraries,
 // real plt.show() behavior) and shows one concrete correct pattern. Small
@@ -224,6 +224,7 @@ class AICopilotService {
     this.wllama = null;
     this.engineKind = null;
     this.isGenerating = false;
+    this._loopStopRequested = false;
 
     this.onProgressCallback = null;
     this.onGenerateComplete = null;
@@ -417,6 +418,12 @@ class AICopilotService {
   // the "generating..." indicator forever with no way out.
   cancelGeneration() {
     this._cancelRequested = true;
+    // _cancelRequested gets reset to false at the top of every
+    // generateWithWorker call, including the automatic self-correction
+    // retries inside verifyAndFixLoop, so a Stop click during attempt 1
+    // would otherwise be silently forgotten the moment attempt 2 starts.
+    // This flag is only ever cleared at the start of a fresh user prompt.
+    this._loopStopRequested = true;
     try {
       if (this.engineKind === 'webgpu' && this.engine) this.engine.interruptGenerate();
     } catch { /* engine may already be gone */ }
@@ -791,7 +798,10 @@ class AICopilotService {
     let lastError = null;
 
     for (let attempt = 0; attempt <= MAX_VERIFY_RETRIES; attempt++) {
+      if (this._loopStopRequested) return { code, note: '⏹️ Stopped.' };
+
       let verifyResult;
+      if (this.onGenerateUpdate) this.onGenerateUpdate('⏳ Verifying code in the sandbox...');
       try {
         verifyResult = await verifyPythonCode(code);
       } catch (err) {
@@ -811,8 +821,10 @@ class AICopilotService {
       }
 
       lastError = verifyResult.error;
+      if (this._loopStopRequested) return { code, note: '⏹️ Stopped.' };
       if (attempt === MAX_VERIFY_RETRIES) break;
 
+      if (this.onGenerateUpdate) this.onGenerateUpdate(`⏳ Fixing an error and retrying (attempt ${attempt + 2} of ${MAX_VERIFY_RETRIES + 1})...`);
       try {
         const fix = await this.reviewCodeWithAI(code, lastError);
         const isDifferent = fix.code && normalizeForDiff(fix.code) !== normalizeForDiff(code);
@@ -834,6 +846,7 @@ class AICopilotService {
 
   // Main Entry Point for User Prompts
   async generateResponse(userPrompt, activeCode = '') {
+    this._loopStopRequested = false;
     const promptLower = userPrompt.toLowerCase().trim();
 
     // Only treat it as "explain the code" when there's actually code open to
