@@ -68,6 +68,22 @@
       @font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/FiraCode-latin.woff2') format('woff2'); }
       @font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/FiraCode-latin.woff2') format('woff2'); }
       @font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/FiraCode-latin.woff2') format('woff2'); }
+
+      #seo-fallback {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 32px 20px 60px;
+        font-family: 'Inter', system-ui, sans-serif;
+        color: var(--ink, #fff);
+        background: var(--canvas, #090909);
+        line-height: 1.6;
+      }
+      #seo-fallback h1 { font-size: 1.4rem; margin-bottom: 12px; }
+      #seo-fallback h2 { font-size: 1.1rem; margin: 28px 0 10px; }
+      #seo-fallback h3 { font-size: 0.98rem; margin: 18px 0 6px; }
+      #seo-fallback p { color: var(--ink-muted, #a0a0a0); margin: 0 0 8px; }
+      #seo-fallback ul { color: var(--ink-muted, #a0a0a0); padding-left: 20px; margin: 0; }
+      #seo-fallback li { margin-bottom: 6px; }
     </style>
     <!-- Pyodide WASM Engine CDN. Deferred so it never blocks first paint on
          slow mobile connections — pyodideService.js already has its own
@@ -84,8 +100,45 @@
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Static SEO content. The app itself is a client-rendered PWA that
+         needs to boot a WebAssembly Python engine before it shows anything,
+         so #root above is empty at first paint and Googlebot's crawl of the
+         raw HTML sees no text at all. This block gives crawlers (and users,
+         briefly, during first load) real descriptive content immediately;
+         script below removes it the instant the React app actually mounts. -->
+    <main id="seo-fallback">
+      <h1>PyPhone Studio: Mobile Python IDE for Data Science</h1>
+      <p>PyPhone Studio is a mobile-first Python IDE that runs a real Python 3.11 engine directly in your browser via WebAssembly, no server, no install, no laptop required. Write and run actual Python code, including Pandas, NumPy, Matplotlib, and Seaborn, right from your phone.</p>
+      <h2>Features</h2>
+      <ul>
+        <li>Real Python 3.11 execution on-device, powered by Pyodide (WebAssembly), works fully offline once loaded</li>
+        <li>Pandas, NumPy, Matplotlib, and Seaborn built in for data analysis and charting</li>
+        <li>Notebook mode (cell-based, like Jupyter) and Script mode (single-file editor)</li>
+        <li>Upload your own CSV files, or use preloaded sample datasets, and generate one-click correlation heatmaps and charts</li>
+        <li>Pyxi, a local, fully offline AI coding assistant that runs on-device with no API keys or internet required</li>
+        <li>Installable as a Progressive Web App (PWA) for an app-like experience on Android and iOS</li>
+      </ul>
+      <h2>Frequently asked questions</h2>
+      <h3>Can I really run Python on my phone without installing anything?</h3>
+      <p>Yes. PyPhone Studio loads a real Python interpreter compiled to WebAssembly directly in your mobile browser. There is nothing to install on your device.</p>
+      <h3>Does it work without an internet connection?</h3>
+      <p>Once the Python engine and packages have loaded the first time, PyPhone Studio works offline as an installed PWA, including the local AI assistant.</p>
+      <h3>What Python libraries are available?</h3>
+      <p>Pandas, NumPy, Matplotlib, and Seaborn come preinstalled, and you can install additional pure-Python or WebAssembly-compatible packages from the Packages tab.</p>
+    </main>
+
     <script type="module" src="/src/main.jsx"></script>
     <script>
+      // Progressive enhancement: once React actually renders into #root,
+      // the static SEO content above has served its purpose for this visit.
+      const hideSeoFallback = () => {
+        const fallback = document.getElementById('seo-fallback');
+        const root = document.getElementById('root');
+        if (fallback && root && root.children.length) fallback.remove();
+      };
+      new MutationObserver(hideSeoFallback).observe(document.getElementById('root'), { childList: true });
+
       window.addEventListener('error', (e) => {
         const root = document.getElementById('root');
         if (root && !root.children.length) {
