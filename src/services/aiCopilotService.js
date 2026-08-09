@@ -2,9 +2,24 @@
 // Powered by Real Neural LLM Inference Engine (WebGPU / WASM Local Engine)
 
 import { checkPythonSyntax } from '../utils/pythonLinter';
-import { CreateWebWorkerMLCEngine, hasModelInCache, deleteModelAllInfoInCache } from '@mlc-ai/web-llm';
-import { Wllama, CacheManager } from '@wllama/wllama/esm/index.js';
 import { verifyPythonCode } from './pyodideService';
+
+// @mlc-ai/web-llm and @wllama are large inference-engine libraries only
+// needed once the user actually interacts with Pyxi (checking cache status,
+// downloading a model, or running one). Importing them eagerly at module
+// load time put their full weight in every visitor's initial page bundle,
+// even for people who never open the AI panel. Loaded on first real use
+// instead, and the import promise is cached so repeated calls don't re-fetch.
+let _webllmModulePromise = null;
+function loadWebLLM() {
+  if (!_webllmModulePromise) _webllmModulePromise = import('@mlc-ai/web-llm');
+  return _webllmModulePromise;
+}
+let _wllamaModulePromise = null;
+function loadWllama() {
+  if (!_wllamaModulePromise) _wllamaModulePromise = import('@wllama/wllama/esm/index.js');
+  return _wllamaModulePromise;
+}
 
 const GENERATION_TIMEOUT_MS = 60000;
 const MAX_GENERATION_TOKENS = 512;
@@ -286,6 +301,7 @@ class AICopilotService {
     
     if (model.repo && model.file) {
       try {
+        const { CacheManager } = await loadWllama();
         const cacheManager = new CacheManager();
         const key = await cacheManager.getNameFromURL(`https://huggingface.co/${model.repo}/resolve/main/${model.file}`);
         const size = await cacheManager.getSize(key);
@@ -301,7 +317,10 @@ class AICopilotService {
 
     const mlcId = model.mlcId || (model.id.includes('MLC') ? model.id : null);
     if (mlcId) {
-      try { return await hasModelInCache(mlcId); } catch (e) {
+      try {
+        const { hasModelInCache } = await loadWebLLM();
+        return await hasModelInCache(mlcId);
+      } catch (e) {
         console.warn('checkModelCached: WebGPU cache check failed:', e);
       }
     }
@@ -310,6 +329,7 @@ class AICopilotService {
   }
 
   async loadWebGpuEngine(mlcId) {
+    const { CreateWebWorkerMLCEngine } = await loadWebLLM();
     this.mlcWorker = new Worker(new URL('../workers/webllmWorker.js', import.meta.url), { type: 'module' });
     this.engine = await CreateWebWorkerMLCEngine(
       this.mlcWorker,
@@ -330,6 +350,7 @@ class AICopilotService {
     if (this.wllama) {
       await this.wllama.exit().catch(() => {});
     }
+    const { Wllama } = await loadWllama();
     this.wllama = new Wllama({ default: '/wllama/wllama.wasm' }, { allowOffline: true });
 
     await this.wllama.loadModelFromHF(
@@ -502,9 +523,11 @@ class AICopilotService {
     const model = LOCAL_MODELS.find(m => m.id === modelId) || LOCAL_MODELS[0];
 
     if (model.mlcId) {
+      const { deleteModelAllInfoInCache } = await loadWebLLM();
       await deleteModelAllInfoInCache(model.mlcId).catch(() => {});
     }
     if (model.repo && model.file) {
+      const { CacheManager } = await loadWllama();
       const cacheManager = new CacheManager();
       const url = `https://huggingface.co/${model.repo}/resolve/main/${model.file}`;
       await cacheManager.delete(url).catch(() => {});
