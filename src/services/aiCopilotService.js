@@ -11,7 +11,6 @@ const MAX_GENERATION_TOKENS = 512;
 // Total attempts for the generate-then-verify loop = 1 initial generation +
 // this many automatic self-corrections, each of which actually re-runs the
 // code in the sandbox before deciding whether another fix is needed.
-const MAX_VERIFY_RETRIES = 1;
 
 // Grounds the model in the actual sandbox (real file paths, real libraries,
 // real plt.show() behavior) and shows one concrete correct pattern. Small
@@ -224,7 +223,6 @@ class AICopilotService {
     this.wllama = null;
     this.engineKind = null;
     this.isGenerating = false;
-    this._loopStopRequested = false;
 
     this.onProgressCallback = null;
     this.onGenerateComplete = null;
@@ -418,12 +416,6 @@ class AICopilotService {
   // the "generating..." indicator forever with no way out.
   cancelGeneration() {
     this._cancelRequested = true;
-    // _cancelRequested gets reset to false at the top of every
-    // generateWithWorker call, including the automatic self-correction
-    // retries inside verifyAndFixLoop, so a Stop click during attempt 1
-    // would otherwise be silently forgotten the moment attempt 2 starts.
-    // This flag is only ever cleared at the start of a fresh user prompt.
-    this._loopStopRequested = true;
     try {
       if (this.engineKind === 'webgpu' && this.engine) this.engine.interruptGenerate();
     } catch { /* engine may already be gone */ }
@@ -787,66 +779,34 @@ class AICopilotService {
     }
   }
 
-  // Actually runs generated code in the sandbox instead of just handing it
-  // to the user unverified. On failure, feeds the real error back to the
-  // model (reviewCodeWithAI, the same primitive the "fix my error" flow
-  // uses) and re-verifies, up to MAX_VERIFY_RETRIES times. Small local
-  // models often need a couple of tries; this is what makes that invisible
-  // to the user instead of handing them a guess that fails on first run.
-  async verifyAndFixLoop(initialCode, originalPrompt) {
-    let code = initialCode;
-    let lastError = null;
-
-    for (let attempt = 0; attempt <= MAX_VERIFY_RETRIES; attempt++) {
-      if (this._loopStopRequested) return { code, note: '⏹️ Stopped.' };
-
-      let verifyResult;
-      if (this.onGenerateUpdate) this.onGenerateUpdate('⏳ Verifying code in the sandbox...');
-      try {
-        verifyResult = await verifyPythonCode(code);
-      } catch (err) {
-        // Sandbox itself failed to run the check (not a code error) — don't
-        // block the user on infrastructure trouble, just hand back what we have.
-        console.warn('verifyAndFixLoop: sandbox verification failed', err);
-        return { code, note: '' };
-      }
-
+  // Silently test-runs generated code once in the sandbox so the chat
+  // message can honestly say whether it actually works, without paying for
+  // a second full AI generation call. An earlier version auto-regenerated
+  // on failure (up to 3 total generations), which was noticeably slower and
+  // made the Stop button unreliable mid-retry; a single sandbox run is
+  // near-instant (well under a second for typical code) and costs nothing
+  // close to that.
+  async verifyOnce(code) {
+    try {
+      const verifyResult = await verifyPythonCode(code);
       if (verifyResult.success) {
-        return {
-          code,
-          note: attempt === 0
-            ? '✅ Verified: this code ran successfully in the sandbox.'
-            : `✅ Verified: fixed and confirmed working after ${attempt} self-correction${attempt > 1 ? 's' : ''}.`
-        };
+        return { code, note: '✅ Verified: this code ran successfully in the sandbox.' };
       }
-
-      lastError = verifyResult.error;
-      if (this._loopStopRequested) return { code, note: '⏹️ Stopped.' };
-      if (attempt === MAX_VERIFY_RETRIES) break;
-
-      if (this.onGenerateUpdate) this.onGenerateUpdate(`⏳ Fixing an error and retrying (attempt ${attempt + 2} of ${MAX_VERIFY_RETRIES + 1})...`);
-      try {
-        const fix = await this.reviewCodeWithAI(code, lastError);
-        const isDifferent = fix.code && normalizeForDiff(fix.code) !== normalizeForDiff(code);
-        if (!isDifferent) break; // model couldn't produce an actual change, no point retrying identical code
-        const { fixedCode, fixesApplied } = this.repairCode(fix.code, lastError);
-        code = fixesApplied.length > 0 ? fixedCode : fix.code;
-      } catch (err) {
-        console.warn('verifyAndFixLoop: self-correction generation failed', err);
-        break;
-      }
+      const shortError = (verifyResult.error || '').split('\n').filter(Boolean).pop() || verifyResult.error || 'unknown error';
+      return {
+        code,
+        note: `⚠️ Heads up: this hit an error when tested (\`${shortError}\`). You may need to adjust it, or try a bigger model.`
+      };
+    } catch (err) {
+      // Sandbox itself failed to run the check (not a code error) — don't
+      // block the user on infrastructure trouble, just hand back what we have.
+      console.warn('verifyOnce: sandbox verification failed', err);
+      return { code, note: '' };
     }
-
-    const shortError = (lastError || '').split('\n').filter(Boolean).pop() || lastError || 'unknown error';
-    return {
-      code,
-      note: `⚠️ Heads up: this still hit an error after ${MAX_VERIFY_RETRIES + 1} attempts (\`${shortError}\`). Showing the closest attempt, you may need to adjust it, or try a bigger model for "${originalPrompt}".`
-    };
   }
 
   // Main Entry Point for User Prompts
   async generateResponse(userPrompt, activeCode = '') {
-    this._loopStopRequested = false;
     const promptLower = userPrompt.toLowerCase().trim();
 
     // Only treat it as "explain the code" when there's actually code open to
@@ -897,13 +857,13 @@ class AICopilotService {
           }
         }
 
-        // Agentic verify-then-fix loop: actually execute the generated code
-        // in an isolated sandbox before handing it to the user, instead of a
-        // one-shot guess the user finds out is broken only after running it
-        // themselves. Skipped for "explain this code" replies, where the
-        // snippet is illustrative, not necessarily meant to stand alone.
+        // Actually execute the generated code once in an isolated sandbox
+        // before handing it to the user, instead of a one-shot guess the
+        // user finds out is broken only after running it themselves.
+        // Skipped for "explain this code" replies, where the snippet is
+        // illustrative, not necessarily meant to stand alone.
         if (codeSnippet && !isExplanationIntent) {
-          const verified = await this.verifyAndFixLoop(codeSnippet, userPrompt);
+          const verified = await this.verifyOnce(codeSnippet);
           codeSnippet = verified.code;
           explanation = `${explanation}\n\n${verified.note}`.trim();
         }
