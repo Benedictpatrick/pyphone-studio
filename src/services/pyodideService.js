@@ -508,6 +508,44 @@ sys.stderr = _orig_stderr
 }
 
 /**
+ * Silently runs a candidate code snippet (e.g. one Pyxi just generated) to
+ * check whether it actually executes without error, used for the AI
+ * assistant's generate-then-verify loop. Deliberately does NOT reuse the
+ * shared globals() namespace that the user's own notebook/script cells run
+ * in: pandas/numpy/matplotlib/seaborn are real shared module singletons
+ * across the whole interpreter (fine to import again here, it's just a cheap
+ * sys.modules lookup), but variable names are not, so verifying Pyxi's code
+ * in the shared namespace could silently overwrite the user's own in-progress
+ * variables (e.g. both defining `df`). Runs in a fresh, throwaway dict
+ * instead. Queued on the same executionQueue as real runs so it can't race
+ * with (or interleave stdout/plot capture with) an actual user execution.
+ */
+export async function verifyPythonCode(codeString) {
+  const run = async () => {
+    const pyodide = await initPyodide();
+    const freshGlobals = pyodide.runPython('{}');
+    let errorMsg = null;
+    try {
+      const wrapped = `import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nimport traceback\n\n${codeString}`;
+      await pyodide.runPythonAsync(wrapped, { globals: freshGlobals });
+    } catch (err) {
+      try {
+        const tb = await pyodide.runPythonAsync('traceback.format_exc()', { globals: freshGlobals });
+        errorMsg = (tb && tb.trim() && tb.trim() !== 'NoneType: None') ? tb.trim() : (err.message || String(err));
+      } catch {
+        errorMsg = err.message || String(err);
+      }
+    } finally {
+      freshGlobals.destroy();
+    }
+    return { success: !errorMsg, error: errorMsg };
+  };
+
+  executionQueue = executionQueue.catch(() => undefined).then(run);
+  return executionQueue;
+}
+
+/**
  * Retrieve list of active Python variables in memory
  */
 export async function getActiveVariables() {

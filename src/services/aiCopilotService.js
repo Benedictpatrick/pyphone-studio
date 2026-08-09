@@ -4,9 +4,14 @@
 import { checkPythonSyntax } from '../utils/pythonLinter';
 import { CreateWebWorkerMLCEngine, hasModelInCache, deleteModelAllInfoInCache } from '@mlc-ai/web-llm';
 import { Wllama, CacheManager } from '@wllama/wllama/esm/index.js';
+import { verifyPythonCode } from './pyodideService';
 
 const GENERATION_TIMEOUT_MS = 60000;
 const MAX_GENERATION_TOKENS = 512;
+// Total attempts for the generate-then-verify loop = 1 initial generation +
+// this many automatic self-corrections, each of which actually re-runs the
+// code in the sandbox before deciding whether another fix is needed.
+const MAX_VERIFY_RETRIES = 2;
 
 // Grounds the model in the actual sandbox (real file paths, real libraries,
 // real plt.show() behavior) and shows one concrete correct pattern. Small
@@ -775,6 +780,58 @@ class AICopilotService {
     }
   }
 
+  // Actually runs generated code in the sandbox instead of just handing it
+  // to the user unverified. On failure, feeds the real error back to the
+  // model (reviewCodeWithAI, the same primitive the "fix my error" flow
+  // uses) and re-verifies, up to MAX_VERIFY_RETRIES times. Small local
+  // models often need a couple of tries; this is what makes that invisible
+  // to the user instead of handing them a guess that fails on first run.
+  async verifyAndFixLoop(initialCode, originalPrompt) {
+    let code = initialCode;
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= MAX_VERIFY_RETRIES; attempt++) {
+      let verifyResult;
+      try {
+        verifyResult = await verifyPythonCode(code);
+      } catch (err) {
+        // Sandbox itself failed to run the check (not a code error) — don't
+        // block the user on infrastructure trouble, just hand back what we have.
+        console.warn('verifyAndFixLoop: sandbox verification failed', err);
+        return { code, note: '' };
+      }
+
+      if (verifyResult.success) {
+        return {
+          code,
+          note: attempt === 0
+            ? '✅ Verified: this code ran successfully in the sandbox.'
+            : `✅ Verified: fixed and confirmed working after ${attempt} self-correction${attempt > 1 ? 's' : ''}.`
+        };
+      }
+
+      lastError = verifyResult.error;
+      if (attempt === MAX_VERIFY_RETRIES) break;
+
+      try {
+        const fix = await this.reviewCodeWithAI(code, lastError);
+        const isDifferent = fix.code && normalizeForDiff(fix.code) !== normalizeForDiff(code);
+        if (!isDifferent) break; // model couldn't produce an actual change, no point retrying identical code
+        const { fixedCode, fixesApplied } = this.repairCode(fix.code, lastError);
+        code = fixesApplied.length > 0 ? fixedCode : fix.code;
+      } catch (err) {
+        console.warn('verifyAndFixLoop: self-correction generation failed', err);
+        break;
+      }
+    }
+
+    const shortError = (lastError || '').split('\n').filter(Boolean).pop() || lastError || 'unknown error';
+    return {
+      code,
+      note: `⚠️ Heads up: this still hit an error after ${MAX_VERIFY_RETRIES + 1} attempts (\`${shortError}\`). Showing the closest attempt, you may need to adjust it, or try a bigger model for "${originalPrompt}".`
+    };
+  }
+
   // Main Entry Point for User Prompts
   async generateResponse(userPrompt, activeCode = '') {
     const promptLower = userPrompt.toLowerCase().trim();
@@ -825,6 +882,17 @@ class AICopilotService {
           if (fixesApplied.length > 0) {
             codeSnippet = fixedCode;
           }
+        }
+
+        // Agentic verify-then-fix loop: actually execute the generated code
+        // in an isolated sandbox before handing it to the user, instead of a
+        // one-shot guess the user finds out is broken only after running it
+        // themselves. Skipped for "explain this code" replies, where the
+        // snippet is illustrative, not necessarily meant to stand alone.
+        if (codeSnippet && !isExplanationIntent) {
+          const verified = await this.verifyAndFixLoop(codeSnippet, userPrompt);
+          codeSnippet = verified.code;
+          explanation = `${explanation}\n\n${verified.note}`.trim();
         }
 
         return {
