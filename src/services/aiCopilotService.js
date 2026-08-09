@@ -226,6 +226,24 @@ class AICopilotService {
     }
   }
 
+  // Cache API and OPFS (used to store the downloaded model weights) are
+  // "best-effort" storage by default — browsers are free to silently evict
+  // them under disk pressure (Chrome) or after a period of inactivity
+  // (~7 days on iOS Safari). Without this, a model that downloaded fine can
+  // vanish from cache on its own and silently force a full re-download next
+  // time, even though nothing in the app changed.
+  async requestPersistentStorage() {
+    try {
+      if (!navigator.storage?.persist) return false;
+      const already = await navigator.storage.persisted?.();
+      if (already) return true;
+      return await navigator.storage.persist();
+    } catch (e) {
+      console.warn('requestPersistentStorage failed:', e);
+      return false;
+    }
+  }
+
   getSelectedModel() {
     return LOCAL_MODELS.find(m => m.id === this.activeModelId) || LOCAL_MODELS[0];
   }
@@ -244,14 +262,20 @@ class AICopilotService {
         const key = await cacheManager.getNameFromURL(`https://huggingface.co/${model.repo}/resolve/main/${model.file}`);
         const size = await cacheManager.getSize(key);
         if (size > 0) return true;
-      } catch {
-        // Fallthrough to webgpu check
+      } catch (e) {
+        // OPFS/CacheManager can throw in environments without OPFS support
+        // (private browsing, older Safari). Log it so a false "not cached"
+        // result — which forces a full re-download — is diagnosable instead
+        // of silently looking like the model was never downloaded.
+        console.warn('checkModelCached: CPU/OPFS cache check failed, falling back to WebGPU cache check:', e);
       }
     }
 
     const mlcId = model.mlcId || (model.id.includes('MLC') ? model.id : null);
     if (mlcId) {
-      try { return await hasModelInCache(mlcId); } catch {}
+      try { return await hasModelInCache(mlcId); } catch (e) {
+        console.warn('checkModelCached: WebGPU cache check failed:', e);
+      }
     }
 
     return false;
@@ -340,6 +364,7 @@ class AICopilotService {
 
       this.isLoaded = true;
       this.isLoading = false;
+      await this.requestPersistentStorage();
       if (this.onProgressCallback) {
         this.onProgressCallback({ progress: 100, message: 'Ready!' });
         this.onProgressCallback = null;

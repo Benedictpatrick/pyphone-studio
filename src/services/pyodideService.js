@@ -80,7 +80,27 @@ export async function initPyodide(onProgress = () => {}, forceRetry = false) {
 
       const pyodide = await window.loadPyodide({
         indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/',
-        stdin: () => window.prompt('Python Input Required:')
+        // input() already writes its own prompt text to sys.stdout (our
+        // _stdout_buf) before this fires, so the Terminal tab shows the
+        // prompt correctly. What's missing is an echo of what the user
+        // typed — a real terminal echoes keystrokes as you type, we don't,
+        // so without this the typed value silently vanishes and the next
+        // prompt/print() output runs directly into the previous one with
+        // no line break. Write the typed value + newline straight into the
+        // currently active stdout buffer so the transcript reads correctly.
+        stdin: () => {
+          const value = window.prompt('Python Input Required:') ?? '';
+          try {
+            const buf = pyodide.globals.get('_stdout_buf');
+            if (buf) {
+              buf.write(value + '\n');
+              buf.destroy?.();
+            }
+          } catch (e) {
+            console.warn('Failed to echo input() value into terminal output:', e);
+          }
+          return value;
+        }
       });
 
       // Load built-in C-extension packages sequentially for mobile stability
