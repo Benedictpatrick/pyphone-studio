@@ -59,6 +59,23 @@ plt.title('Correlation Heatmap')
 plt.show()
 \`\`\``;
 
+// Used instead of CODEGEN_SYSTEM_PROMPT for "explain this code" requests.
+// The codegen prompt's few-shot example (a full python code block) biases
+// tiny models into always answering with code, even when asked to explain —
+// this prompt has no code example in it at all, so there's nothing for a
+// small model to imitate into an unwanted code block.
+const EXPLAIN_SYSTEM_PROMPT = `You are Pyxi, a Python teaching assistant. The user wants a plain-English explanation of a piece of Python code. Explain what the code does and how, in clear prose sentences. Do not repeat the code back as a code block, and do not rewrite, "fix", or improve it — only explain what is already there.`;
+
+// Small local models can't reliably weigh an "if this, do X, else do Y"
+// instruction embedded in the same turn — they tend to just pattern-match
+// the strongest imperative in the prompt ("return the complete updated
+// code") and obey it regardless of what was actually asked, which is why a
+// plain "hi" sent with real code open in the editor came back as a code
+// dump. Used to gate the code-context template to actual code requests only;
+// a greeting or short chat message is passed through as-is instead (see
+// generateResponse below).
+const CODE_REQUEST_HINTS = /\b(code|script|function|write|create|generate|build|make|plot|chart|graph|analy[sz]e|csv|dataframe|\bdf\b|pandas|numpy|seaborn|matplotlib|loop|class\b|import|variable|algorithm|sort|fix|debug|error|bug|convert|refactor|optimi[sz]e)\b/;
+
 // Small models (SmolLM2 360M, Qwen 0.5B) can still degenerate into repeating
 // the same line forever even with a repetition penalty. Cut the response off
 // the moment a line repeats 3+ times in a row, so the UI shows a clean partial
@@ -847,6 +864,14 @@ class AICopilotService {
       .split('\n')
       .some(line => line.trim() && !line.trim().startsWith('#'));
 
+    // Only wrap the prompt in the "here's your editor code, update it"
+    // template when the message actually reads like a code request. Without
+    // this gate, greetings and plain chat ("hi", "thanks") sent while real
+    // code was open in the editor got wrapped in that template too, and
+    // small models would just obey its "return the complete updated code"
+    // instruction regardless of what the user actually said.
+    const isLikelyCodeRequest = CODE_REQUEST_HINTS.test(promptLower);
+
     const ready = await this.ensureModelReady();
     if (!ready) {
       return {
@@ -864,16 +889,17 @@ class AICopilotService {
       let fullPromptText;
       if (isExplanationIntent) {
         fullPromptText = `Explain how this Python code works:\n${activeCode}`;
-      } else if (hasRealCode) {
-        // Give Pyxi the editor's current code as context for every request,
-        // not just "explain" ones, so it can actually modify/extend/fix
-        // what's already there instead of always writing from scratch with
-        // zero awareness of it.
-        fullPromptText = `The user's current code in the editor is:\n\`\`\`python\n${codeForContext}\n\`\`\`\n\nUser request: ${userPrompt}\n\nIf the request is about modifying, extending, fixing, or building on this existing code, use it as the starting point and return the complete updated code in one block. If the request is unrelated to this code (a greeting, a completely different task, general conversation), ignore the code above and just respond to the request normally.`;
+      } else if (hasRealCode && isLikelyCodeRequest) {
+        // Give Pyxi the editor's current code as context so it can actually
+        // modify/extend/fix what's already there instead of always writing
+        // from scratch with zero awareness of it. Only reached once we've
+        // already confirmed this looks like a real code request, so there's
+        // no ambiguity left for a small model to get wrong.
+        fullPromptText = `The user's current code in the editor is:\n\`\`\`python\n${codeForContext}\n\`\`\`\n\n${userPrompt}\n\nModify or build on the code above to satisfy the request, and return the complete updated code in one block.`;
       } else {
         fullPromptText = userPrompt;
       }
-      const rawResponse = await this.generateWithWorker(fullPromptText);
+      const rawResponse = await this.generateWithWorker(fullPromptText, isExplanationIntent ? EXPLAIN_SYSTEM_PROMPT : undefined);
       const workerResponse = stripRepetitionLoop(rawResponse);
 
       if (workerResponse) {
