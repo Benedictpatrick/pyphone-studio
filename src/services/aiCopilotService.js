@@ -66,6 +66,14 @@ plt.show()
 // small model to imitate into an unwanted code block.
 const EXPLAIN_SYSTEM_PROMPT = `You are Pyxi, a Python teaching assistant. The user wants a plain-English explanation of a piece of Python code. Explain what the code does and how, in clear prose sentences. Do not repeat the code back as a code block, and do not rewrite, "fix", or improve it — only explain what is already there.`;
 
+// Used for plain chat (greetings, small talk, general questions) instead of
+// CODEGEN_SYSTEM_PROMPT. CODEGEN_SYSTEM_PROMPT's instruction not to write
+// code for a greeting wasn't enough on its own: it also contains a full
+// python code block as a few-shot example, and small models imitate the
+// shape of that example over the instruction that precedes it. Keeping this
+// prompt free of any code example removes that pull entirely.
+const CHAT_SYSTEM_PROMPT = `You are Pyxi, a friendly Python coding assistant. The user just sent a greeting or general chat message, not a request for code. Reply naturally and briefly in plain text only. Do not write any Python code or code blocks in this reply.`;
+
 // Small local models can't reliably weigh an "if this, do X, else do Y"
 // instruction embedded in the same turn — they tend to just pattern-match
 // the strongest imperative in the prompt ("return the complete updated
@@ -899,7 +907,12 @@ class AICopilotService {
       } else {
         fullPromptText = userPrompt;
       }
-      const rawResponse = await this.generateWithWorker(fullPromptText, isExplanationIntent ? EXPLAIN_SYSTEM_PROMPT : undefined);
+      const systemPromptForRequest = isExplanationIntent
+        ? EXPLAIN_SYSTEM_PROMPT
+        : isLikelyCodeRequest
+          ? CODEGEN_SYSTEM_PROMPT
+          : CHAT_SYSTEM_PROMPT;
+      const rawResponse = await this.generateWithWorker(fullPromptText, systemPromptForRequest);
       const workerResponse = stripRepetitionLoop(rawResponse);
 
       if (workerResponse) {
